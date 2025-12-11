@@ -1,0 +1,52 @@
+const OnboardingFormData = {
+  service_agreement_provided: 0,
+  service_agreement_date: "",
+  participant_handbook_provided: 0,
+  participant_handbook_date: "",
+  support_care_plan_offered: 0,
+  support_care_plan_date: "",
+  consent_form_signed: 0,
+  consent_form_date: "",
+  feedback_form_provided: 0,
+  feedback_form_date: "",
+  home_safety_check_conducted: 0,
+  home_safety_check_date: "",
+  medication_consent_form: 0,
+  medication_consent_date: "",
+  onboarding_form_completed: 0,
+  onboarding_form_date: "",
+  risk_assessment_completed: 0,
+  risk_assessment_date: "",
+  behaviour_support_plan_obtained: 0,
+  behaviour_support_plan_date: "",
+  high_intensity_support_plan_obtained: 0,
+  high_intensity_support_plan_date: "",
+  mealtime_plan_obtained: 0,
+  mealtime_plan_date: "",
+  sil_occupancy_agreement_provided: 0,
+  sil_occupancy_agreement_date: "",
+  external_provider_agreement_completed: 0,
+  external_provider_agreement_date: "",
+  sda_residency_agreement_provided: 0,
+  sda_residency_agreement_date: "",
+  sda_welcome_pack_provided: 0,
+  sda_welcome_pack_date: "",
+  sda_residency_statement_provided: 0,
+  sda_residency_statement_date: "",
+  submit_final: 0,
+  form_status: '',
+
+
+  clarify_services_provided: 0,
+  verbal_information_intake_process: 0,
+  cost_of_services: 0,
+  participant_rights_handbook: 0,
+
+
+
+  participant_name: "",
+  relationship_to_participant: "",
+  participant_signature: "", // Can be binary data URL or base64 string
+  signed_date: "",
+};
+export default OnboardingFormData;

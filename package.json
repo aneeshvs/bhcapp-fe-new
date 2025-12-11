@@ -1,0 +1,39 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "animate.css": "^4.1.1",
+    "axios": "^1.10.0",
+    "flatpickr": "^4.6.13",
+    "i18next": "^24.2.3",
+    "mantine-datatable": "^7.17.1",
+    "next": "^16.0.8",
+    "ni18n": "^1.1.0",
+    "react": "^19.2.1",
+    "react-animate-height": "^3.2.3",
+    "react-dom": "^19.2.1",
+    "react-i18next": "^15.5.3",
+    "react-perfect-scrollbar": "^1.5.8",
+    "react-redux": "^9.2.0",
+    "signature_pad": "^5.0.10"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"  
+  }
+}

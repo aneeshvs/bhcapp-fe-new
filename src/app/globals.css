@@ -1,0 +1,325 @@
+@import 'animate.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "tailwindcss"; 
+@theme {
+    /* Colors */
+    --color-white-light: #f0f0f0;
+    
+    /* Primary */
+    --color-primary: 67 97 238;
+    --color-primary-light: 234 241 255;
+    --color-primary-dark-light: 67 97 238 / 0.15;
+    
+    /* Secondary */
+    --color-secondary: 128 93 202;
+    --color-secondary-light: 235 228 247;
+    --color-secondary-dark-light: 128 93 202 / 0.15;
+    
+    /* Success */
+    --color-success: 0 171 85;
+    --color-success-light: 221 245 240;
+    --color-success-dark-light: 0 171 85 / 0.15;
+    
+    /* Danger */
+    --color-danger: 231 81 90;
+    --color-danger-light: 255 245 245;
+    --color-danger-dark-light: 231 81 90 / 0.15;
+    
+    /* Warning */
+    --color-warning: 226 160 63;
+    --color-warning-light: 255 249 237;
+    --color-warning-dark-light: 226 160 63 / 0.15;
+    
+    /* Info */
+    --color-info: 33 150 243;
+    --color-info-light: 231 247 255;
+    --color-info-dark-light: 33 150 243 / 0.15;
+    
+    /* Dark */
+    --color-dark: 59 63 92;
+    --color-dark-light: 234 234 236;
+    --color-dark-dark-light: 59 63 92 / 0.15;
+    
+    /* Black */
+    --color-black: 14 23 38;
+    --color-black-light: 227 228 235;
+    --color-black-dark-light: 14 23 38 / 0.15;
+    
+    /* White */
+    --color-white: 255 255 255;
+    --color-white-light: 224 230 237;
+    --color-white-dark: 136 142 168;
+    
+    /* Container */
+    --container-center: true;
+    
+    /* Spacing */
+    --spacing-4_5: 18px;
+    
+    /* Font Family */
+    --font-family-sans: var(--font-nunito); 
+    --font-family-nunito: var(--font-nunito);
+    
+    /* Box Shadow */
+    --shadow-3xl: 0 2px 2px rgb(224 230 237 / 46%), 1px 6px 7px rgb(224 230 237 / 46%);
+    
+    /* Typography */
+    --prose-invert-headings: var(--color-white-dark);
+    --prose-invert-links: var(--color-white-dark);
+    
+    /* Rotate Utility */
+    --rotate-y-180: rotateY(180deg);
+  }
+  
+  @layer utilities {
+    .font-nunito {
+        font-family: var(--font-nunito), sans-serif;
+    }
+    .rotate-y-180 {
+      transform: var(--rotate-y-180);
+    }
+  }
+  
+  /* Typography styles would need to be defined separately in your CSS */
+  .prose h1 {
+    font-size: 40px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose h2 {
+    font-size: 32px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose h3 {
+    font-size: 28px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose h4 {
+    font-size: 24px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose h5 {
+    font-size: 20px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose h6 {
+    font-size: 16px;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  .prose p {
+    margin-bottom: 0.5rem;
+  }
+  .prose li {
+    margin: 0;
+  }
+  .prose img {
+    margin: 0;
+  }
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #4a5568;
+    border-radius: 4px;
+  }
+  /* Form */
+  .form-input,
+  .form-textarea,
+  .form-select,
+  .form-multiselect {
+      @apply w-full rounded-md border  bg-white px-4 py-2 text-sm font-semibold text-black !outline-none focus:border-indigo-500 focus:ring-transparent dark:border-[#17263c] dark:bg-[#121e32] dark:text-white-dark dark:focus:border-primary;
+  }
+
+  .form-input-lg,
+  .form-textarea-lg,
+  .form-select-lg,
+  .form-multiselect-lg {
+      @apply py-2.5 text-base;
+  }
+  .form-input-sm,
+  .form-textarea-sm,
+  .form-select-sm,
+  .form-multiselect-sm {
+      @apply py-1.5 text-xs;
+  }
+  label {
+      @apply mb-1.5 block font-semibold;
+  }
+  [dir='rtl'] select {
+      background-position: left 0.5rem center;
+  }
+
+  .has-error .form-input,
+  .has-error .form-textarea,
+  .has-error .form-select,
+  .has-error .form-multiselect,
+  .has-error .multiselect__tags {
+      @apply border-danger bg-danger/[0.08] text-danger placeholder-danger/70 focus:border-danger;
+  }
+  .has-error .form-label,
+  .has-error .form-help,
+  .has-error .form-icon,
+  .has-error .multiselect__placeholder {
+      @apply text-danger;
+  }
+  .has-error .multiselect__input {
+      @apply bg-[#F7ECF0] !placeholder-danger/70;
+  }
+  .has-error .multiselect__tags:hover,
+  .has-error .form-checkbox {
+      @apply border-danger;
+  }
+
+  .has-success .form-input,
+  .has-success .form-textarea,
+  .has-success .form-select,
+  .has-success .form-multiselect,
+  .has-success .multiselect__tags {
+      @apply border-success bg-success/[0.08] text-success placeholder-success/70 focus:border-success;
+  }
+  .has-success .form-label,
+  .has-success .form-help,
+  .has-success .form-icon,
+  .has-success .multiselect__placeholder {
+      @apply text-success;
+  }
+  .has-success .multiselect__input {
+      @apply bg-[#F7ECF0] !placeholder-success/70;
+  }
+  .has-success .multiselect__tags:hover {
+      @apply border-success;
+  }
+  @layer components {
+    html {
+        @apply scroll-smooth;
+    }
+
+    body {
+        @apply bg-[#fafafa] font-sans;
+    }
+
+    body.dark {
+        @apply bg-[#060818];
+    }
+
+    /* Panel */
+    .panel {
+        @apply relative rounded-md bg-white p-5 shadow dark:bg-black;
+    }
+    /* Navbar */
+    .navbar-sticky header,
+    .navbar-floating header {
+        @apply sticky top-0 z-20;
+    }
+    .navbar-floating header {
+        @apply bg-[#fafafa]/90 px-6 pt-4 dark:bg-[#060818]/90;
+    }
+    .navbar-floating header > div > div:first-child {
+        @apply rounded-md;
+    }
+    .horizontal .navbar-floating header > div > div:first-child {
+        @apply rounded-b-none;
+    }
+    .horizontal .navbar-floating header .horizontal-menu {
+        @apply rounded-b-md;
+    }
+}
+   /* Sidebar */
+   .sidebar {
+    @apply bg-white dark:bg-black; /* optional dark mode fallback */
+}
+
+   .sidebar:hover .nav-item > a {
+    @apply w-auto;
+}
+
+.sidebar .nav-item > button,
+.sidebar .nav-item > a {
+    @apply mb-1 flex w-full items-center justify-between overflow-hidden whitespace-nowrap rounded-md p-2.5 text-[#506690] hover:bg-[#000]/[0.08] hover:text-black dark:hover:bg-[#181f32] dark:hover:text-white-dark;
+}
+.sidebar .nav-item > button.active,
+.sidebar .nav-item > a.active {
+    @apply bg-[#000]/[0.08] text-black dark:bg-[#181f32] dark:text-white-dark;
+}
+
+.sidebar .nav-item > button.active > div > span,
+.sidebar .nav-item > a.active > div > span {
+    @apply dark:!text-white-dark;
+}
+
+.sidebar ul.sub-menu li button,
+.sidebar ul.sub-menu li a {
+    @apply flex w-full items-center px-9 py-2.5 before:h-0.5 before:w-2 before:rounded before:bg-gray-300 hover:bg-gray-100
+hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark:before:bg-gray-500 dark:hover:bg-gray-900 dark:hover:text-primary;
+}
+.sidebar ul.sub-menu li button.active,
+.sidebar ul.sub-menu li a.active {
+    @apply text-primary before:bg-primary;
+}
+
+.sidebar .nav-item a div:first-child svg,
+.sidebar .nav-item button div:first-child svg {
+    @apply h-5 w-5 text-black/50 dark:text-white/50;
+}
+
+.main-container .main-content {
+    @apply transition-all duration-300 lg:ltr:ml-[260px] lg:rtl:mr-[260px];
+}
+
+
+ /* dropdown */
+    .dropdown {
+        @apply relative;
+    }
+    .dropdown > button {
+        @apply flex;
+    }
+    .dropdown ul {
+        @apply my-1 min-w-[120px] rounded bg-white p-0 py-2 text-black shadow dark:bg-[#1b2e4b] dark:text-white-dark;
+    }
+    .dropdown ul li > a,
+    .dropdown ul li > button {
+        @apply flex items-center px-4 py-2 hover:bg-primary/10 hover:text-primary;
+    }
+    .dropdown ul li > button {
+        @apply w-full;
+    }
+    .btn-primary {
+    color: #fff;
+    background-color: #1176BC; /* New primary color */
+    border-color: #1176BC;
+    }
+
+    .btn-primary:hover {
+    background-color: #8EC641; /* New hover color */
+    border-color: #8EC641;
+    }
+
+    .text-heading {
+    color: #1176BC; /* Match primary text color */
+    }
+
+
+.mantine-Pagination-control {
+  background-color: #1176BC; /* Primary color */
+  color: #fff;
+  border: 1px solid #1176BC;
+}
+
+.mantine-Pagination-control:hover {
+  background-color: #8EC641; /* Hover color */
+  border-color: #8EC641;
+}
+
+.datatables .mantine-Pagination-control[data-active] {
+  background-color: #8EC641; /* Active color same as hover */
+  border-color: #8EC641;
+  color: #fff;
+}
