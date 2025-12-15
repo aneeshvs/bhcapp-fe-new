@@ -211,7 +211,9 @@ const supportPlanFormData = {
     has_stairs_at_home: 0,
     stairs_at_home_details: '',
     can_transfer_self: 0,
+    transfer_self_details: '', // NEW FIELD
     can_transfer_in_other_envs: 0,
+    transfer_other_env_details: '', // NEW FIELD
     uses_bed_pole_or_rails: 0,
     bed_pole_prescribed_by_ot: 0,
     can_access_places_outside_walking_distance: 0,
@@ -226,10 +228,13 @@ const supportPlanFormData = {
     equipment_purchase_type: '',
     uses_four_wheel_walker: 0,
     four_wheel_walker_details: '',
-    wheelchair_type: '',
+    wheelchair_type: 0,
+    wheelchair_use_details: '', // NEW FIELD
     wheelchair_operation: '',
     wheelchair_ot_recommended: 0,
+    wheelchair_ot: '', // NEW FIELD
     can_charge_wheelchair: 0,
+    can_charge_details: '', // NEW FIELD
     last_wheelchair_service_date: '',
     can_carry_5kg: 0,
     carry_5kg_details: '',
@@ -239,6 +244,7 @@ const supportPlanFormData = {
     mobility_worries_details: '',
     last_ot_assessment_date: '',
     new_ot_referral_required: 0,
+    new_ot_referral_details: '', // NEW FIELD
     demmi_assessment_required: 0,
     demmi_assessment_result: '',
 

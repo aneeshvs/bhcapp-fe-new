@@ -1,5 +1,5 @@
 "use client";
-import React, { useState,useEffect  } from "react";
+import React, { useState, useEffect } from "react";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import { SupportPlanMobilityTransfers } from "@/src/components/SupportPlan/types";
 import DatePicker from "../../DatePicker";
@@ -71,6 +71,30 @@ export default function MobilityTransfersForm({
     }
   }, [formData.has_stairs_at_home, formData.stairs_at_home_details, handleChange]);
 
+  // Clear transfer self details when can_transfer_self is set to "No"
+  useEffect(() => {
+    if (formData.can_transfer_self === 0 && formData.transfer_self_details) {
+      handleChange({
+        target: {
+          name: 'transfer_self_details',
+          value: ''
+        }
+      });
+    }
+  }, [formData.can_transfer_self, formData.transfer_self_details, handleChange]);
+
+  // Clear transfer other env details when can_transfer_in_other_envs is set to "No"
+  useEffect(() => {
+    if (formData.can_transfer_in_other_envs === 0 && formData.transfer_other_env_details) {
+      handleChange({
+        target: {
+          name: 'transfer_other_env_details',
+          value: ''
+        }
+      });
+    }
+  }, [formData.can_transfer_in_other_envs, formData.transfer_other_env_details, handleChange]);
+
   // Clear bed pole prescribed by OT when uses_bed_pole_or_rails is set to "No"
   useEffect(() => {
     if (formData.uses_bed_pole_or_rails === 0 && formData.bed_pole_prescribed_by_ot !== undefined) {
@@ -131,6 +155,42 @@ export default function MobilityTransfersForm({
     }
   }, [formData.uses_four_wheel_walker, formData.four_wheel_walker_details, handleChange]);
 
+  // Clear wheelchair use details when wheelchair_type is empty or "none"
+  useEffect(() => {
+    if (formData.wheelchair_type ===0 && formData.wheelchair_use_details) {
+      handleChange({
+        target: {
+          name: 'wheelchair_use_details',
+          value: ''
+        }
+      });
+    }
+  }, [formData.wheelchair_type, formData.wheelchair_use_details, handleChange]);
+
+  // Clear wheelchair OT field when wheelchair_ot_recommended is set to "No"
+  useEffect(() => {
+    if (formData.wheelchair_ot_recommended === 0 && formData.wheelchair_ot) {
+      handleChange({
+        target: {
+          name: 'wheelchair_ot',
+          value: ''
+        }
+      });
+    }
+  }, [formData.wheelchair_ot_recommended, formData.wheelchair_ot, handleChange]);
+
+  // Clear charge details when can_charge_wheelchair is set to "No"
+  useEffect(() => {
+    if (formData.can_charge_wheelchair === 0 && formData.can_charge_details) {
+      handleChange({
+        target: {
+          name: 'can_charge_details',
+          value: ''
+        }
+      });
+    }
+  }, [formData.can_charge_wheelchair, formData.can_charge_details, handleChange]);
+
   // Clear carry 5kg details when can_carry_5kg is set to "No"
   useEffect(() => {
     if (formData.can_carry_5kg === 0 && formData.carry_5kg_details) {
@@ -167,6 +227,18 @@ export default function MobilityTransfersForm({
     }
   }, [formData.mobility_worries, formData.mobility_worries_details, handleChange]);
 
+  // Clear new OT referral details when new_ot_referral_required is set to "No"
+  useEffect(() => {
+    if (formData.new_ot_referral_required === 0 && formData.new_ot_referral_details) {
+      handleChange({
+        target: {
+          name: 'new_ot_referral_details',
+          value: ''
+        }
+      });
+    }
+  }, [formData.new_ot_referral_required, formData.new_ot_referral_details, handleChange]);
+
   // Clear DEMMI assessment result when demmi_assessment_required is set to "No"
   useEffect(() => {
     if (formData.demmi_assessment_required === 0 && formData.demmi_assessment_result) {
@@ -199,7 +271,7 @@ export default function MobilityTransfersForm({
     });
   };
 
-  const renderYesNoField = (fieldName: string, label: string, detailsField?: string) => (
+  const renderYesNoField = (fieldName: string, label: string, detailsField?: string, additionalFields?: string[]) => (
     <>
       <div
         className="relative"
@@ -235,32 +307,74 @@ export default function MobilityTransfersForm({
       </div>
 
       {detailsField && formData[fieldName as keyof SupportPlanMobilityTransfers] === 1 && (
-        <div
-          className="relative md:col-span-2"
-          onMouseEnter={() => setHoveredField(detailsField)}
-          onMouseLeave={() => setHoveredField(null)}
-        >
-          <div className="flex justify-between items-center mb-1">
-            <label className="block font-medium">Details</label>
-            {hoveredField === detailsField && (
-              <button
-                type="button"
-                onClick={() => handleViewLogs(detailsField)}
-                className="text-xs btn-primary text-white px-2 py-1 rounded"
-              >
-                View Logs
-              </button>
-            )}
+        <>
+          <div
+            className="relative md:col-span-2"
+            onMouseEnter={() => setHoveredField(detailsField)}
+            onMouseLeave={() => setHoveredField(null)}
+          >
+            <div className="flex justify-between items-center mb-1">
+              <label className="block font-medium">Details</label>
+              {hoveredField === detailsField && (
+                <button
+                  type="button"
+                  onClick={() => handleViewLogs(detailsField)}
+                  className="text-xs btn-primary text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
+            <textarea
+              name={detailsField}
+              placeholder={"List details..."}
+              value={formData[detailsField as keyof SupportPlanMobilityTransfers] || ""}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-2"
+              rows={3}
+            />
           </div>
-          <textarea
-            name={detailsField}
-            placeholder={"List details..."}
-            value={formData[detailsField as keyof SupportPlanMobilityTransfers] || ""}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            rows={3}
-          />
-        </div>
+
+          {additionalFields && additionalFields.map((additionalField) => (
+            <div
+              key={additionalField}
+              className="relative md:col-span-2"
+              onMouseEnter={() => setHoveredField(additionalField)}
+              onMouseLeave={() => setHoveredField(null)}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium">
+                  {additionalField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </label>
+                {hoveredField === additionalField && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewLogs(additionalField)}
+                    className="text-xs btn-primary text-white px-2 py-1 rounded"
+                  >
+                    View Logs
+                  </button>
+                )}
+              </div>
+              {additionalField.includes('date') ? (
+                <DatePicker
+                  name={additionalField}
+                  value={formData[additionalField as keyof SupportPlanMobilityTransfers] as string}
+                  onChange={handleChange}
+                />
+              ) : (
+                <textarea
+                  name={additionalField}
+                  placeholder={`Enter ${additionalField.replace(/_/g, ' ')}...`}
+                  value={formData[additionalField as keyof SupportPlanMobilityTransfers] || ""}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={3}
+                />
+              )}
+            </div>
+          ))}
+        </>
       )}
     </>
   );
@@ -318,8 +432,8 @@ export default function MobilityTransfersForm({
           {renderYesNoField("has_stairs_at_home", "Do you have stairs in your house?", "stairs_at_home_details")}
 
           {/* Transfer Abilities */}
-          {renderYesNoField("can_transfer_self", "Are you able to transfer yourself from a chair, bed, etc.?")}
-          {renderYesNoField("can_transfer_in_other_envs", "Are you able to transfer when not at home in different environments?")}
+          {renderYesNoField("can_transfer_self", "Are you able to transfer yourself from a chair, bed, etc.?", "transfer_self_details")}
+          {renderYesNoField("can_transfer_in_other_envs", "Are you able to transfer when not at home in different environments?", "transfer_other_env_details")}
 
           {/* Bed Equipment */}
           {renderYesNoField("uses_bed_pole_or_rails", "Do you use a Bed Pole/Bed Rails")}
@@ -423,34 +537,12 @@ export default function MobilityTransfersForm({
 
           {/* Four Wheel Walker */}
           {renderYesNoField("uses_four_wheel_walker", "Do you use a 4-wheel walker?", "four_wheel_walker_details")}
+          {renderYesNoField("wheelchair_type", "Do you use a manual or electric wheelchair?", "wheelchair_use_details")}
 
-          {/* Wheelchair Information */}
-          <div
-            className="relative"
-            onMouseEnter={() => setHoveredField("wheelchair_type")}
-            onMouseLeave={() => setHoveredField(null)}
-          >
-            <div className="flex justify-between items-center mb-1">
-              <label className="block font-medium">Wheelchair Type</label>
-              {hoveredField === "wheelchair_type" && (
-                <button
-                  type="button"
-                  onClick={() => handleViewLogs("wheelchair_type")}
-                  className="text-xs btn-primary text-white px-2 py-1 rounded"
-                >
-                  View Logs
-                </button>
-              )}
-            </div>
-            <input
-              type="text"
-              name="wheelchair_type"
-              placeholder="Enter wheelchair type"
-              value={formData.wheelchair_type || ""}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-            />
-          </div>
+          
+
+          {/* Wheelchair Use Details (Only show if wheelchair_type is not empty and not "none") */}
+          
 
           {/* Wheelchair Operation */}
           <div
@@ -480,9 +572,71 @@ export default function MobilityTransfersForm({
             />
           </div>
 
-          {/* Wheelchair Details */}
+          {/* Wheelchair OT Recommended */}
           {renderYesNoField("wheelchair_ot_recommended", "Was the wheelchair recommended by an Occupational Therapist?")}
+
+          {/* Wheelchair OT Details (Only show if wheelchair_ot_recommended is Yes) */}
+          {formData.wheelchair_ot_recommended === 1 && (
+            <div
+              className="relative md:col-span-2"
+              onMouseEnter={() => setHoveredField("wheelchair_ot")}
+              onMouseLeave={() => setHoveredField(null)}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium">Occupational Therapist Details</label>
+                {hoveredField === "wheelchair_ot" && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewLogs("wheelchair_ot")}
+                    className="text-xs btn-primary text-white px-2 py-1 rounded"
+                  >
+                    View Logs
+                  </button>
+                )}
+              </div>
+              <textarea
+                name="wheelchair_ot"
+                placeholder="Enter Occupational Therapist name and contact details..."
+                value={formData.wheelchair_ot || ""}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                rows={3}
+              />
+            </div>
+          )}
+
+          {/* Wheelchair Charging */}
           {renderYesNoField("can_charge_wheelchair", "Can you independently charge the wheelchair battery?")}
+
+          {/* Wheelchair Charging Details (Only show if can_charge_wheelchair is Yes) */}
+          {formData.can_charge_wheelchair === 1 && (
+            <div
+              className="relative md:col-span-2"
+              onMouseEnter={() => setHoveredField("can_charge_details")}
+              onMouseLeave={() => setHoveredField(null)}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium">Charging Details</label>
+                {hoveredField === "can_charge_details" && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewLogs("can_charge_details")}
+                    className="text-xs btn-primary text-white px-2 py-1 rounded"
+                  >
+                    View Logs
+                  </button>
+                )}
+              </div>
+              <textarea
+                name="can_charge_details"
+                placeholder="Describe charging process, location, frequency, etc."
+                value={formData.can_charge_details || ""}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                rows={3}
+              />
+            </div>
+          )}
 
           {/* Last Wheelchair Service */}
           <div
@@ -507,13 +661,6 @@ export default function MobilityTransfersForm({
               value={formData.last_wheelchair_service_date}
               onChange={handleChange}
             />
-            {/* <input
-              type="date"
-              name="last_wheelchair_service_date"
-              value={formData.last_wheelchair_service_date || ""}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-            /> */}
           </div>
 
           {/* Carrying Ability */}
@@ -548,17 +695,10 @@ export default function MobilityTransfersForm({
               value={formData.last_ot_assessment_date}
               onChange={handleChange}
             />
-            {/* <input
-              type="date"
-              name="last_ot_assessment_date"
-              value={formData.last_ot_assessment_date || ""}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-            /> */}
           </div>
 
           {/* OT Referral */}
-          {renderYesNoField("new_ot_referral_required", "Is a new Occupational; Therapist referral required")}
+          {renderYesNoField("new_ot_referral_required", "Is a new Occupational Therapist referral required?", "new_ot_referral_details")}
 
           {/* DEMMI Assessment */}
           {renderYesNoField("demmi_assessment_required", "DEMMI Assessment required")}

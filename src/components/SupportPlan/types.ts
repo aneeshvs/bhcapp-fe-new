@@ -244,7 +244,9 @@ export interface SupportPlanMobilityTransfers {
   has_stairs_at_home?: number | null;
   stairs_at_home_details?: string | null;
   can_transfer_self?: number | null;
+  transfer_self_details?: string | null; // NEW FIELD
   can_transfer_in_other_envs?: number | null;
+  transfer_other_env_details?: string | null; // NEW FIELD
   uses_bed_pole_or_rails?: number | null;
   bed_pole_prescribed_by_ot?: number | null;
   can_access_places_outside_walking_distance?: number | null;
@@ -259,10 +261,13 @@ export interface SupportPlanMobilityTransfers {
   equipment_purchase_type?: string | null;
   uses_four_wheel_walker?: number | null;
   four_wheel_walker_details?: string | null;
-  wheelchair_type?: string | null;
+  wheelchair_type?: number | null;
+  wheelchair_use_details?: string | null; // NEW FIELD
   wheelchair_operation?: string | null;
   wheelchair_ot_recommended?: number | null;
+  wheelchair_ot?: string | null; // NEW FIELD
   can_charge_wheelchair?: number | null;
+  can_charge_details?: string | null; // NEW FIELD
   last_wheelchair_service_date: string | null;
   can_carry_5kg?: number | null;
   carry_5kg_details?: string | null;
@@ -272,6 +277,7 @@ export interface SupportPlanMobilityTransfers {
   mobility_worries_details?: string | null;
   last_ot_assessment_date: string | null;
   new_ot_referral_required?: number | null;
+  new_ot_referral_details?: string | null; // NEW FIELD
   demmi_assessment_required?: number | null;
   demmi_assessment_result?: string | null;
 }
