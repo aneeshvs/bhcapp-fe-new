@@ -272,9 +272,25 @@ export default function SupportCarePlanPage() {
   // Memoized completion percentage style
   const completionBarStyle = { width: `${completionPercentage}%` };
 
+
   const trackerSteps = useMemo(() => {
-    return OnboardingPackingTracker.map((step) => step);
-  }, []);
+      const isSigned =
+        Boolean(formData.participant_signature) &&
+        formData.participant_signature.startsWith("data:image");
+      return OnboardingPackingTracker.map((step) =>
+        step.key === "ParticipantDeclaration"
+          ? {
+              ...step,
+              badge: isSigned
+                ? { text: "Signed", className: "bg-green-100 text-green-700" }
+                : {
+                    text: "Not signed",
+                    className: "bg-amber-100 text-amber-700",
+                  },
+            }
+          : step
+      );
+    }, [formData.participant_signature]);
 
   return (
     <>
