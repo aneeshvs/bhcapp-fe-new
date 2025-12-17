@@ -4,44 +4,44 @@ import api from "@/src/utils/api";
 import phpApi from "@/src/utils/PhpApi";
 
 interface ApiResponse<T = unknown> {
-    success: boolean;
-    message: string;
-    data: T;
+  success: boolean;
+  message: string;
+  data: T;
 }
 
 export async function index<T = unknown>(link: string, params: Record<string, unknown> = {}): Promise<ApiResponse<T>> {
-    const response = await api.get(link, { params });
-    if (response.data.success) {
-        return response.data;
-    }
-    return { success: false, message: '', data: (response.data.data ?? []) as T };
+  const response = await api.get(link, { params });
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: '', data: (response.data.data ?? []) as T };
 }
 
 export async function store<T = unknown>(link: string, data: FormData): Promise<ApiResponse<T>> {
-    const response = await api.post(link, data, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
-    if (response.data.success) {
-        return response.data;
+  const response = await api.post(link, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
     }
-    return { success: false, message: '', data: (response.data.data ?? []) as T };
+  });
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: '', data: (response.data.data ?? []) as T };
 }
 
 export async function update<T = unknown>(link: string, data: FormData): Promise<ApiResponse<T>> {
-    data.append('_method', 'PUT'); // Override method
+  data.append('_method', 'PUT'); // Override method
 
-    const response = await api.post(link, data, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
-
-    if (response.data.success) {
-        return response.data;
+  const response = await api.post(link, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
     }
-    return { success: false, message: '', data: (response.data.data ?? []) as T };
+  });
+
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: '', data: (response.data.data ?? []) as T };
 }
 
 export async function getFormSession(
@@ -49,12 +49,12 @@ export async function getFormSession(
   formUuid?: string | null,
   sessionUserId?: string,
   sessionClientType?: string,
-): Promise<{ 
-  token: string; 
-  userid: string; 
+): Promise<{
+  token: string;
+  userid: string;
   client_name: string;
-  client_type: string; 
-  uuid?: string | null; 
+  client_type: string;
+  uuid?: string | null;
 }> {
 
   const params: Record<string, string> = { form };
@@ -71,7 +71,7 @@ export async function getFormSession(
     params['client_type'] = sessionClientType;
   }
 
-    // Debug: Log what axios will send
+  // Debug: Log what axios will send
   console.log('Params being sent:', params);
   console.log('Full URL will be:', '/php/get-form-session.php', { params });
 
@@ -86,27 +86,36 @@ export async function getFormSession(
 
 
 export async function destroy<T = unknown>(link: string, params: Record<string, unknown> = {}): Promise<ApiResponse<T>> {
-    const response = await api.delete(link, { params });
-    if (response.data.success) {
-        return response.data;
-    }
-    return { success: false, message: '', data: (response.data.data ?? []) as T };
+  const response = await api.delete(link, { params });
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: '', data: (response.data.data ?? []) as T };
 }
 
 export async function show<T = unknown>(link: string, uuid: string): Promise<ApiResponse<T>> {
-    const response = await api.get(`${link}/${uuid}`);
-    if (response.data.success) {
-        return response.data;
-    }
-    return { success: false, message: '', data: (response.data.data ?? {}) as T };
+  const response = await api.get(`${link}/${uuid}`);
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: '', data: (response.data.data ?? {}) as T };
 }
 
-export async function verifyFormOtp(uuid: string, otp: string): Promise<ApiResponse> {
+export interface VerifyOtpResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+  client_name?: string;
+  form_name?: string;
+  uuid?: string;
+}
+
+export async function verifyFormOtp(uuid: string, otp: string): Promise<VerifyOtpResponse> {
   const response = await phpApi.get('/php/verify-form-otp.php', {
     params: { uuid, otp }
   });
   if (response.data.success) {
     return response.data;
   }
-  return { success: false, message: response.data.message || 'Verification failed', data: response.data.data };
+  return { success: false, message: response.data.message};
 }
