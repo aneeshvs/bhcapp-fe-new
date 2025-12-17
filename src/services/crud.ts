@@ -100,3 +100,13 @@ export async function show<T = unknown>(link: string, uuid: string): Promise<Api
     }
     return { success: false, message: '', data: (response.data.data ?? {}) as T };
 }
+
+export async function verifyFormOtp(uuid: string, otp: string): Promise<ApiResponse> {
+  const response = await phpApi.get('/php/verify-form-otp.php', {
+    params: { uuid, otp }
+  });
+  if (response.data.success) {
+    return response.data;
+  }
+  return { success: false, message: response.data.message || 'Verification failed', data: response.data.data };
+}
