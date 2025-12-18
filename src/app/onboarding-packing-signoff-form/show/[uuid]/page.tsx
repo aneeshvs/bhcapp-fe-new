@@ -145,12 +145,12 @@ export default function ShowOnboardingPage() {
 
             console.log("Submitting signature data...");
             const apiResponse = await update(
-                "onboarding-packing-signoff/update",
+                "client/onboarding-packing-signoff/update",
                 data
             );
 
             if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");
+                window.alert("Signature submitted successfully.");  
                 await fetchFormData(); // Refresh data
             } else {
                 console.error("Submission failed", apiResponse);
@@ -194,9 +194,9 @@ export default function ShowOnboardingPage() {
         const data = await validatePassword(enteredPassword);
 
         if (data) {
-            if (data.token) {
-                localStorage.setItem("token", data.token);
-            }
+            // if (data.token) {
+            //     localStorage.setItem("token", data.token);
+            // }
 
             setAuthenticated(true);
             fetchFormData();
