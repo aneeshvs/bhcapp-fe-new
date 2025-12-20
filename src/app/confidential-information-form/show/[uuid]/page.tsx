@@ -2,28 +2,29 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
-import { OnboardingResponse } from "@/src/components/OnboardingPacking/ApiResponse";
-import OnboardingFormData from "@/src/components/OnboardingPacking/FormData";
-import { mapApiResponseToFormData } from "@/src/components/OnboardingPacking/MapApiResponseToFormData";
-import { sectionsConfig } from "@/src/components/OnboardingPacking/sectionsConfig";
+import { ConfidentialInformation } from "@/src/components/ConfidentialInformation/ApiResponse";
+import ConfidentialInformationFormData from "@/src/components/ConfidentialInformation/FormData";
+import { mapApiResponseToFormData } from "@/src/components/ConfidentialInformation/MapApiResponseToFormData";
+import { sectionsConfig } from "@/src/components/ConfidentialInformation/SectionsConfig";
 import Tracker from "@/src/components/Tracker";
 import AccordianPlanSection from "@/src/components/AccordianSection";
-// import { OnboardingSignoffResponse } from "@/src/components/OnboardingPacking/types";
-import { OnboardingPackingTracker } from "@/src/components/OnboardingPacking/ScheduleTracker";
 import Image from "next/image";
+import { ConfidentialInformationFormTracker } from "@/src/components/ConfidentialInformation/FormTracker";
 
 const SECTION_NAMES = [
-    "OnboardingPackingSignoffs",
-    "DisabilityActDiscussion",
-    "ParticipantDeclaration",
+    "ConfidentialInformation",
+    "ConfidentialAgency",
+    "ConfidentialConsent",
+    "VerbalConsent",
+    "PreConsentDisclosures",
 ] as const;
 
 type SectionKey = (typeof SECTION_NAMES)[number];
-type SupportFormaDataType = typeof OnboardingFormData;
+type SupportFormaDataType = typeof ConfidentialInformationFormData;
 
 const createInitialOpenSections = (): Record<SectionKey, boolean> => {
     return SECTION_NAMES.reduce((acc, section) => {
-        acc[section] = true; // Open all by default for "Show" view, or strictly follow logic
+        acc[section] = true;
         return acc;
     }, {} as Record<SectionKey, boolean>);
 };
@@ -35,8 +36,7 @@ const createSectionRefs = () => {
     }, {} as Record<SectionKey, React.RefObject<HTMLDivElement | null>>);
 };
 
-export default function ShowOnboardingPage() {
-    // const router = useRouter();
+export default function ShowConfidentialInformationPage() {
     const { uuid } = useParams<{ uuid: string }>();
     const searchParams = useSearchParams();
     const sessionUserId = searchParams.get("userid") || "";
@@ -47,18 +47,17 @@ export default function ShowOnboardingPage() {
     const [passwordError, setPasswordError] = useState("");
 
     const [formData, setFormData] =
-        useState<SupportFormaDataType>(OnboardingFormData);
-    // Refs and Sections
+        useState<SupportFormaDataType>(ConfidentialInformationFormData);
+
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
     const [openSections, setOpenSections] =
         useState<Record<SectionKey, boolean>>(initialOpenSections);
 
-    // 2. Data Fetching
     const fetchFormData = useCallback(async () => {
         try {
-            const response = await show<OnboardingResponse>(
-                "onboarding-packing-signoff",
+            const response = await show<ConfidentialInformation>(
+                "confidential-form",
                 uuid as string
             );
 
@@ -70,9 +69,8 @@ export default function ShowOnboardingPage() {
         } catch (error) {
             console.error("Error fetching data:", error);
         }
-    }, []);
+    }, [uuid]);
 
-    // 3. Handle Change (Generic)
     const handleChange = useCallback(
         (
             event:
@@ -90,15 +88,12 @@ export default function ShowOnboardingPage() {
         []
     );
 
-    // 4. Tracker / Accordion Toggle
     const handleTrackerClick = useCallback(
         (key: SectionKey) => {
             setOpenSections((prev) => {
-                // Toggle behavior
                 return { ...prev, [key]: !prev[key] };
             });
 
-            // Optional scroll
             setTimeout(() => {
                 sectionRefs[key]?.current?.scrollIntoView({
                     behavior: "smooth",
@@ -109,7 +104,6 @@ export default function ShowOnboardingPage() {
         [sectionRefs]
     );
 
-    // 5. Submit Handler - SIGNATURE ONLY
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -118,18 +112,18 @@ export default function ShowOnboardingPage() {
             const data = new FormData();
 
             // ONLY append signature related fields
-            // Based on ParticipantDeclaration interface
-            if (formData.participant_name)
-                data.append("participant_name", formData.participant_name);
-            if (formData.relationship_to_participant)
-                data.append(
-                    "relationship_to_participant",
-                    formData.relationship_to_participant
-                );
-            if (formData.participant_signature)
-                data.append("participant_signature", formData.participant_signature);
-            if (formData.signed_date)
-                data.append("signed_date", formData.signed_date);
+            // Map 'signature' to 'signature_consent' as per backend validation error
+            if (formData.signature) data.append("signature_consent", formData.signature);
+            if (formData.signed_date) data.append("signed_date", formData.signed_date);
+            if (formData.signed_by) data.append("signed_by", formData.signed_by);
+            if (formData.name) data.append("name", formData.name);
+            if (formData.witnessed_by) data.append("witnessed_by", formData.witnessed_by);
+
+            // Append Verbal Consent fields
+            if (formData.verbal_signature) data.append("verbal_signature", formData.verbal_signature);
+            if (formData.verbal_signed_date) data.append("verbal_signed_date", formData.verbal_signed_date);
+            if (formData.verbal_name) data.append("verbal_name", formData.verbal_name);
+            if (formData.position) data.append("position", formData.position);
 
             // Append Identifiers
             data.append("user_id", sessionUserId);
@@ -138,20 +132,19 @@ export default function ShowOnboardingPage() {
                 data.append("uuid", uuid);
             }
 
-            // Also potentially submit_final if needed (assumed yes as it's a signoff)
             if (formData.submit_final === 1) {
                 data.append("submit_final", "1");
             }
 
             console.log("Submitting signature data...");
             const apiResponse = await update(
-                "client/onboarding-packing-signoff/update",
+                "client/confidential-form/update",
                 data
             );
 
             if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");  
-                await fetchFormData(); // Refresh data
+                window.alert("Signature submitted successfully.");
+                await fetchFormData();
             } else {
                 console.error("Submission failed", apiResponse);
                 window.alert(`Submission failed: ${apiResponse.message}`);
@@ -164,7 +157,7 @@ export default function ShowOnboardingPage() {
         }
     };
 
-    const trackerSteps = useMemo(() => OnboardingPackingTracker, []);
+    const trackerSteps = useMemo(() => ConfidentialInformationFormTracker, []);
 
     const validatePassword = async (password: string): Promise<VerifyOtpResponse | null> => {
         try {
@@ -182,6 +175,7 @@ export default function ShowOnboardingPage() {
             return null;
         }
     };
+
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError("");
@@ -195,10 +189,6 @@ export default function ShowOnboardingPage() {
         const data = await validatePassword(enteredPassword);
 
         if (data) {
-            // if (data.token) {
-            //     localStorage.setItem("token", data.token);
-            // }
-
             setAuthenticated(true);
             setLoading(false);
             fetchFormData();
@@ -237,12 +227,8 @@ export default function ShowOnboardingPage() {
     return (
         <>
             <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-                {/* Header Section */}
                 <div className="flex justify-end">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
-                        {/* <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
-              {clientName || "N/A"}
-            </h1> */}
                     </div>
                 </div>
                 <div className="flex justify-center mb-6">
@@ -257,7 +243,7 @@ export default function ShowOnboardingPage() {
 
                 <div className="flex justify-center mb-6">
                     <h1 className="text-center text-2xl md:text-3xl font-bold mt-2 text-gray-800">
-                        Review: Form - F19 Onboarding Pack Contents <br /> List Sign Off
+                        Review: Confidential Information Form
                     </h1>
                 </div>
 
@@ -265,14 +251,13 @@ export default function ShowOnboardingPage() {
                     onSubmit={handleSubmit}
                     className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
                 >
-                    {/* Tracker is optional for a Show page, but good for navigation */}
                     <Tracker
                         steps={trackerSteps}
                         onStepClick={(key) => handleTrackerClick(key as SectionKey)}
                     />
 
-                    {sectionsConfig.map(({ key, title, Component }, index) => {
-                        const isSignatureSection = key === "ParticipantDeclaration";
+                    {sectionsConfig.map(({ key, title, Component }) => {
+                        const isSignatureSection = key === "ConfidentialConsent" || key === "VerbalConsent";
 
                         return (
                             <React.Fragment key={key}>
@@ -297,42 +282,10 @@ export default function ShowOnboardingPage() {
                                         />
                                     </fieldset>
                                 </AccordianPlanSection>
-
-                                {/* Replicating the helper text logic from original page */}
-                                {index === 1 && (
-                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mt-6 mb-6">
-                                        <p className="text-gray-700 leading-relaxed">
-                                            <b>
-                                                Prior to scheduling a visit to the participant, please
-                                                remember:
-                                            </b>
-                                        </p>
-                                        <ol className="list-decimal ml-6 mt-3 text-gray-700 leading-relaxed space-y-1">
-                                            <li>Request that it is a non-smoking environment</li>
-                                            <li>
-                                                Request that any pets are kept separate to staff, both
-                                                inside and outside residence
-                                            </li>
-                                            <li>
-                                                Any directions/instructions to get to residence
-                                                including parking options
-                                            </li>
-                                            <li>
-                                                Ask if there have been any past health / safety issues,
-                                                or current concerns for how we can ensure safety in the
-                                                participant’s environment
-                                            </li>
-                                            <li>
-                                                Clarify which is the preferred door to be used for entry
-                                            </li>
-                                        </ol>
-                                    </div>
-                                )}
                             </React.Fragment>
                         );
                     })}
 
-                    {/* Submit Actions */}
                     <div className="flex items-center mt-6">
                         <input
                             type="checkbox"

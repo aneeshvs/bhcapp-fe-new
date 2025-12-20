@@ -23,7 +23,7 @@ export default function DatePicker({ name, value, onChange, placeholder }: Props
 
     flatpickr(inputRef.current, {
       dateFormat: "d-m-Y",
-      allowInput: true,
+      allowInput: false,
 
       onChange(selectedDates) {
         if (!selectedDates[0]) {
