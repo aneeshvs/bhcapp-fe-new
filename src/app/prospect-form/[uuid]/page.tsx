@@ -168,13 +168,13 @@ export default function FormPage() {
     guardian_signature: '',
   });
   const [serviceProviders, setServiceProviders] = useState([
-    { provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '' },
+    { provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '', goal_key: '' },
   ]);
   const [ndisPlans,setNdisPlans] = useState([
-    {goal: '', barriers: ''},
+    {goal: '', barriers: '',goal_key: ''},
   ]);
   const [serviceRequired, setServiceRequired] = useState([
-    { service_name: ''},
+    { service_name: '', goal_key: '' },
   ]);
   const handleChange = (e:| React.ChangeEvent<HTMLInputElement | HTMLSelectElement>| { target: { name: string; value: string | number | boolean  } }) => {
     const { name, value } = e.target;
@@ -386,8 +386,9 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
           length_of_support: p.length_of_support || '',
           reason_for_leaving: p.reason_for_leaving || '',
           uuid: p.uuid || '',
+          goal_key: p.goal_key || '',
               }))
-            : [{ provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '',uuid: ''}]
+            : [{ provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '',uuid: '', goal_key: '' }]
         );
 
         // NDIS Goals
@@ -397,8 +398,9 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
           goal: g.goal || '',
           barriers: g.barriers || '',
           uuid: g.uuid || '',
+          goal_key: g.goal_key || '',
               }))
-            : [{ goal: '', barriers: '', uuid: '' }]
+            : [{ goal: '', barriers: '', uuid: '', goal_key: '' }]
         );
 
         // BHC Services
@@ -407,8 +409,9 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
             ? response.data.selected_services.map((s: ServiceRequired) => ({
           service_name: s.service_name || '',
           uuid: s.uuid || '',
+          goal_key: s.goal_key || '',
               }))
-            : [{ service_name: '', uuid: '' }]
+            : [{ service_name: '', uuid: '', goal_key: '' }]
         );
 
       } catch (error) {

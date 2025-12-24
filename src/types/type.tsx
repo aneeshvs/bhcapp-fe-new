@@ -50,11 +50,13 @@ export interface ServiceProvider {
   contact_details: string;
   length_of_support: string;
   reason_for_leaving: string;
+  goal_key: string;
   uuid?: string;
 }
 
 export interface ServiceRequired {
   service_name: string;
+  goal_key: string;
 }
 export interface Referral {
   id: number;
@@ -202,6 +204,7 @@ export interface NDISGoal {
   client_id: number;
   goal: string;
   barriers: string;
+  goal_key: string;
   status_id: number;
   owner_id: number | null;
   owner_type: string | null;

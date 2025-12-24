@@ -7,6 +7,7 @@ export interface NdisGoals {
   goal: string;
   barriers: string;
   uuid?: string;
+  goal_key: string;
 }
 
 export interface NdisPlanProps {
@@ -23,7 +24,7 @@ export default function NdisPlan({ ndisPlans, setNdisPlans }: NdisPlanProps) {
   };
 
   const addGoal = () => {
-    setNdisPlans([...ndisPlans, { goal: '', barriers: '' }]);
+    setNdisPlans([...ndisPlans, { goal: '', barriers: '', goal_key: '' }]);
   };
 
   const uuidUrl = new URL(window.location.href);
@@ -31,10 +32,10 @@ export default function NdisPlan({ ndisPlans, setNdisPlans }: NdisPlanProps) {
 
   const removeGoal = async (index: number) => {
     const goalToRemove = ndisPlans[index];
-    
+    const hasGoalKey = !!goalToRemove.goal_key;
     // Only call API if the goal has a UUID (meaning it's saved in backend)
     // AND we have a form UUID
-    if (uuid && goalToRemove.uuid) {
+    if (hasGoalKey && uuid) {
       try {
         await destroy('full-form/remove-item', {
           uuid: uuid,

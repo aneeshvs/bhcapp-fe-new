@@ -5,6 +5,7 @@ import { destroy } from '@/src/services/crud'
 export interface ServiceRequired {
   service_name: string;
   uuid?: string;
+  goal_key: string;
 }
 
 interface PreviousServiceRequiredProps {
@@ -26,7 +27,7 @@ export default function BHCServices({ serviceRequired, setServiceRequired }: Pre
   const addProvider = () => {
     setServiceRequired([
       ...serviceRequired,
-      { service_name: '' }
+      { service_name: '', goal_key: '' },
     ]);
   };
 
@@ -35,10 +36,10 @@ export default function BHCServices({ serviceRequired, setServiceRequired }: Pre
 
   const removeProvider = async (index: number) => {
     const providerToRemove = serviceRequired[index];
-    
+    const hasGoalKey = !!providerToRemove.goal_key;
     // Only call API if the provider has a UUID (meaning it's saved in backend)
     // AND we have a form UUID
-    if (uuid && providerToRemove.uuid) {
+    if (hasGoalKey && uuid) {
       try {
         await destroy('full-form/remove-item', {
           uuid: uuid,

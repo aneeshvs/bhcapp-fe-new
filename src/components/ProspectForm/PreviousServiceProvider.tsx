@@ -8,6 +8,7 @@ export interface ServiceProvider {
   length_of_support: string;
   reason_for_leaving: string;
   uuid?: string;
+  goal_key: string;
 }
 
 interface PreviousServiceProviderProps {
@@ -26,7 +27,7 @@ export default function PreviousServiceProvider({ serviceProviders, setServicePr
   const addProvider = () => {
     setServiceProviders([
       ...serviceProviders,
-      { provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '' }
+      { provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '',goal_key: '' },
     ]);
   };
 
@@ -35,10 +36,10 @@ export default function PreviousServiceProvider({ serviceProviders, setServicePr
 
   const removeProvider = async (index: number) => {
     const providerToRemove = serviceProviders[index];
-    
+    const hasGoalKey = !!providerToRemove.goal_key;
     // Only call API if the provider has a UUID (meaning it's saved in backend)
     // AND we have a form UUID
-    if (uuid && providerToRemove.uuid) {
+    if (hasGoalKey && uuid) {
       try {
         await destroy('full-form/remove-item', {
           uuid: uuid,
