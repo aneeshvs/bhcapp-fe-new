@@ -20,7 +20,7 @@ import Behaviour from '@/src/components/ClientProfileForm/BehaviorSupport';
 import MedicalAlerts from '@/src/components/ClientProfileForm/MedicalAlerts';
 import HealthSummaries from '@/src/components/ClientProfileForm/HealthSummaries';
 import SupportInformation from '@/src/components/ClientProfileForm/SupportInformation';
-import { update,show, getFormSession   } from '@/src/services/crud';
+import { update, show, getFormSession } from '@/src/services/crud';
 import { useSearchParams } from 'next/navigation';
 import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiResponse';
 interface OnboardSubmitSuccess {
@@ -49,15 +49,16 @@ type OnboardSubmitResponse = OnboardSubmitSuccess | OnboardSubmitError;
 export default function ClientProfileForm() {
   const router = useRouter();
   const [formData, setFormData] = useState(clientProfileFormData);
-  const [careEntries, setCareEntries] = useState([{ type_of_service: '', primary_task_list: '', secondary_task_list: '',goal_key: '' }]);
-  const [ndisGoals, setNdisGoals] = useState<NdisGoals[]>([{ 
-    goal_description: '', 
+  const [careEntries, setCareEntries] = useState([{ type_of_service: '', primary_task_list: '', secondary_task_list: '', goal_key: '' }]);
+  const [ndisGoals, setNdisGoals] = useState<NdisGoals[]>([{
+    goal_description: '',
     goal_key: '' // Provide empty string as default
   }]);
   const [healthProffessional, setHealthProffessional] = useState([{ role: '', name: '', contact_number: '' }]);
   const [healthInformation, setHealthInformation] = useState({ health_conditions: [] as string[] });
   const [loading, setLoading] = useState<null | 'save' | 'submit'>(null);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   // const [activeSection, setActiveSection] = useState<keyof typeof sectionRefs | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -76,17 +77,17 @@ export default function ClientProfileForm() {
     healthSummaries: false,
     supportInfo: false
   });
-  
-  
+
+
   const searchParams = useSearchParams();
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
-const [sessionUserId, setSessionUserId] = useState<string>("");
-const [sessionClientType, setSessionClientType] = useState<string>("");
+  const [sessionUserId, setSessionUserId] = useState<string>("");
+  const [sessionClientType, setSessionClientType] = useState<string>("");
   const [clientName, setClientName] = useState<string>("");
 
-const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
- 
+
 
   const sectionRefs = {
     clientDetails: useRef<HTMLDivElement>(null),
@@ -222,7 +223,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       if (response.data?.schedule_of_cares) {
         setCareEntries(response.data.schedule_of_cares);
       }
-      
+
       if (response.data?.ndis_goals) {
         setNdisGoals(
           response.data.ndis_goals.map(goal => ({
@@ -231,11 +232,11 @@ const [errors, setErrors] = useState<Record<string, string>>({});
           }))
         );
       }
-      
+
       if (response.data?.health_professional_details) {
         setHealthProffessional(response.data.health_professional_details);
       }
-      
+
       if (response.data?.health_information?.health_conditions) {
         setHealthInformation({
           health_conditions: Array.isArray(response.data.health_information.health_conditions)
@@ -263,33 +264,36 @@ const [errors, setErrors] = useState<Record<string, string>>({});
   };
 
   useEffect(() => {
-  (async () => {
-    try {
-      // 👇 get form name from URL query (e.g. ?form=support-plan)
-      const form = "client-profile";
+    (async () => {
+      try {
+        // 👇 get form name from URL query (e.g. ?form=support-plan)
+        const form = "client-profile";
 
-      // 👇 pass form to API
-      const formUuid = searchParams.get('form-uuid');
-      const sessionUserId = searchParams.get("userid") || "";
-      const sessionClientType = searchParams.get("client_type") || "";
-      const { token,client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+        // 👇 pass form to API
+        const formUuid = searchParams.get('form-uuid');
+        const sessionUserId = searchParams.get("userid") || "";
+        const sessionClientType = searchParams.get("client_type") || "";
+        const { token, client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
 
-      if (token) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify({ type: "client" }));
+        if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
+        }
+
+        // setSessionUserId(userid ?? "");
+        // setSessionClientType(client_type ?? "");
+        setClientName(client_name ?? "");
+        if (uuid) setSessionUuid(uuid);
+
+        // 👇 also keep track of the form type
+      } catch (e) {
+        console.error("Failed to get form session", e);
       }
-
-      // setSessionUserId(userid ?? "");
-      // setSessionClientType(client_type ?? "");
-      setClientName(client_name ?? "");
-      if (uuid) setSessionUuid(uuid);
-      setFlag(true);
-      // 👇 also keep track of the form type
-    } catch (e) {
-      console.error("Failed to get form session", e);
-    }
-  })();
-}, [searchParams]);
+    })();
+  }, [searchParams]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,7 +303,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       const data = new FormData();
       setErrors({}); // Reset errors before submission
       if (formData.submit_final === 1) {
-          data.append('submit_final', '1');
+        data.append('submit_final', '1');
       }
 
       // Intial Enquiry
@@ -338,7 +342,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       data.append('schedule_of_cares', JSON.stringify(careEntries));
 
       // Culture
-      data.append('has_children_under_18',String(formData.has_children_under_18?? 0));
+      data.append('has_children_under_18', String(formData.has_children_under_18 ?? 0));
       data.append('country_of_birth', formData.countryOfBirth || '');
       data.append('preferred_language', formData.preferredLanguage || '');
       data.append('religion', formData.religion || '');
@@ -387,9 +391,9 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       data.append('medication_taken', formData.medicationsTaken || '');
       data.append('medication_purpose', formData.medicationPurpose || '');
       data.append('staff_administer_medication', String(formData.staffAdministerMedication ?? 0));
-      data.append('self_administered', String(formData.self_administered?? 0));
-      data.append('guardian', String(formData.guardian?? 0));
-      data.append('support_worker', String(formData.support_worker?? 0));
+      data.append('self_administered', String(formData.self_administered ?? 0));
+      data.append('guardian', String(formData.guardian ?? 0));
+      data.append('support_worker', String(formData.support_worker ?? 0));
 
       // Prevent health summaries
       data.append('medical_checkup_status', formData.medicalImmunisationStatus || '');
@@ -402,13 +406,13 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       data.append('likes', formData.likes || '');
       data.append('dislikes', formData.dislikes || '');
       data.append('interests', formData.interests || '');
-      data.append('male', String(formData.male?? 0));
-      data.append('female', String(formData.female?? 0));
-      data.append('no_preference', String(formData.no_preference?? 0));
+      data.append('male', String(formData.male ?? 0));
+      data.append('female', String(formData.female ?? 0));
+      data.append('no_preference', String(formData.no_preference ?? 0));
       data.append('special_request', formData.specialRequest || '');
 
       const apiResponse = await update('onboardsubmit', data);
-    
+
       // Transform the API response to match OnboardSubmitResponse
       let response: OnboardSubmitResponse;
       console.log('API Response:', apiResponse);
@@ -432,7 +436,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
         alert('Please fill the form in the correct format.');
         return;
       }
-      
+
       console.log(response);
       if (!sessionUuid && !searchParams.get('form-uuid') && !searchParams.get('uuid') && response?.data?.initial.uuid) {
         const newUuid = response.data.initial.uuid;
@@ -449,7 +453,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       setLoading(null);
     }
   };
-  
+
   const handleTrackerClick = (key: keyof typeof sectionRefs) => {
     setOpenSections(prev => {
       if (prev[key]) {
@@ -489,112 +493,112 @@ const [errors, setErrors] = useState<Record<string, string>>({});
               </h1>
             </div>
           </div>
-      <div className="flex justify-center mb-6">
-        <Image
-          src="/assets/images/BHC LOGO_SMALL.png"
-          alt="Company Logo"
-          width={180}
-          height={80}
-          className="h-auto"
-        />
-      </div>
-      {(sessionUuid || searchParams.get('uuid')) && (
-        <div className="text-center mb-4">
-          <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-            <div 
-              className="btn-primary h-4 rounded-full" 
-              style={{ width: `${completionPercentage}%` }}
-            ></div>
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/assets/images/BHC LOGO_SMALL.png"
+              alt="Company Logo"
+              width={180}
+              height={80}
+              className="h-auto"
+            />
           </div>
-          <p className="text-sm text-gray-600">
-            Form completion: {completionPercentage}%
-          </p>
-        </div>
-      )}
+          {(sessionUuid || searchParams.get('uuid')) && (
+            <div className="text-center mb-4">
+              <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+                <div
+                  className="btn-primary h-4 rounded-full"
+                  style={{ width: `${completionPercentage}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Form completion: {completionPercentage}%
+              </p>
+            </div>
+          )}
 
-        <form 
-          method="POST"
-          onSubmit={handleSubmit}
-          className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
-        >        
-          <div className="text-center mb-6">
-          {/* <p className="font-semibold text-base md:text-lg">
+          <form
+            method="POST"
+            onSubmit={handleSubmit}
+            className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
+          >
+            <div className="text-center mb-6">
+              {/* <p className="font-semibold text-base md:text-lg">
             Document Number:
             <span className="text-heading ml-2">Form F-28</span>
           </p> */}
-          <h1 className="text-2xl md:text-3xl font-bold mt-2 text-gray-800">
-            Form-F18 Client Profile (Onboarding)
-          </h1>
-        </div>
-        <div className="flex overflow-x-auto space-x-4 py-4 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-          {[
-            { key: 'clientDetails', label: 'Intial Enquiry' },
-            { key: 'funding', label: 'Funding' },
-            { key: 'emergency', label: 'Emergency Contacts' },
-            { key: 'schedule', label: 'Schedule of Care' },
-            { key: 'culture', label: 'Religious & Culture' },
-            { key: 'goals', label: 'Ndis Goals' },
-            { key: 'healthPro', label: 'Health Proffessional Details' },
-            { key: 'diagnosis', label: 'Diagnosis Summary' },
-            { key: 'healthInfo', label: 'Health Information' },
-            { key: 'healthcareSupport', label: 'Healthcare Details' },
-            { key: 'behaviour', label: 'Behaviour Supports' },
-            { key: 'medicalAlerts', label: 'Medical Alerts' },
-            { key: 'healthSummaries', label: 'Preventive Health Summary' },
-            { key: 'supportInfo', label: 'Support Information' },
-          ].map((step, i) => (
-            <div key={step.key} className="text-center flex-1 cursor-pointer" onClick={() => handleTrackerClick(step.key as keyof typeof sectionRefs)}>
-              <div className="w-8 h-8 mx-auto rounded-full btn-primary text-white flex items-center justify-center text-sm font-semibold">
-                {i + 1}
-              </div>
-              <p className="text-xs mt-1 text-gray-600">{step.label}</p>
+              <h1 className="text-2xl md:text-3xl font-bold mt-2 text-gray-800">
+                Form-F18 Client Profile (Onboarding)
+              </h1>
             </div>
-          ))}
-        </div>
+            <div className="flex overflow-x-auto space-x-4 py-4 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              {[
+                { key: 'clientDetails', label: 'Intial Enquiry' },
+                { key: 'funding', label: 'Funding' },
+                { key: 'emergency', label: 'Emergency Contacts' },
+                { key: 'schedule', label: 'Schedule of Care' },
+                { key: 'culture', label: 'Religious & Culture' },
+                { key: 'goals', label: 'Ndis Goals' },
+                { key: 'healthPro', label: 'Health Proffessional Details' },
+                { key: 'diagnosis', label: 'Diagnosis Summary' },
+                { key: 'healthInfo', label: 'Health Information' },
+                { key: 'healthcareSupport', label: 'Healthcare Details' },
+                { key: 'behaviour', label: 'Behaviour Supports' },
+                { key: 'medicalAlerts', label: 'Medical Alerts' },
+                { key: 'healthSummaries', label: 'Preventive Health Summary' },
+                { key: 'supportInfo', label: 'Support Information' },
+              ].map((step, i) => (
+                <div key={step.key} className="text-center flex-1 cursor-pointer" onClick={() => handleTrackerClick(step.key as keyof typeof sectionRefs)}>
+                  <div className="w-8 h-8 mx-auto rounded-full btn-primary text-white flex items-center justify-center text-sm font-semibold">
+                    {i + 1}
+                  </div>
+                  <p className="text-xs mt-1 text-gray-600">{step.label}</p>
+                </div>
+              ))}
+            </div>
 
-        {/* Accordion Sections */}
-        <div ref={sectionRefs.clientDetails}>
-          <AccordionItem 
-            title="1. PART A - INITIAL ENQUIRY" 
-            isOpen={openSections.clientDetails}
-            onToggle={() => handleTrackerClick('clientDetails')}
-          >
-            <IntialEnquiry formData={formData} handleChange={handleChange} errors={errors} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            {/* Accordion Sections */}
+            <div ref={sectionRefs.clientDetails}>
+              <AccordionItem
+                title="1. PART A - INITIAL ENQUIRY"
+                isOpen={openSections.clientDetails}
+                onToggle={() => handleTrackerClick('clientDetails')}
+              >
+                <IntialEnquiry formData={formData} handleChange={handleChange} errors={errors} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.funding}>
-          <AccordionItem 
-            title="2. FUNDING" 
-            isOpen={openSections.funding}
-            onToggle={() => handleTrackerClick('funding')}
-          >
-            <Funding formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.funding}>
+              <AccordionItem
+                title="2. FUNDING"
+                isOpen={openSections.funding}
+                onToggle={() => handleTrackerClick('funding')}
+              >
+                <Funding formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.emergency}>
-          <AccordionItem 
-            title="3. ALTERNATIVE / EMERGENCY CONTACTS" 
-            isOpen={openSections.emergency}
-            onToggle={() => handleTrackerClick('emergency')}
-          >
-            <Emergency formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.emergency}>
+              <AccordionItem
+                title="3. ALTERNATIVE / EMERGENCY CONTACTS"
+                isOpen={openSections.emergency}
+                onToggle={() => handleTrackerClick('emergency')}
+              >
+                <Emergency formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
 
-        <div ref={sectionRefs.schedule}>
-          <AccordionItem
-            title="4. SCHEDULE OF CARE"
-            isOpen={openSections.schedule}
-            onToggle={() => handleTrackerClick('schedule')}
-          >
-            <ScheduleOfCare careEntries={careEntries} setCareEntries={setCareEntries} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.schedule}>
+              <AccordionItem
+                title="4. SCHEDULE OF CARE"
+                isOpen={openSections.schedule}
+                onToggle={() => handleTrackerClick('schedule')}
+              >
+                <ScheduleOfCare careEntries={careEntries} setCareEntries={setCareEntries} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-       {/* <div className="my-4 px-4">
+            {/* <div className="my-4 px-4">
           <label className="block font-semibold text-lg mb-2">
             Are there children under the age of 18 residing in the client’s home?
           </label>
@@ -636,147 +640,147 @@ const [errors, setErrors] = useState<Record<string, string>>({});
           </div>
         </div> */}
 
-        <div ref={sectionRefs.culture}>
-          <AccordionItem
-            title="5. RELIGIOUS / CULTURAL BACKGROUND"
-            isOpen={openSections.culture}
-            onToggle={() => handleTrackerClick('culture')}
-          >
-            <ReligiousCulturalBackground formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.culture}>
+              <AccordionItem
+                title="5. RELIGIOUS / CULTURAL BACKGROUND"
+                isOpen={openSections.culture}
+                onToggle={() => handleTrackerClick('culture')}
+              >
+                <ReligiousCulturalBackground formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.goals}>
-          <AccordionItem
-            title="6. NDIS GOALS FOR BHC SUPPORT"
-            isOpen={openSections.goals}
-            onToggle={() => handleTrackerClick('goals')}
-          >
-            <NdisGoals ndisGoals={ndisGoals} setNdisGoals={setNdisGoals} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.goals}>
+              <AccordionItem
+                title="6. NDIS GOALS FOR BHC SUPPORT"
+                isOpen={openSections.goals}
+                onToggle={() => handleTrackerClick('goals')}
+              >
+                <NdisGoals ndisGoals={ndisGoals} setNdisGoals={setNdisGoals} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.healthPro}>
-          <AccordionItem
-            title="7. HEALTH PROFESSIONAL DETAILS"
-            isOpen={openSections.healthPro}
-            onToggle={() => handleTrackerClick('healthPro')}
-          >
-            <HealthProffessional healthProffessional={healthProffessional} setHealthProffessional={setHealthProffessional} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.healthPro}>
+              <AccordionItem
+                title="7. HEALTH PROFESSIONAL DETAILS"
+                isOpen={openSections.healthPro}
+                onToggle={() => handleTrackerClick('healthPro')}
+              >
+                <HealthProffessional healthProffessional={healthProffessional} setHealthProffessional={setHealthProffessional} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.diagnosis}>
-          <AccordionItem
-            title="8. DIAGNOSIS SUMMARY"
-            isOpen={openSections.diagnosis}
-            onToggle={() => handleTrackerClick('diagnosis')}
-          >
-            <DiagnosisSummary formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.diagnosis}>
+              <AccordionItem
+                title="8. DIAGNOSIS SUMMARY"
+                isOpen={openSections.diagnosis}
+                onToggle={() => handleTrackerClick('diagnosis')}
+              >
+                <DiagnosisSummary formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.healthInfo}>
-          <AccordionItem
-            title="9. HEALTH INFORMATION"
-            isOpen={openSections.healthInfo}
-            onToggle={() => handleTrackerClick('healthInfo')}
-          >
-            <HealthInformation healthInformation={healthInformation} setHealthInformation={setHealthInformation} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.healthInfo}>
+              <AccordionItem
+                title="9. HEALTH INFORMATION"
+                isOpen={openSections.healthInfo}
+                onToggle={() => handleTrackerClick('healthInfo')}
+              >
+                <HealthInformation healthInformation={healthInformation} setHealthInformation={setHealthInformation} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.healthcareSupport}>
-          <AccordionItem
-            title="10. HEALTHCARE AND SUPPORT DETAILS"
-            isOpen={openSections.healthcareSupport}
-            onToggle={() => handleTrackerClick('healthcareSupport')}
-          >
-            <HealthcareSupport formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.healthcareSupport}>
+              <AccordionItem
+                title="10. HEALTHCARE AND SUPPORT DETAILS"
+                isOpen={openSections.healthcareSupport}
+                onToggle={() => handleTrackerClick('healthcareSupport')}
+              >
+                <HealthcareSupport formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.behaviour}>
-          <AccordionItem
-            title="11. BEHAVIOUR SUPPORTS"
-            isOpen={openSections.behaviour}
-            onToggle={() => handleTrackerClick('behaviour')}
-          >
-            <Behaviour formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.behaviour}>
+              <AccordionItem
+                title="11. BEHAVIOUR SUPPORTS"
+                isOpen={openSections.behaviour}
+                onToggle={() => handleTrackerClick('behaviour')}
+              >
+                <Behaviour formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.medicalAlerts}>
-          <AccordionItem
-            title="12. MEDICAL ALERTS / ALLERGIES"
-            isOpen={openSections.medicalAlerts}
-            onToggle={() => handleTrackerClick('medicalAlerts')}
-          >
-            <MedicalAlerts formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.medicalAlerts}>
+              <AccordionItem
+                title="12. MEDICAL ALERTS / ALLERGIES"
+                isOpen={openSections.medicalAlerts}
+                onToggle={() => handleTrackerClick('medicalAlerts')}
+              >
+                <MedicalAlerts formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.healthSummaries}>
-          <AccordionItem
-            title="13. PREVENTIVE HEALTH SUMMARY"
-            isOpen={openSections.healthSummaries}
-            onToggle={() => handleTrackerClick('healthSummaries')}
-          >
-            <HealthSummaries formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
+            <div ref={sectionRefs.healthSummaries}>
+              <AccordionItem
+                title="13. PREVENTIVE HEALTH SUMMARY"
+                isOpen={openSections.healthSummaries}
+                onToggle={() => handleTrackerClick('healthSummaries')}
+              >
+                <HealthSummaries formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
-        <div ref={sectionRefs.supportInfo}>
-          <AccordionItem
-            title="14. SUPPORT INFORMATION"
-            isOpen={openSections.supportInfo}
-            onToggle={() => handleTrackerClick('supportInfo')}
-          >
-            <SupportInformation formData={formData} handleChange={handleChange} uuid={sessionUuid} />
-          </AccordionItem>
-        </div>
-
-
+            <div ref={sectionRefs.supportInfo}>
+              <AccordionItem
+                title="14. SUPPORT INFORMATION"
+                isOpen={openSections.supportInfo}
+                onToggle={() => handleTrackerClick('supportInfo')}
+              >
+                <SupportInformation formData={formData} handleChange={handleChange} uuid={sessionUuid} />
+              </AccordionItem>
+            </div>
 
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-          <button
-            type="button"
-            onClick={async (e) => {
-              if (window.confirm('Are you sure you want to submit the form?')) {
-                setLoading('submit');
-                await handleSubmit(e as React.FormEvent);
-              }
-            }}
-            className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition"
-          >
-            {loading === 'submit' ? 'Submitting...' : 'Submit'}
-          </button>
-        </div>
-        {/* Checkbox for staff involvement */}
-        <div className="flex items-center mt-6">
-          <input
-            type="checkbox"
-            id="submit_final"
-            name="submit_final"
-            checked={formData.submit_final === 1}
-            onChange={e =>
-              handleChange({
-                target: {
-                  name: 'submit_final',
-                  value: e.target.checked ? 1 : 0,
-                },
-              })
-            }
-            className="mr-2"
-          />
-          <label className="font-medium text-gray-700">
-            Final Submit (Tick to confirm all information is correct)
-          </label>
-        </div>
-      </form>
-      {/* {uuid && (
+
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <button
+                type="button"
+                onClick={async (e) => {
+                  if (window.confirm('Are you sure you want to submit the form?')) {
+                    setLoading('submit');
+                    await handleSubmit(e as React.FormEvent);
+                  }
+                }}
+                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition"
+              >
+                {loading === 'submit' ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+            {/* Checkbox for staff involvement */}
+            <div className="flex items-center mt-6">
+              <input
+                type="checkbox"
+                id="submit_final"
+                name="submit_final"
+                checked={formData.submit_final === 1}
+                onChange={e =>
+                  handleChange({
+                    target: {
+                      name: 'submit_final',
+                      value: e.target.checked ? 1 : 0,
+                    },
+                  })
+                }
+                className="mr-2"
+              />
+              <label className="font-medium text-gray-700">
+                Final Submit (Tick to confirm all information is correct)
+              </label>
+            </div>
+          </form>
+          {/* {uuid && (
         <div className="flex justify-end mt-4 mb-6">
           <button
             className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition"
@@ -787,8 +791,12 @@ const [errors, setErrors] = useState<Record<string, string>>({});
           </button>
         </div>
       )}       */}
-    </div> ) : (
-      // Loader when flag is false
+        </div>) : isInvalidSession ? (
+          <div className="flex justify-center items-center min-h-[200px]">
+            <span className="text-red-500 font-bold">Unauthorized Please login again</span>
+          </div>
+        ) : (
+        // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>
         </div>

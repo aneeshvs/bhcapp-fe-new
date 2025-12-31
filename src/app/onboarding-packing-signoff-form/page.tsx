@@ -14,7 +14,7 @@ import { OnboardingPackingTracker } from "@/src/components/OnboardingPacking/Sch
 import Image from "next/image";
 
 const SECTION_NAMES = [
-  "OnboardingPackingSignoffs","DisabilityActDiscussion","ParticipantDeclaration",
+  "OnboardingPackingSignoffs", "DisabilityActDiscussion", "ParticipantDeclaration",
 ] as const;
 
 
@@ -44,11 +44,12 @@ export default function SupportCarePlanPage() {
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
   const [sessionUserId, setSessionUserId] = useState<string>("");
   const [sessionClientType, setSessionClientType] = useState<string>("");
-    const [clientName, setClientName] = useState<string>("");
+  const [clientName, setClientName] = useState<string>("");
 
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(OnboardingFormData);
@@ -58,7 +59,7 @@ export default function SupportCarePlanPage() {
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
 
-  
+
 
   // Session bootstrap (token, userid, client_type, optional uuid)
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function SupportCarePlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // pass form, form_token, form_client_type, and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -80,13 +81,15 @@ export default function SupportCarePlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -121,9 +124,9 @@ export default function SupportCarePlanPage() {
       setFormData(
         mapApiResponseToFormData(response.data) as SupportFormaDataType
       );
-     
 
-     
+
+
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
@@ -142,8 +145,8 @@ export default function SupportCarePlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -196,7 +199,7 @@ export default function SupportCarePlanPage() {
         const data = new FormData();
 
         if (formData.submit_final === 1) {
-            data.append('submit_final', '1');
+          data.append('submit_final', '1');
         }
 
         Object.entries(formData).forEach(([key, value]) => {
@@ -274,23 +277,23 @@ export default function SupportCarePlanPage() {
 
 
   const trackerSteps = useMemo(() => {
-      const isSigned =
-        Boolean(formData.participant_signature) &&
-        formData.participant_signature.startsWith("data:image");
-      return OnboardingPackingTracker.map((step) =>
-        step.key === "ParticipantDeclaration"
-          ? {
-              ...step,
-              badge: isSigned
-                ? { text: "Signed", className: "bg-green-100 text-green-700" }
-                : {
-                    text: "Not signed",
-                    className: "bg-amber-100 text-amber-700",
-                  },
-            }
-          : step
-      );
-    }, [formData.participant_signature]);
+    const isSigned =
+      Boolean(formData.participant_signature) &&
+      formData.participant_signature.startsWith("data:image");
+    return OnboardingPackingTracker.map((step) =>
+      step.key === "ParticipantDeclaration"
+        ? {
+          ...step,
+          badge: isSigned
+            ? { text: "Signed", className: "bg-green-100 text-green-700" }
+            : {
+              text: "Not signed",
+              className: "bg-amber-100 text-amber-700",
+            },
+        }
+        : step
+    );
+  }, [formData.participant_signature]);
 
   return (
     <>
@@ -348,38 +351,38 @@ export default function SupportCarePlanPage() {
               onStepClick={(key) => handleTrackerClick(key as SectionKey)}
             />
 
-            {sectionsConfig.map(({ key, title, Component},index ) => (
+            {sectionsConfig.map(({ key, title, Component }, index) => (
               <React.Fragment key={key}>
-              <AccordianPlanSection
-                key={key}
-                sectionRef={sectionRefs[key as SectionKey]}
-                title={title}
-                isOpen={openSections[key as SectionKey]}
-                onToggle={() => handleTrackerClick(key as SectionKey)}
-              >
-                <Component
-                  formData={formData}
-                  handleChange={handleChange}
-                  uuid={sessionUuid || undefined}
-                />
-              </AccordianPlanSection>
+                <AccordianPlanSection
+                  key={key}
+                  sectionRef={sectionRefs[key as SectionKey]}
+                  title={title}
+                  isOpen={openSections[key as SectionKey]}
+                  onToggle={() => handleTrackerClick(key as SectionKey)}
+                >
+                  <Component
+                    formData={formData}
+                    handleChange={handleChange}
+                    uuid={sessionUuid || undefined}
+                  />
+                </AccordianPlanSection>
 
-              {index === 1 && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mt-6 mb-6">
-                  <p className="text-gray-700 leading-relaxed">
-                    <b>Prior to scheduling a visit to the participant, please remember:</b>
-                  </p>
+                {index === 1 && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mt-6 mb-6">
+                    <p className="text-gray-700 leading-relaxed">
+                      <b>Prior to scheduling a visit to the participant, please remember:</b>
+                    </p>
 
-                  <ol className="list-decimal ml-6 mt-3 text-gray-700 leading-relaxed space-y-1">
-                    <li>Request that it is a non-smoking environment</li>
-                    <li>Request that any pets are kept separate to staff, both inside and outside residence</li>
-                    <li>Any directions/instructions to get to residence including parking options</li>
-                    <li>Ask if there have been any past health / safety issues, or current concerns for how we can ensure safety in the participant’s environment</li>
-                    <li>Clarify which is the preferred door to be used for entry</li>
-                  </ol>
-                </div>
-            )}
-            </React.Fragment>
+                    <ol className="list-decimal ml-6 mt-3 text-gray-700 leading-relaxed space-y-1">
+                      <li>Request that it is a non-smoking environment</li>
+                      <li>Request that any pets are kept separate to staff, both inside and outside residence</li>
+                      <li>Any directions/instructions to get to residence including parking options</li>
+                      <li>Ask if there have been any past health / safety issues, or current concerns for how we can ensure safety in the participant’s environment</li>
+                      <li>Clarify which is the preferred door to be used for entry</li>
+                    </ol>
+                  </div>
+                )}
+              </React.Fragment>
             ))}
 
             {/* Action Buttons */}
@@ -393,26 +396,30 @@ export default function SupportCarePlanPage() {
               </button>
             </div>
             <div className="flex items-center mt-6">
-          <input
-            type="checkbox"
-            id="submit_final"
-            name="submit_final"
-            checked={formData.submit_final === 1}
-            onChange={e =>
-              handleChange({
-                target: {
-                  name: 'submit_final',
-                  value: e.target.checked ? 1 : 0,
-                },
-              })
-            }
-            className="mr-2"
-          />
-          <label className="font-medium text-gray-700">
-            Final Submit (Tick to confirm all information is correct)
-          </label>
-        </div>
+              <input
+                type="checkbox"
+                id="submit_final"
+                name="submit_final"
+                checked={formData.submit_final === 1}
+                onChange={e =>
+                  handleChange({
+                    target: {
+                      name: 'submit_final',
+                      value: e.target.checked ? 1 : 0,
+                    },
+                  })
+                }
+                className="mr-2"
+              />
+              <label className="font-medium text-gray-700">
+                Final Submit (Tick to confirm all information is correct)
+              </label>
+            </div>
           </form>
+        </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
         </div>
       ) : (
         // Loader when flag is false

@@ -43,10 +43,11 @@ export default function SupportCarePlanPage() {
   const [sessionUserId, setSessionUserId] = useState<string>("");
   const [sessionClientType, setSessionClientType] = useState<string>("");
   const [clientName, setClientName] = useState<string>("");
-  
+
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(ParticipantSignatures);
@@ -56,7 +57,7 @@ export default function SupportCarePlanPage() {
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
 
-  
+
 
   // Session bootstrap (token, userid, client_type, optional uuid)
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function SupportCarePlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // pass form, form_token, form_client_type, and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -78,6 +79,9 @@ export default function SupportCarePlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
@@ -85,7 +89,6 @@ export default function SupportCarePlanPage() {
         setClientName(client_name ?? "");
 
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -120,9 +123,9 @@ export default function SupportCarePlanPage() {
       setFormData(
         mapApiResponseToFormData(response.data) as SupportFormaDataType
       );
-     
 
-     
+
+
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
@@ -141,8 +144,8 @@ export default function SupportCarePlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -195,7 +198,7 @@ export default function SupportCarePlanPage() {
         const data = new FormData();
 
         if (formData.submit_final === 1) {
-            data.append('submit_final', '1');
+          data.append('submit_final', '1');
         }
 
         Object.entries(formData).forEach(([key, value]) => {
@@ -271,9 +274,9 @@ export default function SupportCarePlanPage() {
   // Memoized completion percentage style
   const completionBarStyle = { width: `${completionPercentage}%` };
 
-//   const trackerSteps = useMemo(() => {
-//     return Participant.map((step) => step);
-//   }, []);
+  //   const trackerSteps = useMemo(() => {
+  //     return Participant.map((step) => step);
+  //   }, []);
 
   return (
     <>
@@ -317,7 +320,7 @@ export default function SupportCarePlanPage() {
 
           <div className="flex justify-center mb-6">
             <h1 className="text-center text-2xl md:text-3xl font-bold mt-2 text-gray-800">
-              Service Agreement <br/> Appendix A - Multiple Supports
+              Service Agreement <br /> Appendix A - Multiple Supports
             </h1>
           </div>
 
@@ -330,7 +333,7 @@ export default function SupportCarePlanPage() {
               <p className="text-gray-700 mb-4">
                 If you receive the following services, you must not at any time feel obligated to seek further support provision from Best of Homecare.
               </p>
-              
+
               <p className="text-gray-700 mb-4">
                 This includes participants that may receive support as well as any of the following:
               </p>
@@ -402,26 +405,30 @@ export default function SupportCarePlanPage() {
               </button>
             </div>
             <div className="flex items-center mt-6">
-          <input
-            type="checkbox"
-            id="submit_final"
-            name="submit_final"
-            checked={formData.submit_final === 1}
-            onChange={e =>
-              handleChange({
-                target: {
-                  name: 'submit_final',
-                  value: e.target.checked ? 1 : 0,
-                },
-              })
-            }
-            className="mr-2"
-          />
-          <label className="font-medium text-gray-700">
-            Final Submit (Tick to confirm all information is correct)
-          </label>
-        </div>
+              <input
+                type="checkbox"
+                id="submit_final"
+                name="submit_final"
+                checked={formData.submit_final === 1}
+                onChange={e =>
+                  handleChange({
+                    target: {
+                      name: 'submit_final',
+                      value: e.target.checked ? 1 : 0,
+                    },
+                  })
+                }
+                className="mr-2"
+              />
+              <label className="font-medium text-gray-700">
+                Final Submit (Tick to confirm all information is correct)
+              </label>
+            </div>
           </form>
+        </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
         </div>
       ) : (
         // Loader when flag is false

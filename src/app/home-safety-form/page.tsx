@@ -14,7 +14,7 @@ import { HomeSafetyFormTracker } from "@/src/components/HomeSafety/FormTracker";
 import Image from "next/image";
 
 const SECTION_NAMES = [
-  "HomeSafetyDetails","HomeSafetyOutside","InsideResidences","HallwaysChecks","KitchenAssessments","OutsideAssessments","HomeMiscellaneous","HomeResidenceTypes",
+  "HomeSafetyDetails", "HomeSafetyOutside", "InsideResidences", "HallwaysChecks", "KitchenAssessments", "OutsideAssessments", "HomeMiscellaneous", "HomeResidenceTypes",
 ] as const;
 
 
@@ -49,6 +49,7 @@ export default function SupportCarePlanPage() {
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(HomeSafety);
@@ -58,7 +59,7 @@ export default function SupportCarePlanPage() {
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
 
-  
+
 
   // Session bootstrap (token, userid, client_type, optional uuid)
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function SupportCarePlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // pass form, form_token, form_client_type, and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -80,13 +81,15 @@ export default function SupportCarePlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -121,9 +124,9 @@ export default function SupportCarePlanPage() {
       setFormData(
         mapApiResponseToFormData(response.data) as SupportFormaDataType
       );
-     
 
-     
+
+
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
@@ -142,8 +145,8 @@ export default function SupportCarePlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -196,7 +199,7 @@ export default function SupportCarePlanPage() {
         const data = new FormData();
 
         if (formData.submit_final === 1) {
-            data.append('submit_final', '1');
+          data.append('submit_final', '1');
         }
 
         Object.entries(formData).forEach(([key, value]) => {
@@ -318,7 +321,7 @@ export default function SupportCarePlanPage() {
 
           <div className="flex justify-center mb-6">
             <h1 className="text-center text-2xl md:text-3xl font-bold mt-2 text-gray-800">
-              Form - F5 Home Safety <br/>Checklist Assessment
+              Form - F5 Home Safety <br />Checklist Assessment
             </h1>
           </div>
 
@@ -343,7 +346,7 @@ export default function SupportCarePlanPage() {
                 and/or Support Care Plan.
               </p>
             </div>
-            
+
             {sectionsConfig.map(({ key, title, Component }) => (
               <AccordianPlanSection
                 key={key}
@@ -371,26 +374,30 @@ export default function SupportCarePlanPage() {
               </button>
             </div>
             <div className="flex items-center mt-6">
-          <input
-            type="checkbox"
-            id="submit_final"
-            name="submit_final"
-            checked={formData.submit_final === 1}
-            onChange={e =>
-              handleChange({
-                target: {
-                  name: 'submit_final',
-                  value: e.target.checked ? 1 : 0,
-                },
-              })
-            }
-            className="mr-2"
-          />
-          <label className="font-medium text-gray-700">
-            Final Submit (Tick to confirm all information is correct)
-          </label>
-        </div>
+              <input
+                type="checkbox"
+                id="submit_final"
+                name="submit_final"
+                checked={formData.submit_final === 1}
+                onChange={e =>
+                  handleChange({
+                    target: {
+                      name: 'submit_final',
+                      value: e.target.checked ? 1 : 0,
+                    },
+                  })
+                }
+                className="mr-2"
+              />
+              <label className="font-medium text-gray-700">
+                Final Submit (Tick to confirm all information is correct)
+              </label>
+            </div>
           </form>
+        </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
         </div>
       ) : (
         // Loader when flag is false

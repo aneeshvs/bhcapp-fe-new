@@ -70,6 +70,7 @@ export default function SupportPlanPage() {
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] = useState<SupportPlanFormDataType>(
     RiskAssessmentFormData
@@ -104,7 +105,7 @@ export default function SupportPlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // 👇 pass form and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -114,13 +115,15 @@ export default function SupportPlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
         // 👇 also keep track of the form type
       } catch (e) {
         console.error("Failed to get form session", e);
@@ -191,8 +194,8 @@ export default function SupportPlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -324,12 +327,12 @@ export default function SupportPlanPage() {
   );
 
   useEffect(() => {
-      const userId = searchParams.get("userid");
-      const clientType = searchParams.get("client_type");
-  
-      if (userId) setSessionUserId(userId);
-      if (clientType) setSessionClientType(clientType);
-    }, [searchParams]);
+    const userId = searchParams.get("userid");
+    const clientType = searchParams.get("client_type");
+
+    if (userId) setSessionUserId(userId);
+    if (clientType) setSessionClientType(clientType);
+  }, [searchParams]);
   // Memoized completion percentage style
   const completionBarStyle = useMemo(
     () => ({
@@ -404,7 +407,7 @@ export default function SupportPlanPage() {
             />
             <div className="mt-8 mb-6 p-6 bg-gray-50 rounded-lg border-l-4 border-blue-500 md:col-span-2">
               <div className="text-gray-700 space-y-3 w-full">
-                
+
                 <h1 className="text-center text-2xl font-semibold text-gray-700 mb-4">
                   HOW TO USE THIS FORM
                 </h1>
@@ -471,6 +474,10 @@ export default function SupportPlanPage() {
               </label>
             </div>
           </form>
+        </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
         </div>
       ) : (
         // Loader when flag is false

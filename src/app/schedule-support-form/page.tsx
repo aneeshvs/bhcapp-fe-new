@@ -65,6 +65,7 @@ export default function SupportCarePlanPage() {
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(SupportScheduleFormData);
@@ -115,13 +116,15 @@ export default function SupportCarePlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -588,14 +591,17 @@ export default function SupportCarePlanPage() {
               </label>
             </div>
           </form>
-        </div >
+        </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
+        </div>
       ) : (
         // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>
         </div>
-      )
-      }
+      )}
     </>
   );
 }

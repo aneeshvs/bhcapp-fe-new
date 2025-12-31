@@ -105,11 +105,12 @@ export default function SupportPlanPage() {
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
   const [sessionUserId, setSessionUserId] = useState<string>("");
   const [sessionClientType, setSessionClientType] = useState<string>("");
-    const [clientName, setClientName] = useState<string>("");
+  const [clientName, setClientName] = useState<string>("");
 
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportPlanFormDataType>(SupportPlanFormData);
@@ -148,7 +149,7 @@ export default function SupportPlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // 👇 pass form and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -158,13 +159,15 @@ export default function SupportPlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -250,8 +253,8 @@ export default function SupportPlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -384,12 +387,12 @@ export default function SupportPlanPage() {
   );
 
   useEffect(() => {
-      const userId = searchParams.get("userid");
-      const clientType = searchParams.get("client_type");
-  
-      if (userId) setSessionUserId(userId);
-      if (clientType) setSessionClientType(clientType);
-    }, [searchParams]);
+    const userId = searchParams.get("userid");
+    const clientType = searchParams.get("client_type");
+
+    if (userId) setSessionUserId(userId);
+    if (clientType) setSessionClientType(clientType);
+  }, [searchParams]);
 
   // Memoized completion percentage style
   const completionBarStyle = useMemo(
@@ -407,14 +410,14 @@ export default function SupportPlanPage() {
     return supportPlanSteps.map((step) =>
       step.key === "Approval"
         ? {
-            ...step,
-            badge: isSigned
-              ? { text: "Signed", className: "bg-green-100 text-green-700" }
-              : {
-                  text: "Not signed",
-                  className: "bg-amber-100 text-amber-700",
-                },
-          }
+          ...step,
+          badge: isSigned
+            ? { text: "Signed", className: "bg-green-100 text-green-700" }
+            : {
+              text: "Not signed",
+              className: "bg-amber-100 text-amber-700",
+            },
+        }
         : step
     );
   }, [formData.signature]);
@@ -471,11 +474,11 @@ export default function SupportPlanPage() {
             />
 
             <div className="mb-6 text-gray-700 space-y-4">
-              
-                <h2 className="text-center font-bold text-xl">
-    About this Support Plan
-  </h2>
-                <p>
+
+              <h2 className="text-center font-bold text-xl">
+                About this Support Plan
+              </h2>
+              <p>
                 This Support Plan outlines how we will work with you to achieve
                 your goals. It also confirms your approval for us to provide the
                 support and services you’ve agreed to. If your needs or
@@ -485,11 +488,11 @@ export default function SupportPlanPage() {
                 the way.
               </p>
 
-              
-                <h2 className="text-center font-bold text-xl mt-6">
-    Wellness and Reablement
-  </h2>
-                <p>
+
+              <h2 className="text-center font-bold text-xl mt-6">
+                Wellness and Reablement
+              </h2>
+              <p>
                 We’re committed to supporting you in embedding wellness and
                 reablement into as many areas of your supports and services as
                 possible. Wellness and reablement means doing with rather than
@@ -497,11 +500,11 @@ export default function SupportPlanPage() {
                 wherever we can.
               </p>
 
-              
-                <h2 className="text-center font-bold text-xl mt-6">
-    Public Holidays
-  </h2>
-                <p>
+
+              <h2 className="text-center font-bold text-xl mt-6">
+                Public Holidays
+              </h2>
+              <p>
                 We do not provide care on public holidays unless this has been
                 agreed to in your Support Plan and budget. If your needs change
                 and you require direct care visits on a Public Holiday, it may
@@ -559,12 +562,17 @@ export default function SupportPlanPage() {
             </div>
           </form>
         </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
+        </div>
       ) : (
         // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>
         </div>
-      )}
+      )
+      }
     </>
   );
 }

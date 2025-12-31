@@ -80,13 +80,14 @@ export default function SupportCarePlanPage() {
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
   const [sessionUserId, setSessionUserId] = useState<string>("");
   const [sessionClientType, setSessionClientType] = useState<string>("");
-    const [clientName, setClientName] = useState<string>("");
+  const [clientName, setClientName] = useState<string>("");
 
-  
+
 
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
+  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(SupportFormaData);
@@ -143,7 +144,7 @@ export default function SupportCarePlanPage() {
         const sessionClientType = searchParams.get("client_type") || "";
 
         // pass form, form_token, form_client_type, and form-uuid to API
-        const { token,client_name, uuid } = await getFormSession(
+        const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
           sessionUserId,
@@ -154,13 +155,15 @@ export default function SupportCarePlanPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
+          setFlag(true);
+        } else {
+          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        setFlag(true);
       } catch (e) {
         console.error("Failed to get form session", e);
       }
@@ -251,18 +254,18 @@ export default function SupportCarePlanPage() {
           helps_me_talk: Array.isArray(commPlan.helps_me_talk)
             ? commPlan.helps_me_talk
             : typeof commPlan.helps_me_talk === "string"
-            ? [commPlan.helps_me_talk]
-            : [],
+              ? [commPlan.helps_me_talk]
+              : [],
           helps_me_understand: Array.isArray(commPlan.helps_me_understand)
             ? commPlan.helps_me_understand
             : typeof commPlan.helps_me_understand === "string"
-            ? [commPlan.helps_me_understand]
-            : [],
+              ? [commPlan.helps_me_understand]
+              : [],
           please_communicate_by: Array.isArray(commPlan.please_communicate_by)
             ? commPlan.please_communicate_by
             : typeof commPlan.please_communicate_by === "string"
-            ? [commPlan.please_communicate_by]
-            : [],
+              ? [commPlan.please_communicate_by]
+              : [],
           emergency_communication: commPlan.emergency_communication || "",
         });
       }
@@ -297,8 +300,8 @@ export default function SupportCarePlanPage() {
     (
       event:
         | React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
@@ -445,7 +448,7 @@ export default function SupportCarePlanPage() {
 
     if (userId) setSessionUserId(userId);
     if (clientType) setSessionClientType(clientType);
-  }, [searchParams,handleSubmit]);
+  }, [searchParams, handleSubmit]);
 
   // Memoized completion percentage style
   const completionBarStyle = { width: `${completionPercentage}%` };
@@ -635,12 +638,17 @@ export default function SupportCarePlanPage() {
             </div>
           </form>
         </div>
+      ) : isInvalidSession ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
+        </div>
       ) : (
         // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>
         </div>
-      )}
+      )
+      }
     </>
   );
 }

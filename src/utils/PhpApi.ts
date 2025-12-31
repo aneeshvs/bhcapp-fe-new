@@ -20,7 +20,7 @@ phpApi.interceptors.response.use(
     if (error.response && (error.response.status === 401 || error.response.status === 400)) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = process.env.NEXT_PUBLIC_PHP_URL + "/index.php";
+      alert("pleaase login again");
     }
     return Promise.reject(error);
   }
