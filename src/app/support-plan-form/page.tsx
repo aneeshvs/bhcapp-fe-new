@@ -326,7 +326,7 @@ export default function SupportPlanPage() {
 
       // Check for token and refresh if missing
       // localStorage.removeItem("token");
-      if (!localStorage.getItem("token")) {
+      if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
         try {
           const form = "service-agreement";
           const formUuid = searchParams.get("form-uuid");
