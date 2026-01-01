@@ -59,7 +59,6 @@ export default function ClientProfileForm() {
   const [healthInformation, setHealthInformation] = useState({ health_conditions: [] as string[] });
   const [loading, setLoading] = useState<null | 'save' | 'submit'>(null);
   const [flag, setFlag] = useState(false);
-  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   // const [activeSection, setActiveSection] = useState<keyof typeof sectionRefs | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -279,15 +278,13 @@ export default function ClientProfileForm() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
-          setFlag(true);
-        } else {
-          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
+        setFlag(true);        
 
         // 👇 also keep track of the form type
       } catch (e) {
@@ -300,6 +297,29 @@ export default function ClientProfileForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form submitted');
+    // Check for token and refresh if missing
+      localStorage.removeItem("token");
+      if (!localStorage.getItem("token")) {
+        try {
+          const form = "service-agreement";
+          const formUuid = searchParams.get("form-uuid");
+          const sessUserId = sessionUserId || searchParams.get("userid") || "";
+          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
+
+          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
+          if (token) {
+            localStorage.setItem("token", token);
+          } else {
+            // Token is still null/invalid
+            alert("Login credentials mismatch");
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to refresh session before submit", e);
+          alert("Login credentials mismatch");
+          return;
+        }
+      }
     try {
       const data = new FormData();
       setErrors({}); // Reset errors before submission
@@ -820,10 +840,7 @@ export default function ClientProfileForm() {
           </button>
         </div>
       )}       */}
-        </div>) : isInvalidSession ? (
-          <div className="flex justify-center items-center min-h-[200px]">
-            <span className="text-red-500 font-bold">Unauthorized Please login again</span>
-          </div>
+        </div>
         ) : (
         // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">

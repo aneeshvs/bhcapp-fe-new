@@ -53,7 +53,6 @@ export default function ServiceAgreementPage() {
 
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
-  const [isInvalidSession, setIsInvalidSession] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<AgreementFormaDataType>(AgreementFormaData);
@@ -86,15 +85,13 @@ export default function ServiceAgreementPage() {
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
-          setFlag(true);
-        } else {
-          setIsInvalidSession(true);
         }
 
         // setSessionUserId(userid ?? "");
         // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
+        setFlag(true);
         // 👇 also keep track of the form type
       } catch (e) {
         console.error("Failed to get form session", e);
@@ -207,6 +204,32 @@ export default function ServiceAgreementPage() {
       setLoading(true);
       setValidationErrors({});
       setFormSubmissionError("");
+
+      // Check for token and refresh if missing
+      // localStorage.removeItem("token");
+      if (!localStorage.getItem("token")) {
+        try {
+          const form = "service-agreement";
+          const formUuid = searchParams.get("form-uuid");
+          const sessUserId = sessionUserId || searchParams.get("userid") || "";
+          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
+
+          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
+          if (token) {
+            localStorage.setItem("token", token);
+          } else {
+            // Token is still null/invalid
+            alert("Login credentials mismatch");
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to refresh session before submit", e);
+          alert("Login credentials mismatch");
+          setLoading(false);
+          return;
+        }
+      }
 
       try {
         const data = new FormData();
@@ -994,10 +1017,6 @@ export default function ServiceAgreementPage() {
               </label>
             </div>
           </form>
-        </div>
-      ) : isInvalidSession ? (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <span className="text-red-500 font-bold">Unauthorized Please login again</span>
         </div>
       ) : (
         // Loader when flag is false
