@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
 import Tracker from "@/src/components/Tracker";
@@ -20,6 +21,8 @@ const SECTION_NAMES = [
 type SectionKey = (typeof SECTION_NAMES)[number];
 
 type AgreementFormaDataType = typeof AgreementFormaData;
+
+type ValidationErrors = Record<string, string[]>;
 
 // Utility functions
 const createInitialOpenSections = (): Record<SectionKey, boolean> => {
@@ -54,6 +57,12 @@ export default function ServiceAgreementPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<AgreementFormaDataType>(AgreementFormaData);
+
+
+
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [formSubmissionError, setFormSubmissionError] = useState<string>("");
 
   // Memoized values
   const sectionRefs = useMemo(() => createSectionRefs(), []);
@@ -182,12 +191,22 @@ export default function ServiceAgreementPage() {
     [sectionRefs]
   );
 
+  // Function to format field names for display
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Memoized submit handler
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       console.log("Form submitted");
       setLoading(true);
+      setValidationErrors({});
+      setFormSubmissionError("");
 
       try {
         const data = new FormData();
@@ -221,6 +240,8 @@ export default function ServiceAgreementPage() {
             },
           };
           window.alert("Form submitted successfully.");
+          setValidationErrors({});
+          setFormSubmissionError("");
         } else {
           response = {
             success: false,
@@ -237,9 +258,20 @@ export default function ServiceAgreementPage() {
         } else if (sessionUuid || searchParams.get("form-uuid") || searchParams.get("uuid")) {
           await fetchFormData();
         }
-      } catch (error) {
+      } catch (err: unknown) {
+        const error = err as AxiosError<{ errors?: Record<string, string[]> }>;
         console.error("Submission error:", error);
-        alert("An error occurred while submitting the form");
+
+        if (error.response && error.response.status === 422 && error.response.data?.errors) {
+          const newErrors: ValidationErrors = {};
+          Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+            newErrors[field] = messages;
+          });
+          setValidationErrors(newErrors);
+          setFormSubmissionError("Please correct the errors below.");
+        } else {
+          setFormSubmissionError("An error occurred while submitting the form. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -902,6 +934,34 @@ export default function ServiceAgreementPage() {
                 )}
               </React.Fragment>
             ))}
+
+
+            {/* Display validation errors */}
+            {(Object.keys(validationErrors).length > 0 || formSubmissionError) && (
+              <div className="mt-8 p-4 border border-red-300 bg-red-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-red-700 mb-2">
+                  Please fix the following errors:
+                </h3>
+
+                {formSubmissionError && (
+                  <p className="text-red-600 mb-3">{formSubmissionError}</p>
+                )}
+
+                <ul className="space-y-2">
+                  {Object.entries(validationErrors).map(([field, errors]) => (
+                    <li key={field} className="text-red-600">
+                      <strong className="font-medium">{formatFieldName(field)}:</strong>{" "}
+                      {errors.map((error, index) => (
+                        <span key={index}>
+                          {error}
+                          {index < errors.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">

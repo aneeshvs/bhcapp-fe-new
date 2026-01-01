@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
 import Tracker from "@/src/components/Tracker";
-// import { RiskAssessmentTracker } from "@/src/components/IndividualRiskAssesment/RiskAssesmentFormTracker";
 import { RiskAssessmentResponse } from "@/src/components/IndividualRiskAssesment/ApiResponse";
 import RiskAssessmentFormData from "@/src/components/IndividualRiskAssesment/RiskAssesmentFormData";
 import { RiskResponse } from "@/src/components/IndividualRiskAssesment/types";
@@ -13,6 +13,9 @@ import Image from "next/image";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import { sectionsConfig } from "@/src/components/IndividualRiskAssesment/sectionsConfig";
 import { PlanManualHandlingsFormData } from "@/src/components/IndividualRiskAssesment/ApiResponse";
+
+// Add type for validation errors
+type ValidationErrors = Record<string, string[]>;
 
 const SECTION_NAMES = [
   "RiskAssessmentDetails",
@@ -76,6 +79,10 @@ export default function SupportPlanPage() {
     RiskAssessmentFormData
   );
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [formSubmissionError, setFormSubmissionError] = useState<string>("");
+
   // Memoized values
   const sectionRefs = useMemo(() => createSectionRefs(), []);
   const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
@@ -98,13 +105,11 @@ export default function SupportPlanPage() {
   useEffect(() => {
     (async () => {
       try {
-        // 👇 get form name from URL query (e.g. ?form=support-plan)
         const form = "risk-assessment";
         const formUuid = searchParams.get("form-uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
 
-        // 👇 pass form and form-uuid to API
         const { token, client_name, uuid } = await getFormSession(
           form,
           formUuid,
@@ -120,16 +125,14 @@ export default function SupportPlanPage() {
           setIsInvalidSession(true);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
-        // 👇 also keep track of the form type
       } catch (e) {
         console.error("Failed to get form session", e);
       }
     })();
   }, [searchParams]);
+
   // Memoized fetch function
   const fetchFormData = useCallback(async () => {
     try {
@@ -203,8 +206,17 @@ export default function SupportPlanPage() {
         ...prev,
         [name]: value,
       }));
+
+      // Clear validation error for this field when user starts typing
+      if (validationErrors[name]) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
     },
-    []
+    [validationErrors]
   );
 
   // Memoized tracker click handler
@@ -237,12 +249,22 @@ export default function SupportPlanPage() {
     [sectionRefs]
   );
 
+  // Function to format field names for display
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Memoized submit handler
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       console.log("Form submitted");
       setLoading(true);
+      setValidationErrors({}); // Clear previous errors
+      setFormSubmissionError(""); // Clear previous submission error
 
       try {
         const data = new FormData();
@@ -251,6 +273,7 @@ export default function SupportPlanPage() {
           data.append("submit_final", "1");
         }
 
+        // Ensure all formData values are properly stringified
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
             data.append(key, String(value));
@@ -281,12 +304,39 @@ export default function SupportPlanPage() {
             },
           };
           window.alert("Form submitted successfully.");
+          // Clear errors on successful submission
+          setValidationErrors({});
+          setFormSubmissionError("");
         } else {
           response = {
             success: false,
             data: apiResponse.data as Record<string, string>,
             message: apiResponse.message,
           };
+
+          // Handle validation errors
+          if (apiResponse.data && typeof apiResponse.data === 'object') {
+            const errorData = apiResponse.data as Record<string, string | string[]>;
+            const newErrors: ValidationErrors = {};
+
+            // Extract validation errors from response
+            Object.entries(errorData).forEach(([field, errors]) => {
+              if (Array.isArray(errors)) {
+                newErrors[field] = errors;
+              } else if (typeof errors === 'string') {
+                newErrors[field] = [errors];
+              }
+            });
+
+            setValidationErrors(newErrors);
+
+            // Set general error message if no specific field errors
+            if (Object.keys(newErrors).length === 0 && apiResponse.message) {
+              setFormSubmissionError(apiResponse.message);
+            }
+          } else if (apiResponse.message) {
+            setFormSubmissionError(apiResponse.message);
+          }
         }
 
         if (
@@ -307,9 +357,20 @@ export default function SupportPlanPage() {
         ) {
           await fetchFormData();
         }
-      } catch (error) {
+      } catch (err: unknown) {
+        const error = err as AxiosError<{ errors?: Record<string, string[]> }>;
         console.error("Submission error:", error);
-        alert("An error occurred while submitting the form");
+
+        if (error.response && error.response.status === 422 && error.response.data?.errors) {
+          const newErrors: ValidationErrors = {};
+          Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+            newErrors[field] = messages;
+          });
+          setValidationErrors(newErrors);
+          setFormSubmissionError("Please correct the errors below.");
+        } else {
+          setFormSubmissionError("An error occurred while submitting the form. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -323,6 +384,7 @@ export default function SupportPlanPage() {
       fetchFormData,
       manualHandlings,
       router,
+      validationErrors,
     ]
   );
 
@@ -333,6 +395,7 @@ export default function SupportPlanPage() {
     if (userId) setSessionUserId(userId);
     if (clientType) setSessionClientType(clientType);
   }, [searchParams]);
+
   // Memoized completion percentage style
   const completionBarStyle = useMemo(
     () => ({
@@ -419,7 +482,7 @@ export default function SupportPlanPage() {
                   and ensure you address potential risks with the Participant
                   and put in place risk controls. This safety checklist is to be
                   completed each time changes to the supports or their delivery
-                  are required, and/or any changes made to the Participant’s
+                  are required, and/or any changes made to the Participants
                   Service Agreement and/or Support care plan.
                 </p>
 
@@ -442,6 +505,33 @@ export default function SupportPlanPage() {
                 />
               </AccordianPlanSection>
             ))}
+
+            {/* Display validation errors */}
+            {(Object.keys(validationErrors).length > 0 || formSubmissionError) && (
+              <div className="mt-8 p-4 border border-red-300 bg-red-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-red-700 mb-2">
+                  Please fix the following errors:
+                </h3>
+
+                {formSubmissionError && (
+                  <p className="text-red-600 mb-3">{formSubmissionError}</p>
+                )}
+
+                <ul className="space-y-2">
+                  {Object.entries(validationErrors).map(([field, errors]) => (
+                    <li key={field} className="text-red-600">
+                      <strong className="font-medium">{formatFieldName(field)}:</strong>{" "}
+                      {errors.map((error, index) => (
+                        <span key={index}>
+                          {error}
+                          {index < errors.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">

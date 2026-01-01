@@ -17,10 +17,10 @@ phpApi.interceptors.request.use((config) => {
 phpApi.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 400)) {
+    if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      alert("pleaase login again");
+      alert("Unauthorized. Please login again.");
     }
     return Promise.reject(error);
   }

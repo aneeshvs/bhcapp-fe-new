@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import Image from 'next/image';
@@ -446,9 +447,25 @@ export default function ClientProfileForm() {
       } else if (sessionUuid || searchParams.get('form-uuid') || searchParams.get('uuid')) {
         await fetchFormData();
       }
-    } catch (error) {
+      setLoading(null);
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ data?: Record<string, string | string[]> }>;
       console.error('Form submission error:', error);
-      alert('An error occurred while submitting the form.');
+      if (error.response && error.response.status === 400 && error.response.data) {
+        const responseData = error.response.data;
+        if (responseData.data) {
+          const newErrors: Record<string, string> = {};
+          Object.entries(responseData.data).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              newErrors[key] = value[0];
+            } else {
+              newErrors[key] = String(value);
+            }
+          });
+          setErrors(newErrors);
+        }
+      }
+      alert('An error occurred while submitting the form. Please check the errors at the bottom of the form.');
     } finally {
       setLoading(null);
     }
@@ -744,6 +761,18 @@ export default function ClientProfileForm() {
 
 
             {/* Action Buttons */}
+            {Object.keys(errors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg mt-4 mb-6">
+                <p className="font-bold">Please correct the following errors:</p>
+                <ul className="list-disc ml-5">
+                  {Object.entries(errors).map(([key, msg]) => (
+                    <li key={key}>
+                      <span className="font-semibold capitalize">{key.replace(/_/g, ' ')}:</span> {msg}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
               <button
                 type="button"

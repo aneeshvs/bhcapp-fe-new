@@ -15,6 +15,9 @@ import { sectionsConfig } from "@/src/components/SupportPlan/sectionsConfig";
 import { SupportPlanService } from "@/src/components/SupportPlan/ApiResponse";
 import { SupportPlanMyGoal } from "@/src/components/SupportPlan/ApiResponse";
 
+// Add type for validation errors
+type ValidationErrors = Record<string, string[]>;
+
 // Constants
 const INITIAL_SERVICES: SupportPlanService[] = [
   {
@@ -107,7 +110,6 @@ export default function SupportPlanPage() {
   const [sessionClientType, setSessionClientType] = useState<string>("");
   const [clientName, setClientName] = useState<string>("");
 
-
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
   const [isInvalidSession, setIsInvalidSession] = useState(false);
@@ -117,6 +119,10 @@ export default function SupportPlanPage() {
   const [services, setServices] =
     useState<SupportPlanService[]>(INITIAL_SERVICES);
   const [myGoals, setMyGoals] = useState<SupportPlanMyGoal[]>(INITIAL_GOALS);
+  
+  // Add state for validation errors
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [formSubmissionError, setFormSubmissionError] = useState<string>("");
 
   // Memoized values
   const sectionRefs = useMemo(() => createSectionRefs(), []);
@@ -164,8 +170,6 @@ export default function SupportPlanPage() {
           setIsInvalidSession(true);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
         setClientName(client_name ?? "");
         if (uuid) setSessionUuid(uuid);
       } catch (e) {
@@ -173,6 +177,7 @@ export default function SupportPlanPage() {
       }
     })();
   }, [searchParams]);
+
   // Memoized fetch function
   const fetchFormData = useCallback(async () => {
     try {
@@ -262,8 +267,17 @@ export default function SupportPlanPage() {
         ...prev,
         [name]: value,
       }));
+      
+      // Clear validation error for this field when user starts typing
+      if (validationErrors[name]) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
     },
-    []
+    [validationErrors]
   );
 
   // Memoized tracker click handler
@@ -296,12 +310,22 @@ export default function SupportPlanPage() {
     [sectionRefs]
   );
 
+  // Function to format field names for display
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Memoized submit handler
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       console.log("Form submitted");
       setLoading(true);
+      setValidationErrors({}); // Clear previous errors
+      setFormSubmissionError(""); // Clear previous submission error
 
       try {
         const data = new FormData();
@@ -309,6 +333,7 @@ export default function SupportPlanPage() {
           data.append("submit_final", "1");
         }
 
+        // Ensure all formData values are properly stringified
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
             data.append(key, String(value));
@@ -340,12 +365,39 @@ export default function SupportPlanPage() {
             },
           };
           window.alert("Form submitted successfully.");
+          // Clear errors on successful submission
+          setValidationErrors({});
+          setFormSubmissionError("");
         } else {
           response = {
             success: false,
             data: apiResponse.data as Record<string, string>,
             message: apiResponse.message,
           };
+          
+          // Handle validation errors
+          if (apiResponse.data && typeof apiResponse.data === 'object') {
+            const errorData = apiResponse.data as Record<string, string | string[]>;
+            const newErrors: ValidationErrors = {};
+            
+            // Extract validation errors from response
+            Object.entries(errorData).forEach(([field, errors]) => {
+              if (Array.isArray(errors)) {
+                newErrors[field] = errors;
+              } else if (typeof errors === 'string') {
+                newErrors[field] = [errors];
+              }
+            });
+            
+            setValidationErrors(newErrors);
+            
+            // Set general error message if no specific field errors
+            if (Object.keys(newErrors).length === 0 && apiResponse.message) {
+              setFormSubmissionError(apiResponse.message);
+            }
+          } else if (apiResponse.message) {
+            setFormSubmissionError(apiResponse.message);
+          }
         }
 
         if (
@@ -368,7 +420,7 @@ export default function SupportPlanPage() {
         }
       } catch (error) {
         console.error("Submission error:", error);
-        alert("An error occurred while submitting the form");
+        setFormSubmissionError("An error occurred while submitting the form. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -474,32 +526,29 @@ export default function SupportPlanPage() {
             />
 
             <div className="mb-6 text-gray-700 space-y-4">
-
               <h2 className="text-center font-bold text-xl">
                 About this Support Plan
               </h2>
               <p>
                 This Support Plan outlines how we will work with you to achieve
                 your goals. It also confirms your approval for us to provide the
-                support and services you’ve agreed to. If your needs or
+                support and services you have agreed to. If your needs or
                 circumstances change, the plan will be updated and re-approved
-                by you. You’ll always receive a copy of your current, approved
-                plan for your records. We’re here to support you every step of
+                by you. You will always receive a copy of your current, approved
+                plan for your records. We are here to support you every step of
                 the way.
               </p>
-
 
               <h2 className="text-center font-bold text-xl mt-6">
                 Wellness and Reablement
               </h2>
               <p>
-                We’re committed to supporting you in embedding wellness and
+                We are committed to supporting you in embedding wellness and
                 reablement into as many areas of your supports and services as
                 possible. Wellness and reablement means doing with rather than
                 doing for—helping you maintain and build your independence
                 wherever we can.
               </p>
-
 
               <h2 className="text-center font-bold text-xl mt-6">
                 Public Holidays
@@ -529,6 +578,33 @@ export default function SupportPlanPage() {
                 />
               </SupportPlanSection>
             ))}
+
+            {/* Display validation errors */}
+            {(Object.keys(validationErrors).length > 0 || formSubmissionError) && (
+              <div className="mt-8 p-4 border border-red-300 bg-red-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-red-700 mb-2">
+                  Please fix the following errors:
+                </h3>
+                
+                {formSubmissionError && (
+                  <p className="text-red-600 mb-3">{formSubmissionError}</p>
+                )}
+                
+                <ul className="space-y-2">
+                  {Object.entries(validationErrors).map(([field, errors]) => (
+                    <li key={field} className="text-red-600">
+                      <strong className="font-medium">{formatFieldName(field)}:</strong>{" "}
+                      {errors.map((error, index) => (
+                        <span key={index}>
+                          {error}
+                          {index < errors.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
@@ -571,8 +647,7 @@ export default function SupportPlanPage() {
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>
         </div>
-      )
-      }
+      )}
     </>
   );
 }

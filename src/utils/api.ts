@@ -19,7 +19,7 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      alert("pleaase login again");
+      alert("Unauthorized. Please login again.");
     }
     return Promise.reject(error);
   }

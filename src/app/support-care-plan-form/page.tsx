@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
 import { CarePlanResponse } from "@/src/components/SupportCarePlan/ApiResponse";
@@ -55,9 +56,11 @@ const emergencyContact: EmergencyContact[] = [
   },
 ];
 
-type SectionKey = (typeof SECTION_NAMES)[number];
 
+type SectionKey = (typeof SECTION_NAMES)[number];
 type SupportFormaDataType = typeof SupportFormaData;
+
+type ValidationErrors = Record<string, string[]>;
 
 // Utility functions
 const createInitialOpenSections = (): Record<SectionKey, boolean> => {
@@ -91,6 +94,10 @@ export default function SupportCarePlanPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(SupportFormaData);
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [formSubmissionError, setFormSubmissionError] = useState<string>("");
+
   const [myGoals, setMyGoals] = useState<SilGoals[]>(() =>
     makeInitialGoals("sil")
   );
@@ -133,6 +140,14 @@ export default function SupportCarePlanPage() {
     },
     [myGoals, homeGoals, supportGoals, communicationPlan, emergencyContacts]
   );
+
+  // Function to format field names for display
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   // Session bootstrap (token, userid, client_type, optional uuid)
   useEffect(() => {
@@ -349,6 +364,8 @@ export default function SupportCarePlanPage() {
       e.preventDefault();
       console.log("Form submitted");
       setLoading(true);
+      setValidationErrors({});
+      setFormSubmissionError("");
 
       try {
         const data = new FormData();
@@ -401,6 +418,8 @@ export default function SupportCarePlanPage() {
             },
           };
           window.alert("Form submitted successfully.");
+          setValidationErrors({});
+          setFormSubmissionError("");
         } else {
           response = {
             success: false,
@@ -420,10 +439,20 @@ export default function SupportCarePlanPage() {
           router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
           await fetchFormData();
         }
-        await fetchFormData();
-      } catch (error) {
+      } catch (err: unknown) {
+        const error = err as AxiosError<{ errors?: Record<string, string[]> }>;
         console.error("Submission error:", error);
-        alert("An error occurred while submitting the form");
+
+        if (error.response && error.response.status === 422 && error.response.data?.errors) {
+          const newErrors: ValidationErrors = {};
+          Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+            newErrors[field] = messages;
+          });
+          setValidationErrors(newErrors);
+          setFormSubmissionError("Please correct the errors below.");
+        } else {
+          setFormSubmissionError("An error occurred while submitting the form. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -605,6 +634,33 @@ export default function SupportCarePlanPage() {
                 </p>
               </div>
             </div>
+
+            {/* Display validation errors */}
+            {(Object.keys(validationErrors).length > 0 || formSubmissionError) && (
+              <div className="mt-8 p-4 border border-red-300 bg-red-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-red-700 mb-2">
+                  Please fix the following errors:
+                </h3>
+
+                {formSubmissionError && (
+                  <p className="text-red-600 mb-3">{formSubmissionError}</p>
+                )}
+
+                <ul className="space-y-2">
+                  {Object.entries(validationErrors).map(([field, errors]) => (
+                    <li key={field} className="text-red-600">
+                      <strong className="font-medium">{formatFieldName(field)}:</strong>{" "}
+                      {errors.map((error, index) => (
+                        <span key={index}>
+                          {error}
+                          {index < errors.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
