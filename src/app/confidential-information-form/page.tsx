@@ -261,13 +261,13 @@ export default function SupportCarePlanPage() {
             localStorage.setItem("token", token);
           } else {
             // Token is still null/invalid
-            alert("Login credentials mismatch");
+            
             setLoading(false);
             return;
           }
         } catch (e) {
           console.error("Failed to refresh session before submit", e);
-          alert("Login credentials mismatch");
+          
           setLoading(false);
           return;
         }
