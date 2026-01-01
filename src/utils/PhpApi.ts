@@ -21,6 +21,11 @@ phpApi.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       alert("Your session has expired. Please login again.");
+      window.open(
+        `${process.env.NEXT_PUBLIC_PHP_URL}/index.php`,
+        "_blank",
+        "noopener,noreferrer"
+      );
     }
     return Promise.reject(error);
   }
