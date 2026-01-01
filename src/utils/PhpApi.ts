@@ -20,7 +20,7 @@ phpApi.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      alert("Unauthorized. Please login again.");
+      alert("Your session has expired. Please login again.");
     }
     return Promise.reject(error);
   }
