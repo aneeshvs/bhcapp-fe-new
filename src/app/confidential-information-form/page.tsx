@@ -107,7 +107,7 @@ export default function SupportCarePlanPage() {
           sessionUserId,
           sessionClientType
         );
-
+        localStorage.removeItem("token");
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify({ type: "client" }));
@@ -257,6 +257,7 @@ export default function SupportCarePlanPage() {
           const sessClientType = sessionClientType || searchParams.get("client_type") || "";
 
           const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
+          localStorage.removeItem("token");
           if (token) {
             localStorage.setItem("token", token);
           } else {
