@@ -213,7 +213,7 @@ export default function SupportCarePlanPage() {
       setFormSubmissionError("");
 
       // Check for token and refresh if missing
-      localStorage.removeItem("token");
+      // localStorage.removeItem("token");
       if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
         try {
           const form = "service-agreement";
