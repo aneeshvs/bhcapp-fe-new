@@ -10,7 +10,7 @@ const AgreementFormaData = {
     term_start_date: '',
     term_end_date: '',
     term_of_this_agreement: '',
-    area_of_support: '',
+    area_of_support: [],
     representative_name: '',
     representative_relationship: '',
     representative_contact: '',

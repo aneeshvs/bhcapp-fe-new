@@ -1,4 +1,4 @@
-import {ServiceAgreementResponse} from "@/src/components/ServiceAgreement/ApiResponse";
+import { ServiceAgreementResponse } from "@/src/components/ServiceAgreement/ApiResponse";
 
 export function mapApiResponseToFormData(responseData: ServiceAgreementResponse) {
   return {
@@ -16,7 +16,24 @@ export function mapApiResponseToFormData(responseData: ServiceAgreementResponse)
     term_start_date: responseData.term_start_date,
     term_end_date: responseData.term_end_date,
     term_of_this_agreement: responseData.term_of_this_agreement,
-    area_of_support: responseData.area_of_support,
+    area_of_support: (() => {
+      try {
+        if (typeof responseData.area_of_support === 'string') {
+          // efficient check if it looks like JSON array
+          if (responseData.area_of_support.trim().startsWith('[')) {
+            return JSON.parse(responseData.area_of_support);
+          }
+          // Fallback for comma separated or single string if migration implies that
+          return [responseData.area_of_support];
+        } else if (Array.isArray(responseData.area_of_support)) {
+          return responseData.area_of_support;
+        }
+        return [];
+      } catch (e) {
+        console.error("Failed to parse area_of_support", e);
+        return [];
+      }
+    })(),
     representative_name: responseData.representative_name,
     representative_relationship: responseData.representative_relationship,
     representative_contact: responseData.representative_contact,
@@ -45,5 +62,5 @@ export function mapApiResponseToFormData(responseData: ServiceAgreementResponse)
     agreed_verbally: responseData.consent?.agreed_verbally,
     cms_comments_entered: responseData.consent?.cms_comments_entered
 
-    };
+  };
 }

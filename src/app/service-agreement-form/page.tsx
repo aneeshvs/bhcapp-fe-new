@@ -147,7 +147,7 @@ export default function ServiceAgreementPage() {
         | React.ChangeEvent<
           HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
-        | { target: { name: string; value: string | number | boolean } }
+        | { target: { name: string; value: string | number | boolean | string[] } }
     ) => {
       const { name, value } = event.target;
       setFormData((prev) => ({
@@ -225,7 +225,7 @@ export default function ServiceAgreementPage() {
           }
         } catch (e) {
           console.error("Failed to refresh session before submit", e);
-          
+
           setLoading(false);
           return;
         }
@@ -239,7 +239,11 @@ export default function ServiceAgreementPage() {
 
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
-            data.append(key, String(value));
+            if (key === 'area_of_support' && Array.isArray(value)) {
+              data.append(key, JSON.stringify(value));
+            } else {
+              data.append(key, String(value));
+            }
           }
         });
 

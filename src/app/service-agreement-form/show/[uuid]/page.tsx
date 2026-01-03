@@ -73,7 +73,7 @@ export default function ShowServiceAgreementPage() {
                 | React.ChangeEvent<
                     HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
                 >
-                | { target: { name: string; value: string | number | boolean } }
+                | { target: { name: string; value: string | number | boolean | string[] } }
         ) => {
             const { name, value } = event.target;
             setFormData((prev) => ({
@@ -85,32 +85,32 @@ export default function ShowServiceAgreementPage() {
     );
 
     const handleTrackerClick = useCallback(
-       (key: SectionKey) => {
-         setOpenSections((prev) => {
-           if (prev[key]) {
-             return { ...prev, [key]: true };
-           }
-   
-           const newState = SECTION_NAMES.reduce(
-             (acc, sectionKey) => ({
-               ...acc,
-               [sectionKey]: true,
-             }),
-             {} as Record<SectionKey, boolean>
-           );
-   
-           return { ...newState, [key]: true };
-         });
-   
-         // Delay scroll until after DOM updates
-         setTimeout(() => {
-           sectionRefs[key]?.current?.scrollIntoView({
-             behavior: "smooth",
-             block: "start",
-           });
-         }, 100);
-       },
-       [sectionRefs]
+        (key: SectionKey) => {
+            setOpenSections((prev) => {
+                if (prev[key]) {
+                    return { ...prev, [key]: true };
+                }
+
+                const newState = SECTION_NAMES.reduce(
+                    (acc, sectionKey) => ({
+                        ...acc,
+                        [sectionKey]: true,
+                    }),
+                    {} as Record<SectionKey, boolean>
+                );
+
+                return { ...newState, [key]: true };
+            });
+
+            // Delay scroll until after DOM updates
+            setTimeout(() => {
+                sectionRefs[key]?.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            }, 100);
+        },
+        [sectionRefs]
     );
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -140,10 +140,18 @@ export default function ShowServiceAgreementPage() {
             if (formData.verbal_date) data.append("verbal_date", formData.verbal_date);
             if (formData.verbal_staff_name) data.append("verbal_staff_name", formData.verbal_staff_name);
             if (formData.verbal_staff_position) data.append("verbal_staff_position", formData.verbal_staff_position);
-            if(formData.other_notes) data.append("other_notes", formData.other_notes);
-            if(formData.received_signed_copy)data.append("received_signed_copy", formData.received_signed_copy ? "1" : "0");
-            if(formData.agreed_verbally)data.append("agreed_verbally", formData.agreed_verbally ? "1" : "0");
-            if(formData.cms_comments_entered)data.append("cms_comments_entered", formData.cms_comments_entered);
+            if (formData.other_notes) data.append("other_notes", formData.other_notes);
+            if (formData.received_signed_copy) data.append("received_signed_copy", formData.received_signed_copy ? "1" : "0");
+            if (formData.agreed_verbally) data.append("agreed_verbally", formData.agreed_verbally ? "1" : "0");
+            if (formData.cms_comments_entered) data.append("cms_comments_entered", formData.cms_comments_entered);
+
+            // Handle area_of_support as JSON string
+            if (Array.isArray(formData.area_of_support)) {
+                data.append("area_of_support", JSON.stringify(formData.area_of_support));
+            } else if (formData.area_of_support) {
+                // If for some reason it's a string, just append it
+                data.append("area_of_support", formData.area_of_support);
+            }
 
 
             // Append Identifiers

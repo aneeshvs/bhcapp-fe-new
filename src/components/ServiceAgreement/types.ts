@@ -1,20 +1,20 @@
 export interface Participant {
-    participant_name: string;
-    ndis_number: string;
-    address: string;
-    contact: string;
-    email: string;
-    dob: string;
-    ndis_plan_start_date: string;
-    ndis_plan_end_date: string;
-    term_start_date: string;
-    term_end_date: string;
-    term_of_this_agreement: string;
-    area_of_support: string;
-    representative_name: string;
-    representative_relationship: string;
-    representative_contact: string;
-    representative_email: string;   
+  participant_name: string;
+  ndis_number: string;
+  address: string;
+  contact: string;
+  email: string;
+  dob: string;
+  ndis_plan_start_date: string;
+  ndis_plan_end_date: string;
+  term_start_date: string;
+  term_end_date: string;
+  term_of_this_agreement: string;
+  area_of_support: string[];
+  representative_name: string;
+  representative_relationship: string;
+  representative_contact: string;
+  representative_email: string;
 }
 interface AgreemnetSuccess {
   success: true;
@@ -53,7 +53,7 @@ export interface ServiceAgreementConsent {
   other_notes: string;
   received_signed_copy: string;
   agreed_verbally: string;
-  cms_comments_entered:string
+  cms_comments_entered: string
 }
 
 export type ServiceResponse = AgreemnetSuccess | AgreementError;
