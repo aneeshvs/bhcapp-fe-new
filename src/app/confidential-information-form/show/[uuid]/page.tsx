@@ -45,6 +45,7 @@ export default function ShowConfidentialInformationPage() {
     const [authenticated, setAuthenticated] = useState(false);
     const [enteredPassword, setEnteredPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const [clientName, setClientName] = useState("");
 
     const [formData, setFormData] =
         useState<SupportFormaDataType>(ConfidentialInformationFormData);
@@ -191,6 +192,9 @@ export default function ShowConfidentialInformationPage() {
         if (data) {
             setAuthenticated(true);
             setLoading(false);
+            if (data.client_name) {
+                setClientName(data.client_name);
+            }
             fetchFormData();
         }
     };
@@ -229,6 +233,9 @@ export default function ShowConfidentialInformationPage() {
             <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
                 <div className="flex justify-end">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
+                        <h1 className="text-xl md:text-2xl font-bold text-blue-800">
+                            {clientName || "N/A"}
+                        </h1>
                     </div>
                 </div>
                 <div className="flex justify-center mb-6">

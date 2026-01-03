@@ -45,6 +45,7 @@ export default function ShowOnboardingPage() {
     const [authenticated, setAuthenticated] = useState(false);
     const [enteredPassword, setEnteredPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const [clientName, setClientName] = useState("");
 
     const [formData, setFormData] =
         useState<SupportFormaDataType>(OnboardingFormData);
@@ -150,7 +151,7 @@ export default function ShowOnboardingPage() {
             );
 
             if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");  
+                window.alert("Signature submitted successfully.");
                 await fetchFormData(); // Refresh data
             } else {
                 console.error("Submission failed", apiResponse);
@@ -201,6 +202,9 @@ export default function ShowOnboardingPage() {
 
             setAuthenticated(true);
             setLoading(false);
+            if (data.client_name) {
+                setClientName(data.client_name);
+            }
             fetchFormData();
         }
     };
@@ -240,9 +244,9 @@ export default function ShowOnboardingPage() {
                 {/* Header Section */}
                 <div className="flex justify-end">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
-                        {/* <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
-              {clientName || "N/A"}
-            </h1> */}
+                        <h1 className="text-xl md:text-2xl font-bold text-blue-800">
+                            {clientName || "N/A"}
+                        </h1>
                     </div>
                 </div>
                 <div className="flex justify-center mb-6">
