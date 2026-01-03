@@ -277,7 +277,7 @@ export default function SupportPlanPage() {
             localStorage.setItem("token", token);
           } else {
             // Token is still null/invalid
-            
+            alert("Please login again.");
             setLoading(false);
             return;
           }

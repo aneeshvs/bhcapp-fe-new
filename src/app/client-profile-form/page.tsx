@@ -311,7 +311,7 @@ export default function ClientProfileForm() {
             localStorage.setItem("token", token);
           } else {
             // Token is still null/invalid
-            
+            alert("Please login again.");
             return;
           }
         } catch (e) {

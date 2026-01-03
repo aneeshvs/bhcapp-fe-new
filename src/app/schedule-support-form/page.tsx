@@ -273,7 +273,7 @@ export default function SupportCarePlanPage() {
             localStorage.setItem("token", token);
           } else {
             // Token is still null/invalid
-            
+            alert("Please login again.");
             setLoading(false);
             return;
           }

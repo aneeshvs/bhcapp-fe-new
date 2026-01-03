@@ -261,7 +261,7 @@ export default function SupportCarePlanPage() {
           if (token) {
             localStorage.setItem("token", token);
           } else {
-            // Token is still null/invalid
+            alert("Please login again.");
             
             setLoading(false);
             return;
