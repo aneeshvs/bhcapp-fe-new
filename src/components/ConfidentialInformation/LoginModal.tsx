@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { login } from "@/src/services/auth";
+import Image from "next/image";
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -8,7 +9,7 @@ interface LoginModalProps {
     onSuccess: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onSuccess }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -42,12 +43,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccess }) =
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 relative z-50"
                 style={{ backgroundColor: 'white', opacity: 1 }}
             >
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
+                
                     <svg
-                        className="w-6 h-6"
+                        className="w-2 h-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -60,7 +58,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccess }) =
                             d="M6 18L18 6M6 6l12 12"
                         ></path>
                     </svg>
-                </button>
+                <div className="flex justify-center mb-4">
+                    <Image
+                        src="/assets/images/BHC LOGO_SMALL.png"
+                        alt="BHC Logo"
+                        width={150}
+                        height={60}
+                        className="h-auto"
+                    />
+                </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">
                     Please log in again to continue submitting the form.
                 </p>
