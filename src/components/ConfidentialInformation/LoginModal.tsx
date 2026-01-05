@@ -61,10 +61,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccess }) =
                         ></path>
                     </svg>
                 </button>
-
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white text-center">
-                    Session Expired
-                </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">
                     Please log in again to continue submitting the form.
                 </p>

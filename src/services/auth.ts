@@ -7,14 +7,14 @@ import api from "@/src/utils/api";
 interface LoginResponse {
     success: boolean;
     message: string;
-    data:{
-        access_token:string;
-        name:string;
+    data: {
+        token: string;
+        name: string;
         user: {
             id: number;
             name: string;
             email: string;
-            user_type:{
+            user_type: {
                 id: number;
                 name: string;
                 slug: string;
@@ -26,7 +26,8 @@ interface LoginResponse {
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
     //const cookieStore = await cookies()
-    const response = await api.post("login", { email, password
+    const response = await api.post("login", {
+        email, password
     });
     if (response.data.success) {
         console.log("Login successful", response.data.data);

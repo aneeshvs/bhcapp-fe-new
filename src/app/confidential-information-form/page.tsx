@@ -14,6 +14,7 @@ import { ConfidentialResponse } from "@/src/components/ConfidentialInformation/t
 import { ConfidentialInformationFormTracker } from "@/src/components/ConfidentialInformation/FormTracker";
 import { ConfidentialAgency } from "@/src/components/ConfidentialInformation/ApiResponse";
 import Image from "next/image";
+import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 const SECTION_NAMES = [
   "ConfidentialInformation", "ConfidentialAgency", "ConfidentialConsent", "VerbalConsent", "PreConsentDisclosures"
@@ -68,6 +69,7 @@ export default function SupportCarePlanPage() {
   const [formData, setFormData] =
     useState<SupportFormaDataType>(ConfidentialInformationFormData);
   const [agencies, setAgencies] = useState<ConfidentialAgency[]>(ConfidentialAgencies);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -95,31 +97,39 @@ export default function SupportCarePlanPage() {
   useEffect(() => {
     (async () => {
       try {
-        const form = "confidential-information";
+        const token = localStorage.getItem("token");
         const formUuid = searchParams.get("form-uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
 
-        // pass form, form_token, form_client_type, and form-uuid to API
-        const { token, client_name, uuid } = await getFormSession(
-          form,
-          formUuid,
-          sessionUserId,
-          sessionClientType
-        );
-        // localStorage.removeItem("token");
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+
+        if (sessionUserId) setSessionUserId(sessionUserId);
+        if (sessionClientType) setSessionClientType(sessionClientType);
+        if (formUuid) setSessionUuid(formUuid);
+
+        // Call getFormSession to get client details but IGNORE token
+        try {
+          const form = "confidential-information";
+          const { client_name, uuid } = await getFormSession(
+            form,
+            formUuid,
+            sessionUserId,
+            sessionClientType
+          );
+
+          if (client_name) setClientName(client_name);
+          if (uuid && !formUuid) setSessionUuid(uuid); // Only set if not already in params? Or update it? likely safe to update.
+        } catch (err) {
+          console.error("getFormSession failed", err);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
-        setClientName(client_name ?? "");
-        if (uuid) setSessionUuid(uuid);
-        setFlag(true);
+        if (token) {
+          setFlag(true);
+        } else {
+          setShowLoginModal(true);
+        }
       } catch (e) {
-        console.error("Failed to get form session", e);
+        console.error("Failed to check session", e);
       }
     })();
   }, [searchParams]);
@@ -152,6 +162,9 @@ export default function SupportCarePlanPage() {
       setFormData(
         mapApiResponseToFormData(response.data) as SupportFormaDataType
       );
+      if (response.data.client_name) {
+        setClientName(response.data.client_name);
+      }
 
 
       if (response.data?.agencies) {
@@ -250,28 +263,9 @@ export default function SupportCarePlanPage() {
       // Check for token and refresh if missing
       // localStorage.removeItem("token");
       if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        try {
-          const form = "service-agreement";
-          const formUuid = searchParams.get("form-uuid");
-          const sessUserId = sessionUserId || searchParams.get("userid") || "";
-          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
-
-          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
-          // localStorage.removeItem("token");
-          if (token) {
-            localStorage.setItem("token", token);
-          } else {
-            alert("Please login again.");
-            
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to refresh session before submit", e);
-          
-          setLoading(false);
-          return;
-        }
+        setShowLoginModal(true);
+        setLoading(false);
+        return;
       }
 
 
@@ -376,6 +370,15 @@ export default function SupportCarePlanPage() {
 
   return (
     <>
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          setFlag(true);
+          fetchFormData();
+        }}
+      />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
           <div className="flex justify-end">
