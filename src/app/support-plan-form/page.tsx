@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
+import { me } from "@/src/services/auth";
 import Tracker from "@/src/components/Tracker";
 import { supportPlanSteps } from "@/src/components/SupportPlan/SupportPlanTrackerLIst";
 import { SupportApiResponse } from "@/src/components/SupportPlan/ApiResponse";
@@ -14,6 +15,7 @@ import SupportPlanSection from "@/src/components/SupportPlan/SupportPlanSection"
 import { sectionsConfig } from "@/src/components/SupportPlan/sectionsConfig";
 import { SupportPlanService } from "@/src/components/SupportPlan/ApiResponse";
 import { SupportPlanMyGoal } from "@/src/components/SupportPlan/ApiResponse";
+import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 // Add type for validation errors
 type ValidationErrors = Record<string, string[]>;
@@ -115,10 +117,11 @@ export default function SupportPlanPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportPlanFormDataType>(SupportPlanFormData);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [services, setServices] =
     useState<SupportPlanService[]>(INITIAL_SERVICES);
   const [myGoals, setMyGoals] = useState<SupportPlanMyGoal[]>(INITIAL_GOALS);
-  
+
   // Add state for validation errors
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [formSubmissionError, setFormSubmissionError] = useState<string>("");
@@ -148,29 +151,39 @@ export default function SupportPlanPage() {
   useEffect(() => {
     (async () => {
       try {
+        const token = localStorage.getItem("token");
         const form = "support-plan";
         const formUuid = searchParams.get("form-uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
 
-        // 👇 pass form and form-uuid to API
-        const { token, client_name, uuid } = await getFormSession(
-          form,
-          formUuid,
-          sessionUserId,
-          sessionClientType
-        );
+        if (sessionUserId) setSessionUserId(sessionUserId);
+        if (sessionClientType) setSessionClientType(sessionClientType);
+        if (formUuid) setSessionUuid(formUuid);
 
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+        try {
+          const { client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+          if (client_name) setClientName(client_name);
+          if (uuid) setSessionUuid(uuid);
+        } catch (e) {
+          console.error("getFormSession failed", e);
         }
 
-        setClientName(client_name ?? "");
-        if (uuid) setSessionUuid(uuid);
-        setFlag(true);
+        if (token) {
+          try {
+            await me();
+            setFlag(true);
+          } catch (e) {
+            console.error("Token verification failed", e);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setShowLoginModal(true);
+          }
+        } else {
+          setShowLoginModal(true);
+        }
       } catch (e) {
-        console.error("Failed to get form session", e);
+        console.error("Failed to check session", e);
       }
     })();
   }, [searchParams]);
@@ -264,7 +277,7 @@ export default function SupportPlanPage() {
         ...prev,
         [name]: value,
       }));
-      
+
       // Clear validation error for this field when user starts typing
       if (validationErrors[name]) {
         setValidationErrors(prev => {
@@ -326,28 +339,12 @@ export default function SupportPlanPage() {
 
       // Check for token and refresh if missing
       // localStorage.removeItem("token");
+      // Check for token and refresh if missing
+      // localStorage.removeItem("token");
       if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        try {
-          const form = "service-agreement";
-          const formUuid = searchParams.get("form-uuid");
-          const sessUserId = sessionUserId || searchParams.get("userid") || "";
-          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
-
-          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
-          if (token) {
-            localStorage.setItem("token", token);
-          } else {
-            // Token is still null/invalid
-            alert("Please login again.");
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to refresh session before submit", e);
-          
-          setLoading(false);
-          return;
-        }
+        setShowLoginModal(true);
+        setLoading(false);
+        return;
       }
 
 
@@ -398,12 +395,12 @@ export default function SupportPlanPage() {
             data: apiResponse.data as Record<string, string>,
             message: apiResponse.message,
           };
-          
+
           // Handle validation errors
           if (apiResponse.data && typeof apiResponse.data === 'object') {
             const errorData = apiResponse.data as Record<string, string | string[]>;
             const newErrors: ValidationErrors = {};
-            
+
             // Extract validation errors from response
             Object.entries(errorData).forEach(([field, errors]) => {
               if (Array.isArray(errors)) {
@@ -412,9 +409,9 @@ export default function SupportPlanPage() {
                 newErrors[field] = [errors];
               }
             });
-            
+
             setValidationErrors(newErrors);
-            
+
             // Set general error message if no specific field errors
             if (Object.keys(newErrors).length === 0 && apiResponse.message) {
               setFormSubmissionError(apiResponse.message);
@@ -470,6 +467,12 @@ export default function SupportPlanPage() {
     if (clientType) setSessionClientType(clientType);
   }, [searchParams]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   // Memoized completion percentage style
   const completionBarStyle = useMemo(
     () => ({
@@ -500,9 +503,25 @@ export default function SupportPlanPage() {
 
   return (
     <>
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          setFlag(true);
+          fetchFormData();
+        }}
+      />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4 items-start">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition h-fit mt-2"
+            >
+              Logout
+            </button>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
                 {clientName || "N/A"}
@@ -609,11 +628,11 @@ export default function SupportPlanPage() {
                 <h3 className="text-lg font-semibold text-red-700 mb-2">
                   Please fix the following errors:
                 </h3>
-                
+
                 {formSubmissionError && (
                   <p className="text-red-600 mb-3">{formSubmissionError}</p>
                 )}
-                
+
                 <ul className="space-y-2">
                   {Object.entries(validationErrors).map(([field, errors]) => (
                     <li key={field} className="text-red-600">

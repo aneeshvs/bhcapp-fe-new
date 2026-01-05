@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
+import { me } from "@/src/services/auth";
 import { CarePlanResponse } from "@/src/components/SupportCarePlan/ApiResponse";
 import SupportFormaData from "@/src/components/SupportCarePlan/SupportFormData";
 import { mapApiResponseToFormData } from "@/src/components/SupportCarePlan/MapApiResponseToFormData";
@@ -17,6 +18,7 @@ import { HomeCares } from "@/src/components/SupportCarePlan/ApiResponse";
 import { SupportCoordination } from "@/src/components/SupportCarePlan/ApiResponse";
 import { EmergencyContact } from "@/src/components/SupportCarePlan/ApiResponse";
 import Image from "next/image";
+import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 const SECTION_NAMES = [
   "SupportCarePlan",
@@ -93,6 +95,7 @@ export default function SupportCarePlanPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(SupportFormaData);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [formSubmissionError, setFormSubmissionError] = useState<string>("");
@@ -152,32 +155,39 @@ export default function SupportCarePlanPage() {
   useEffect(() => {
     (async () => {
       try {
+        const token = localStorage.getItem("token");
         const form = "support-care-plan";
         const formUuid = searchParams.get("form-uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
 
-        // pass form, form_token, form_client_type, and form-uuid to API
-        const { token, client_name, uuid } = await getFormSession(
-          form,
-          formUuid,
-          sessionUserId,
-          sessionClientType,
-        );
+        if (sessionUserId) setSessionUserId(sessionUserId);
+        if (sessionClientType) setSessionClientType(sessionClientType);
+        if (formUuid) setSessionUuid(formUuid);
 
-
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+        try {
+          const { client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+          if (client_name) setClientName(client_name);
+          if (uuid) setSessionUuid(uuid);
+        } catch (e) {
+          console.error("getFormSession failed", e);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
-        setClientName(client_name ?? "");
-        if (uuid) setSessionUuid(uuid);
-        setFlag(true);
+        if (token) {
+          try {
+            await me();
+            setFlag(true);
+          } catch (e) {
+            console.error("Token verification failed", e);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setShowLoginModal(true);
+          }
+        } else {
+          setShowLoginModal(true);
+        }
       } catch (e) {
-        console.error("Failed to get form session", e);
+        console.error("Failed to check session", e);
       }
     })();
   }, [searchParams]);
@@ -366,31 +376,15 @@ export default function SupportCarePlanPage() {
 
       // Check for token and refresh if missing
       // localStorage.removeItem("token");
+      // Check for token and refresh if missing
+      // localStorage.removeItem("token");
       if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        try {
-          const form = "service-agreement";
-          const formUuid = searchParams.get("form-uuid");
-          const sessUserId = sessionUserId || searchParams.get("userid") || "";
-          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
-
-          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
-          if (token) {
-            localStorage.setItem("token", token);
-          } else {
-            // Token is still null/invalid
-            alert("Please login again.");
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to refresh session before submit", e);
-          
-          setLoading(false);
-          return;
-        }
+        setShowLoginModal(true);
+        setLoading(false);
+        return;
       }
 
-      
+
       try {
         const data = new FormData();
 
@@ -503,6 +497,12 @@ export default function SupportCarePlanPage() {
     if (clientType) setSessionClientType(clientType);
   }, [searchParams, handleSubmit]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   // Memoized completion percentage style
   const completionBarStyle = { width: `${completionPercentage}%` };
 
@@ -512,9 +512,26 @@ export default function SupportCarePlanPage() {
 
   return (
     <>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          setFlag(true);
+          fetchFormData();
+        }}
+      />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4 items-start">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition h-fit mt-2"
+            >
+              Logout
+            </button>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
                 {clientName || "N/A"}

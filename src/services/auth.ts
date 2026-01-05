@@ -37,3 +37,8 @@ export async function login(email: string, password: string): Promise<LoginRespo
     return response.data;
 
 }
+
+export async function me() {
+    const response = await api.get("me");
+    return response.data;
+}

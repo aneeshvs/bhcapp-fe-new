@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
+import { me } from "@/src/services/auth";
 import Tracker from "@/src/components/Tracker";
 import { mapApiResponseToFormData } from "@/src/components/ServiceAgreement/MapApiResponseToFormData";
 import { sectionsConfig } from "@/src/components/ServiceAgreement/sectionsConfig";
@@ -11,7 +12,9 @@ import AccordianPlanSection from "@/src/components/AccordianSection";
 import { ServiceAgreementResponse } from "@/src/components/ServiceAgreement/ApiResponse";
 import { ServiceResponse } from "@/src/components/ServiceAgreement/types";
 import AgreementFormaData from "@/src/components/ServiceAgreement/AgreementFormData";
+
 import Image from "next/image";
+import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 const SECTION_NAMES = [
   "ParticipantRepresentative",
@@ -56,6 +59,7 @@ export default function ServiceAgreementPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<AgreementFormaDataType>(AgreementFormaData);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
 
 
@@ -73,28 +77,41 @@ export default function ServiceAgreementPage() {
   useEffect(() => {
     (async () => {
       try {
+        const token = localStorage.getItem("token");
         // 👇 get form name from URL query (e.g. ?form=support-plan)
         const form = "service-agreement";
         const formUuid = searchParams.get("form-uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
 
-        // 👇 pass form and form-uuid to API
-        const { token, client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
 
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+        if (sessionUserId) setSessionUserId(sessionUserId);
+        if (sessionClientType) setSessionClientType(sessionClientType);
+        if (formUuid) setSessionUuid(formUuid);
+
+        try {
+          const { client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+          if (client_name) setClientName(client_name);
+          if (uuid) setSessionUuid(uuid);
+        } catch (e) {
+          console.error("getFormSession failed", e);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
-        setClientName(client_name ?? "");
-        if (uuid) setSessionUuid(uuid);
-        setFlag(true);
-        // 👇 also keep track of the form type
+        if (token) {
+          try {
+            await me();
+            setFlag(true);
+          } catch (e) {
+            console.error("Token verification failed", e);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setShowLoginModal(true);
+          }
+        } else {
+          setShowLoginModal(true);
+        }
       } catch (e) {
-        console.error("Failed to get form session", e);
+        console.error("Failed to check session", e);
       }
     })();
   }, [searchParams]);
@@ -207,28 +224,12 @@ export default function ServiceAgreementPage() {
 
       // Check for token and refresh if missing
       // localStorage.removeItem("token");
+      // Check for token and refresh if missing
+      // localStorage.removeItem("token");
       if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        try {
-          const form = "service-agreement";
-          const formUuid = searchParams.get("form-uuid");
-          const sessUserId = sessionUserId || searchParams.get("userid") || "";
-          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
-
-          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
-          if (token) {
-            localStorage.setItem("token", token);
-          } else {
-            // Token is still null/invalid
-            alert("Please login again.");
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to refresh session before submit", e);
-
-          setLoading(false);
-          return;
-        }
+        setShowLoginModal(true);
+        setLoading(false);
+        return;
       }
 
       try {
@@ -314,6 +315,12 @@ export default function ServiceAgreementPage() {
     if (clientType) setSessionClientType(clientType);
   }, [searchParams]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   // Memoized completion percentage style
   const completionBarStyle = { width: `${completionPercentage}%` };
 
@@ -324,11 +331,28 @@ export default function ServiceAgreementPage() {
     ];
   }, []);
 
+
   return (
     <>
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          setFlag(true);
+          fetchFormData();
+        }}
+      />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4 items-start">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition h-fit mt-2"
+            >
+              Logout
+            </button>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
                 {clientName || "N/A"}

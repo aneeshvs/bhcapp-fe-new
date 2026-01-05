@@ -22,8 +22,10 @@ import MedicalAlerts from '@/src/components/ClientProfileForm/MedicalAlerts';
 import HealthSummaries from '@/src/components/ClientProfileForm/HealthSummaries';
 import SupportInformation from '@/src/components/ClientProfileForm/SupportInformation';
 import { update, show, getFormSession } from '@/src/services/crud';
+import { me } from '@/src/services/auth';
 import { useSearchParams } from 'next/navigation';
 import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiResponse';
+import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 interface OnboardSubmitSuccess {
   success: true;
   data: {
@@ -86,6 +88,7 @@ export default function ClientProfileForm() {
   const [clientName, setClientName] = useState<string>("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
 
 
@@ -263,6 +266,12 @@ export default function ClientProfileForm() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -273,22 +282,38 @@ export default function ClientProfileForm() {
         const formUuid = searchParams.get('form-uuid');
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
-        const { token, client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+        const token = localStorage.getItem("token");
 
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify({ type: "client" }));
+        if (sessionUserId) setSessionUserId(sessionUserId);
+        if (sessionClientType) setSessionClientType(sessionClientType);
+        if (formUuid) setSessionUuid(formUuid);
+
+        // Fetch session data but ignore token
+        try {
+          const { client_name, uuid } = await getFormSession(form, formUuid, sessionUserId, sessionClientType);
+          setClientName(client_name ?? "");
+          if (uuid) setSessionUuid(uuid);
+        } catch (e) {
+          console.error("getFormSession failed", e);
         }
 
-        // setSessionUserId(userid ?? "");
-        // setSessionClientType(client_type ?? "");
-        setClientName(client_name ?? "");
-        if (uuid) setSessionUuid(uuid);
-        setFlag(true);        
+        if (token) {
+          try {
+            await me();
+            setFlag(true);
+          } catch (e) {
+            console.error("Token verification failed", e);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setShowLoginModal(true);
+          }
+        } else {
+          setShowLoginModal(true);
+        }
 
         // 👇 also keep track of the form type
       } catch (e) {
-        console.error("Failed to get form session", e);
+        console.error("Failed to check session", e);
       }
     })();
   }, [searchParams]);
@@ -298,28 +323,11 @@ export default function ClientProfileForm() {
     e.preventDefault();
     console.log('Form submitted');
     // Check for token and refresh if missing
-      localStorage.removeItem("token");
-      if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        try {
-          const form = "service-agreement";
-          const formUuid = searchParams.get("form-uuid");
-          const sessUserId = sessionUserId || searchParams.get("userid") || "";
-          const sessClientType = sessionClientType || searchParams.get("client_type") || "";
-
-          const { token } = await getFormSession(form, formUuid, sessUserId, sessClientType);
-          if (token) {
-            localStorage.setItem("token", token);
-          } else {
-            // Token is still null/invalid
-            alert("Please login again.");
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to refresh session before submit", e);
-          
-          return;
-        }
-      }
+    // localStorage.removeItem("token");
+    if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
+      setShowLoginModal(true);
+      return;
+    }
     try {
       const data = new FormData();
       setErrors({}); // Reset errors before submission
@@ -521,9 +529,25 @@ export default function ClientProfileForm() {
 
   return (
     <>
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          setFlag(true);
+          fetchFormData();
+        }}
+      />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4 items-start">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition h-fit mt-2"
+            >
+              Logout
+            </button>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
                 {clientName || "N/A"}
@@ -841,7 +865,7 @@ export default function ClientProfileForm() {
         </div>
       )}       */}
         </div>
-        ) : (
+      ) : (
         // Loader when flag is false
         <div className="flex justify-center items-center min-h-[200px]">
           <span>Loading...</span>

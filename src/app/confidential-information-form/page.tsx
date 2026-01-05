@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
 import { update, show } from "@/src/services/crud";
+import { me } from "@/src/services/auth";
 import { ConfidentialInformation } from "@/src/components/ConfidentialInformation/ApiResponse";
 import ConfidentialInformationFormData from "@/src/components/ConfidentialInformation/FormData";
 import { mapApiResponseToFormData } from "@/src/components/ConfidentialInformation/MapApiResponseToFormData";
@@ -124,7 +125,15 @@ export default function SupportCarePlanPage() {
         }
 
         if (token) {
-          setFlag(true);
+          try {
+            await me();
+            setFlag(true);
+          } catch (e) {
+            console.error("Token verification failed", e);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setShowLoginModal(true);
+          }
         } else {
           setShowLoginModal(true);
         }
@@ -353,6 +362,12 @@ export default function SupportCarePlanPage() {
     ]
   );
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   useEffect(() => {
     const userId = searchParams.get("userid");
     const clientType = searchParams.get("client_type");
@@ -381,7 +396,14 @@ export default function SupportCarePlanPage() {
       />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4 items-start">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition h-fit mt-2"
+            >
+              Logout
+            </button>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
                 {clientName || "N/A"}
