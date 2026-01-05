@@ -30,7 +30,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccess }) =
             }
         } catch (err) {
             console.error(err);
-            setError("An error occurred during login");
+            setError("credentials are incorrect");
         } finally {
             setLoading(false);
         }
