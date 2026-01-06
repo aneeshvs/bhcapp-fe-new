@@ -162,6 +162,22 @@ export default function ShowScheduleSupportPage() {
         setLoading(true);
 
         try {
+
+             const missingFields = [];
+
+            // Accepted By (Provider) requirements
+            if (!formData.participant_signature) missingFields.push("Participant Signature");
+
+            // Participant requirements
+            if (!formData.representative_signature) missingFields.push("Representative Signature");
+
+
+            if (missingFields.length > 0) {
+                window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
+                setLoading(false);
+                return;
+            }
+
             const data = new FormData();
 
             // Append signature related fields

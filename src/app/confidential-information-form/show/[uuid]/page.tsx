@@ -110,6 +110,22 @@ export default function ShowConfidentialInformationPage() {
         setLoading(true);
 
         try {
+
+             const missingFields = [];
+
+            // Accepted By (Provider) requirements
+            if (!formData.signature) missingFields.push("Signature");
+
+            // Participant requirements
+            if (!formData.verbal_signature) missingFields.push("Verbal Consent Signature");
+
+
+            if (missingFields.length > 0) {
+                window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
+                setLoading(false);
+                return;
+            }
+
             const data = new FormData();
 
             // ONLY append signature related fields
