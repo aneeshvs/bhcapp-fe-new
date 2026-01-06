@@ -47,7 +47,11 @@ type ValidationErrors = Record<string, string[]>;
 // Utility functions
 const createInitialOpenSections = (): Record<SectionKey, boolean> => {
   return SECTION_NAMES.reduce((acc, section) => {
-    acc[section] = false;
+    if (section === "ScheduleOfSupports") {
+      acc[section] = true;
+    } else {
+      acc[section] = false;
+    }
     return acc;
   }, {} as Record<SectionKey, boolean>);
 };
