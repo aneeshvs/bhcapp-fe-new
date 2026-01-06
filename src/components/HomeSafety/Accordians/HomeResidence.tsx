@@ -211,7 +211,7 @@ export default function HomeResidenceTypesForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {renderCheckboxGroup('assessment_completed_with', 'Has this assessment been completed with?', assessmentCompletedWithOptions)}
-              {renderDatePickerField('review_date', 'Review Date', 'Select review date')}
+              {/* {renderDatePickerField('review_date', 'Review Date', 'Select review date')} */}
             </div>
           </div>
 
