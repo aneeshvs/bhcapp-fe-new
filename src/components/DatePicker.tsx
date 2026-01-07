@@ -6,7 +6,7 @@ import "flatpickr/dist/flatpickr.min.css";
 
 interface Props {
   name: string;
-  value: string | null;
+  value: string | null; // yyyy-mm-dd
   onChange: (
     event:
       | React.ChangeEvent<HTMLInputElement>
@@ -15,52 +15,68 @@ interface Props {
   placeholder?: string;
 }
 
-export default function DatePicker({ name, value, onChange, placeholder }: Props) {
+export default function DatePicker({
+  name,
+  value,
+  onChange,
+  placeholder,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!inputRef.current) return;
 
-    flatpickr(inputRef.current, {
+    const emitChange = (date?: Date) => {
+      if (!date) {
+        onChange({ target: { name, value: "" } });
+        return;
+      }
+
+      // ✅ No timezone issue
+      const mysqlDate = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+      onChange({
+        target: {
+          name,
+          value: mysqlDate,
+        },
+      });
+    };
+
+    const fp = flatpickr(inputRef.current, {
       dateFormat: "d-m-Y",
-      allowInput: false,
+      allowInput: true,
+      defaultDate: value || undefined,
 
+      // Calendar select
       onChange(selectedDates) {
-        if (!selectedDates[0]) {
-          onChange({ target: { name, value: "" } });
-          return;
-        }
+        emitChange(selectedDates[0]);
+      },
 
-        const d = selectedDates[0];
-
-        // 🔥 Manual formatting – NO timezone shift
-        const mysqlFormat = `${d.getFullYear()}-${String(
-          d.getMonth() + 1
-        ).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-        onChange({
-          target: {
-            name,
-            value: mysqlFormat, // backend-safe date
-          },
-        });
+      // Paste / type + blur
+      onClose(selectedDates) {
+        emitChange(selectedDates[0]);
       },
     });
-  }, []);
+
+    // 🔁 Sync display when parent updates value
+    if (value && inputRef.current) {
+      const [y, m, d] = value.split("-");
+      inputRef.current.value = `${d}-${m}-${y}`;
+    }
+
+    return () => fp.destroy();
+  }, [name, value, onChange]);
 
   return (
     <input
       ref={inputRef}
       type="text"
       name={name}
-      value={
-        value
-          ? new Date(value).toLocaleDateString("en-GB") // Display dd-mm-yyyy
-          : ""
-      }
       placeholder={placeholder || "Select Date"}
       className="w-full border border-gray-300 rounded px-3 py-2"
-      readOnly
     />
   );
 }
