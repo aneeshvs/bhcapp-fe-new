@@ -24,7 +24,7 @@ export default function DatePickerSaveMany({
 
     const fp = flatpickr(inputRef.current, {
       dateFormat: "d-m-Y",
-      allowInput: false,
+      allowInput: true,
       defaultDate: value || undefined,
 
       onChange(selectedDates) {
