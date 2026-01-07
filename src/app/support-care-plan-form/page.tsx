@@ -457,6 +457,7 @@ export default function SupportCarePlanPage() {
           router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
           await fetchFormData();
         }
+        await fetchFormData();
       } catch (err: unknown) {
         const error = err as AxiosError<{ errors?: Record<string, string[]> }>;
         console.error("Submission error:", error);
