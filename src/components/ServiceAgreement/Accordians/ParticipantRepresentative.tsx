@@ -29,6 +29,7 @@ export default function ParticipantRepresentativeForm({
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [chargebands, setChargebands] = useState<Chargeband[]>([]);
 
@@ -44,6 +45,10 @@ export default function ParticipantRepresentativeForm({
 
     fetchChargebands();
   }, []);
+
+  const filteredChargebands = chargebands.filter((item) =>
+    item.chargeband_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -392,18 +397,32 @@ export default function ParticipantRepresentativeForm({
               )}
             </div>
 
+            {/* Search Bar for Chargebands */}
+            <input
+              type="text"
+              placeholder="Search charge bands..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-800 rounded px-3 py-2 mb-2"
+            />
+
             <div className="border border-gray-300 rounded px-3 py-2 max-h-48 overflow-y-auto">
-              {chargebands.length > 0 ? (
-                chargebands.map((item) => (
+              {filteredChargebands.length > 0 ? (
+                filteredChargebands.map((item) => (
                   <div key={item.id} className="flex items-center mb-2 last:mb-0">
                     <input
                       type="checkbox"
                       id={`chargeband-${item.id}`}
                       value={item.chargeband_name}
-                      checked={(Array.isArray(formData.area_of_support) ? formData.area_of_support : []).includes(item.chargeband_name)}
+                      checked={(Array.isArray(formData.area_of_support)
+                        ? formData.area_of_support
+                        : []
+                      ).includes(item.chargeband_name)}
                       onChange={(e) => {
                         const { value, checked } = e.target;
-                        const current = Array.isArray(formData.area_of_support) ? formData.area_of_support : [];
+                        const current = Array.isArray(formData.area_of_support)
+                          ? formData.area_of_support
+                          : [];
                         const newValue = checked
                           ? [...current, value]
                           : current.filter((v: string) => v !== value);
@@ -417,13 +436,18 @@ export default function ParticipantRepresentativeForm({
                       }}
                       className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <label htmlFor={`chargeband-${item.id}`} className="text-gray-700 cursor-pointer select-none">
+                    <label
+                      htmlFor={`chargeband-${item.id}`}
+                      className="text-gray-700 cursor-pointer select-none"
+                    >
                       {item.chargeband_name}
                     </label>
                   </div>
                 ))
               ) : (
-                <div className="text-gray-500 italic">No chargebands available</div>
+                <div className="text-gray-500 italic">
+                  No chargebands match your search
+                </div>
               )}
             </div>
           </div>

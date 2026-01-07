@@ -164,8 +164,8 @@ export default function ChargebandsPage() {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100/80">
+                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 border">
                         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="text-lg font-semibold">
                                 {currentChargeband.uuid ? "Edit Chargeband" : "Add New Chargeband"}
