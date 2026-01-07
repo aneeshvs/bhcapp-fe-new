@@ -15,52 +15,76 @@ interface Props {
   placeholder?: string;
 }
 
-export default function DatePicker({ name, value, onChange, placeholder }: Props) {
+export default function DatePicker({
+  name,
+  value,
+  onChange,
+  placeholder,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const fpRef = useRef<flatpickr.Instance | null>(null);
 
+  // ✅ Init once
   useEffect(() => {
     if (!inputRef.current) return;
 
-    flatpickr(inputRef.current, {
+    fpRef.current = flatpickr(inputRef.current, {
       dateFormat: "d-m-Y",
-      allowInput: false,
-
+      allowInput: true,
       onChange(selectedDates) {
-        if (!selectedDates[0]) {
-          onChange({ target: { name, value: "" } });
-          return;
-        }
-
-        const d = selectedDates[0];
-
-        // 🔥 Manual formatting – NO timezone shift
-        const mysqlFormat = `${d.getFullYear()}-${String(
-          d.getMonth() + 1
-        ).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-        onChange({
-          target: {
-            name,
-            value: mysqlFormat, // backend-safe date
-          },
-        });
+        if (!selectedDates[0]) return;
+        syncDate(selectedDates[0]);
       },
     });
+
+    return () => {
+      fpRef.current?.destroy();
+    };
   }, []);
+
+  // ✅ Sync value from parent (NO timezone bug)
+  useEffect(() => {
+    if (value && fpRef.current) {
+      fpRef.current.setDate(value, true);
+    }
+  }, [value]);
+
+  // ✅ Handle pasted / typed input
+  const handleBlur = () => {
+    if (!inputRef.current || !fpRef.current) return;
+
+    const parsed = fpRef.current.parseDate(
+      inputRef.current.value,
+      "d-m-Y"
+    );
+
+    if (!parsed) return;
+
+    syncDate(parsed);
+    fpRef.current.setDate(parsed, true);
+  };
+
+  const syncDate = (d: Date) => {
+    const mysqlFormat = `${d.getFullYear()}-${String(
+      d.getMonth() + 1
+    ).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    onChange({
+      target: {
+        name,
+        value: mysqlFormat,
+      },
+    });
+  };
 
   return (
     <input
       ref={inputRef}
       type="text"
       name={name}
-      value={
-        value
-          ? new Date(value).toLocaleDateString("en-GB") // Display dd-mm-yyyy
-          : ""
-      }
       placeholder={placeholder || "Select Date"}
       className="w-full border border-gray-300 rounded px-3 py-2"
-      readOnly
+      onBlur={handleBlur}   // 🔥 REQUIRED for paste
     />
   );
 }
