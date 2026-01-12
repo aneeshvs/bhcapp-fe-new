@@ -108,6 +108,7 @@ export default function ClientProfileForm() {
     healthSummaries: useRef<HTMLDivElement>(null),
     supportInfo: useRef<HTMLDivElement>(null),
   };
+  
   const fetchFormData = async () => {
     try {
       const effectiveUuid = sessionUuid || searchParams.get('uuid');
