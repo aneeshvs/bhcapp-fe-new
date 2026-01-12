@@ -42,6 +42,7 @@ export const clientProfileFormData = {
   auslanRequired: 0,
 
   // HEALTHCARE
+  health_other_description: '',
   primaryDiagnosis: '',
   secondaryDiagnosis: '',
 
@@ -73,7 +74,7 @@ export const clientProfileFormData = {
   staffAdministerMedication: 0,
   self_administered: 0,
   guardian: 0,
-  support_worker: 0, 
+  support_worker: 0,
 
 
   medicalImmunisationStatus: '',
@@ -83,15 +84,15 @@ export const clientProfileFormData = {
   vaccineAssistance: 0,
 
 
-   communicationAssist: 0,
-    mealtimePlan: '',
-    likes: '',
-    dislikes: '',
-    interests: '',
-    male: 0,
-    female: 0,
-    no_preference: 0,
-    specialRequest: '',
+  communicationAssist: 0,
+  mealtimePlan: '',
+  likes: '',
+  dislikes: '',
+  interests: '',
+  male: 0,
+  female: 0,
+  no_preference: 0,
+  specialRequest: '',
 
 };
 

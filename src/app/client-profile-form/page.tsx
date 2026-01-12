@@ -58,7 +58,7 @@ export default function ClientProfileForm() {
     goal_key: '' // Provide empty string as default
   }]);
   const [healthProffessional, setHealthProffessional] = useState([{ role: '', name: '', contact_number: '' }]);
-  const [healthInformation, setHealthInformation] = useState({ health_conditions: [] as string[] });
+  const [healthInformation, setHealthInformation] = useState({ health_conditions: [] as string[], health_other_description: '' });
   const [loading, setLoading] = useState<null | 'save' | 'submit'>(null);
   const [flag, setFlag] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
@@ -244,7 +244,8 @@ export default function ClientProfileForm() {
         setHealthInformation({
           health_conditions: Array.isArray(response.data.health_information.health_conditions)
             ? response.data.health_information.health_conditions
-            : [response.data.health_information.health_conditions]
+            : [response.data.health_information.health_conditions],
+          health_other_description: response.data.health_information.health_other_description || ''
         });
       }
 
@@ -392,6 +393,7 @@ export default function ClientProfileForm() {
 
       // Health Info
       data.append('health_conditions', JSON.stringify(healthInformation.health_conditions || ''));
+      data.append('health_other_description', healthInformation.health_other_description || '');
 
       // Health care
       data.append('medicare', formData.medicare || '');

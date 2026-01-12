@@ -5,9 +5,10 @@ import FieldLogsModal from '@/src/components/FieldLogsModal';
 export interface HealthInformationProps {
   healthInformation: {
     health_conditions: string[]; // array of selected conditions
+    health_other_description: string;
   };
   setHealthInformation: React.Dispatch<
-    React.SetStateAction<{ health_conditions: string[] }>
+    React.SetStateAction<{ health_conditions: string[]; health_other_description: string }>
   >;
   uuid?: string | null;
 }
@@ -26,6 +27,9 @@ const healthOptions = [
   'Enteral Feeding or Peg Feeding',
   'Ventilator',
   'Medication Support',
+  'Autism',
+  'Mental Health',
+  'Physical Disability',
   'Other',
 ];
 
@@ -70,7 +74,7 @@ export default function HealthInformation({
 
       {/* Body */}
       <div className="p-4 bg-white">
-        <div 
+        <div
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -94,6 +98,27 @@ export default function HealthInformation({
             );
           })}
         </div>
+
+        {/* Other Description Input */}
+        {healthInformation.health_conditions.includes('Other') && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Please specify details for "Other":
+            </label>
+            <textarea
+              className="w-full border border-gray-300 rounded p-2 focus:ring-primary focus:border-primary"
+              rows={3}
+              value={healthInformation.health_other_description || ''}
+              onChange={(e) =>
+                setHealthInformation((prev) => ({
+                  ...prev,
+                  health_other_description: e.target.value,
+                }))
+              }
+              placeholder="Enter details here..."
+            />
+          </div>
+        )}
 
         {/* Reminder */}
         <div className="mt-6 p-4 bg-yellow-100 text-yellow-800 rounded border border-yellow-300 text-sm">

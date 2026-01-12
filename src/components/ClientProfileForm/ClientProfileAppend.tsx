@@ -22,6 +22,7 @@ export interface HealthProfessional {
 
 export interface HealthInformation {
   health_conditions: string[];
+  health_other_description?: string;
 }
 
 export const prepareClientProfileFormData = (
@@ -97,6 +98,7 @@ export const prepareClientProfileFormData = (
 
   // Health Information
   data.append('health_conditions', JSON.stringify(healthInformation.health_conditions || []));
+  data.append('health_other_description', healthInformation.health_other_description || '');
 
   // Healthcare Support Details
   data.append('medicare', formData.healthcare_support_detail?.medicare || '');

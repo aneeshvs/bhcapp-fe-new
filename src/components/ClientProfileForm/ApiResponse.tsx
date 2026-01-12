@@ -1,34 +1,34 @@
 export interface ClientApiResponse {
-  staff_id: number;
-  full_name: string | null;
-  preferred_name: string | null;
-  gender: string | null;
-  date_of_birth: string | null;
-  address: string | null;
-  postcode: string | null;
-  phone_number: string | null;
-  mobile_number: string | null;
-  email: string | null;
-  form_status: string;
-  need_support_person: number;
-  support_person_details: string | null;
-  completion_percentage?: number;
-  funding: Funding;
-  emergency_contact: EmergencyContact;
-  cultural_background: CulturalBackground;
-  diagnosis_summary: DiagnosisSummary;
-  health_information: HealthInformation;
-  healthcare_support_detail: HealthcareSupport;
-  behaviour_support: BehaviourSupport;
-  medical_alert: MedicalAlert;
-  preventive_health_summary: PreventiveHealthSummary;
-  support_information: SupportInformation;
+    staff_id: number;
+    full_name: string | null;
+    preferred_name: string | null;
+    gender: string | null;
+    date_of_birth: string | null;
+    address: string | null;
+    postcode: string | null;
+    phone_number: string | null;
+    mobile_number: string | null;
+    email: string | null;
+    form_status: string;
+    need_support_person: number;
+    support_person_details: string | null;
+    completion_percentage?: number;
+    funding: Funding;
+    emergency_contact: EmergencyContact;
+    cultural_background: CulturalBackground;
+    diagnosis_summary: DiagnosisSummary;
+    health_information: HealthInformation;
+    healthcare_support_detail: HealthcareSupport;
+    behaviour_support: BehaviourSupport;
+    medical_alert: MedicalAlert;
+    preventive_health_summary: PreventiveHealthSummary;
+    support_information: SupportInformation;
 
-  schedule_of_cares: ScheduleOfCare[];
-  ndis_goals: NDISGoal[];
-  health_professional_details: HealthProfessional[];
+    schedule_of_cares: ScheduleOfCare[];
+    ndis_goals: NDISGoal[];
+    health_professional_details: HealthProfessional[];
 
-  staff: Staff;
+    staff: Staff;
 }
 
 
@@ -45,10 +45,10 @@ export interface Funding {
 }
 
 export interface ScheduleOfCare {
-  type_of_service: string;
-  primary_task_list: string;
-  secondary_task_list: string;
-  goal_key: string; // Add goal_key to track submitted entries
+    type_of_service: string;
+    primary_task_list: string;
+    secondary_task_list: string;
+    goal_key: string; // Add goal_key to track submitted entries
 }
 
 export interface NDISGoal {
@@ -57,9 +57,9 @@ export interface NDISGoal {
 }
 
 export interface HealthProfessional {
-  role: string;
-  name: string;
-  contact_number: string;
+    role: string;
+    name: string;
+    contact_number: string;
 }
 
 export interface EmergencyContact {
@@ -88,6 +88,7 @@ export interface DiagnosisSummary {
 
 export interface HealthInformation {
     health_conditions: string[] | string;
+    health_other_description?: string;
 }
 
 export interface HealthcareSupport {
@@ -154,18 +155,18 @@ export interface SupportInformation {
 
 
 export interface Staff {
-  id: number;
-  user_id: number;
-  stafftype: number;
-  name: string;
-  email: string;
-  phone: string;
-  username: string | null;
-  status_id: number;
-  owner_id: number | null;
-  owner_type: string | null;
-  created_at: string;
-  deleted_at: string | null;
-  updated_at: string;
-  uuid: string;
+    id: number;
+    user_id: number;
+    stafftype: number;
+    name: string;
+    email: string;
+    phone: string;
+    username: string | null;
+    status_id: number;
+    owner_id: number | null;
+    owner_type: string | null;
+    created_at: string;
+    deleted_at: string | null;
+    updated_at: string;
+    uuid: string;
 }
