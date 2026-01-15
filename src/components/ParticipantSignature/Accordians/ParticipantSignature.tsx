@@ -18,12 +18,14 @@ interface ParticipantSignaturesProps {
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function ParticipantSignatures({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: ParticipantSignaturesProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,7 +46,7 @@ export default function ParticipantSignatures({
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
 
-      const pad = new SignaturePad(canvas, { 
+      const pad = new SignaturePad(canvas, {
         backgroundColor: 'rgba(255,255,255,0)',
         penColor: 'rgb(0, 0, 0)',
         throttle: 16,
@@ -54,9 +56,20 @@ export default function ParticipantSignatures({
       signaturePad.current = pad;
 
       // Load existing signature if available
-      if (formData.participant_signature && formData.participant_signature.startsWith('data:image')) {
+      if (
+        formData.participant_signature &&
+        formData.participant_signature.startsWith("data:image")
+      ) {
         pad.fromDataURL(formData.participant_signature);
       }
+
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({
+          target: { name: "participant_signature", value: data },
+        });
+      });
     };
 
     initializePad();
@@ -82,13 +95,15 @@ export default function ParticipantSignatures({
   const handleClear = () => {
     if (!signaturePad.current) return;
     signaturePad.current.clear();
-    handleChange({ target: { name: 'participant_signature', value: '' } });
+    handleChange({ target: { name: "participant_signature", value: "" } });
   };
 
   const handleSave = () => {
     if (!signaturePad.current) return;
-    const data = signaturePad.current.isEmpty() ? '' : signaturePad.current.toDataURL();
-    handleChange({ target: { name: 'participant_signature', value: data } });
+    const data = signaturePad.current.isEmpty()
+      ? ""
+      : signaturePad.current.toDataURL();
+    handleChange({ target: { name: "participant_signature", value: data } });
 
     setSaveStatus(true);
     setTimeout(() => {
@@ -162,7 +177,7 @@ export default function ParticipantSignatures({
               </button>
             )}
           </div>
-          
+
           <div className="mb-2">
             <p className="text-sm text-gray-600 mb-2">
               Please sign in the box below using your mouse, touchpad, or touchscreen
@@ -193,24 +208,37 @@ export default function ParticipantSignatures({
             >
               Clear Signature
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                saveStatus ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-blue-700'
-              }`}
-            >
-              {saveStatus ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Saved!
-                </>
-              ) : (
-                'Save Signature'
-              )}
-            </button>
+            {!hideSaveButton && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "hover:bg-blue-700"
+                  }`}
+              >
+                {saveStatus ? (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Saved!
+                  </>
+                ) : (
+                  "Save Signature"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

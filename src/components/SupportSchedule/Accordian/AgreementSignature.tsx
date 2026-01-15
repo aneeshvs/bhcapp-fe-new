@@ -22,25 +22,28 @@ interface AgreementSignaturesProps {
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function AgreementSignatures({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: AgreementSignaturesProps) {
   const participantSignaturePad = useRef<SignaturePad | null>(null);
   const representativeSignaturePad = useRef<SignaturePad | null>(null);
   const participantCanvasRef = useRef<HTMLCanvasElement>(null);
   const representativeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [participantSaveStatus, setParticipantSaveStatus] = useState(false);
-  const [representativeSaveStatus, setRepresentativeSaveStatus] = useState(false);
+
   const searchParams = useSearchParams();
   const urlUuid = searchParams.get('uuid');
   const effectiveUuid = uuid || urlUuid || undefined;
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
+  const [participantSaveStatus, setParticipantSaveStatus] = useState(false);
+  const [representativeSaveStatus, setRepresentativeSaveStatus] = useState(false);
 
   useEffect(() => {
     const initializePads = () => {
@@ -49,15 +52,26 @@ export default function AgreementSignatures({
       if (participantCanvas) {
         participantCanvas.width = participantCanvas.offsetWidth;
         participantCanvas.height = participantCanvas.offsetHeight;
-        const participantPad = new SignaturePad(participantCanvas, { 
-          backgroundColor: 'rgba(255,255,255,0)' 
+        const participantPad = new SignaturePad(participantCanvas, {
+          backgroundColor: "rgba(255,255,255,0)",
         });
         participantSignaturePad.current = participantPad;
 
         // Load existing participant signature if available
-        if (formData.participant_signature && formData.participant_signature.startsWith('data:image')) {
+        if (
+          formData.participant_signature &&
+          formData.participant_signature.startsWith("data:image")
+        ) {
           participantPad.fromDataURL(formData.participant_signature);
         }
+
+        participantPad.addEventListener("endStroke", () => {
+          if (participantPad.isEmpty()) return;
+          const data = participantPad.toDataURL();
+          handleChange({
+            target: { name: "participant_signature", value: data },
+          });
+        });
       }
 
       // Initialize Representative Signature Pad
@@ -65,15 +79,26 @@ export default function AgreementSignatures({
       if (representativeCanvas) {
         representativeCanvas.width = representativeCanvas.offsetWidth;
         representativeCanvas.height = representativeCanvas.offsetHeight;
-        const representativePad = new SignaturePad(representativeCanvas, { 
-          backgroundColor: 'rgba(255,255,255,0)' 
+        const representativePad = new SignaturePad(representativeCanvas, {
+          backgroundColor: "rgba(255,255,255,0)",
         });
         representativeSignaturePad.current = representativePad;
 
         // Load existing representative signature if available
-        if (formData.representative_signature && formData.representative_signature.startsWith('data:image')) {
+        if (
+          formData.representative_signature &&
+          formData.representative_signature.startsWith("data:image")
+        ) {
           representativePad.fromDataURL(formData.representative_signature);
         }
+
+        representativePad.addEventListener("endStroke", () => {
+          if (representativePad.isEmpty()) return;
+          const data = representativePad.toDataURL();
+          handleChange({
+            target: { name: "representative_signature", value: data },
+          });
+        });
       }
     };
 
@@ -84,7 +109,7 @@ export default function AgreementSignatures({
       [participantCanvasRef, representativeCanvasRef].forEach((canvasRef, index) => {
         const canvas = canvasRef.current;
         const pad = index === 0 ? participantSignaturePad.current : representativeSignaturePad.current;
-        
+
         if (canvas && pad) {
           const data = pad.toData();
           canvas.width = canvas.offsetWidth;
@@ -102,29 +127,32 @@ export default function AgreementSignatures({
   const handleClear = (type: 'participant' | 'representative') => {
     const pad = type === 'participant' ? participantSignaturePad.current : representativeSignaturePad.current;
     if (!pad) return;
-    
+
     pad.clear();
-    handleChange({ 
-      target: { 
-        name: `${type}_signature`, 
-        value: '' 
-      } 
+    handleChange({
+      target: {
+        name: `${type}_signature`,
+        value: ''
+      }
     });
   };
 
-  const handleSave = (type: 'participant' | 'representative') => {
-    const pad = type === 'participant' ? participantSignaturePad.current : representativeSignaturePad.current;
+  const handleSave = (type: "participant" | "representative") => {
+    const pad =
+      type === "participant"
+        ? participantSignaturePad.current
+        : representativeSignaturePad.current;
     if (!pad) return;
-    
-    const data = pad.isEmpty() ? '' : pad.toDataURL();
-    handleChange({ 
-      target: { 
-        name: `${type}_signature`, 
-        value: data 
-      } 
+
+    const data = pad.isEmpty() ? "" : pad.toDataURL();
+    handleChange({
+      target: {
+        name: `${type}_signature`,
+        value: data,
+      },
     });
 
-    if (type === 'participant') {
+    if (type === "participant") {
       setParticipantSaveStatus(true);
       setTimeout(() => setParticipantSaveStatus(false), 2000);
     } else {
@@ -132,6 +160,8 @@ export default function AgreementSignatures({
       setTimeout(() => setRepresentativeSaveStatus(false), 2000);
     }
   };
+
+
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -231,7 +261,7 @@ export default function AgreementSignatures({
                   </button>
                 )}
               </div>
-              
+
               <canvas
                 ref={participantCanvasRef}
                 className="w-full h-32 border rounded mb-2 touch-none"
@@ -257,15 +287,16 @@ export default function AgreementSignatures({
                 >
                   Clear
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleSave('participant')}
-                  className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                    participantSaveStatus ? 'bg-green-600' : ''
-                  }`}
-                >
-                  {participantSaveStatus ? 'Saved!' : 'Save Signature'}
-                </button>
+                {!hideSaveButton && (
+                  <button
+                    type="button"
+                    onClick={() => handleSave("participant")}
+                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${participantSaveStatus ? "bg-green-600" : ""
+                      }`}
+                  >
+                    {participantSaveStatus ? "Saved!" : "Save Signature"}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -353,7 +384,7 @@ export default function AgreementSignatures({
                   </button>
                 )}
               </div>
-              
+
               <canvas
                 ref={representativeCanvasRef}
                 className="w-full h-32 border rounded mb-2 touch-none"
@@ -379,15 +410,16 @@ export default function AgreementSignatures({
                 >
                   Clear
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleSave('representative')}
-                  className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                    representativeSaveStatus ? 'bg-green-600' : ''
-                  }`}
-                >
-                  {representativeSaveStatus ? 'Saved!' : 'Save Signature'}
-                </button>
+                {!hideSaveButton && (
+                  <button
+                    type="button"
+                    onClick={() => handleSave("representative")}
+                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${representativeSaveStatus ? "bg-green-600" : ""
+                      }`}
+                  >
+                    {representativeSaveStatus ? "Saved!" : "Save Signature"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

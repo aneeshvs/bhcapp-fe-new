@@ -19,17 +19,19 @@ interface VerbalConsentsProps {
   handleChange: (
     event:
       | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function VerbalConsents({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: VerbalConsentsProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,6 +64,13 @@ export default function VerbalConsents({
       ) {
         pad.fromDataURL(formData.verbal_signature);
       }
+
+      // Auto-save on end stroke
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({ target: { name: "verbal_signature", value: data } });
+      });
     };
 
     initializePad();
@@ -88,6 +97,7 @@ export default function VerbalConsents({
     if (!signaturePad.current) return;
     signaturePad.current.clear();
     handleChange({ target: { name: "verbal_signature", value: "" } });
+    handleChange({ target: { name: "verbal_signature", value: "" } });
   };
 
   const handleSave = () => {
@@ -102,6 +112,8 @@ export default function VerbalConsents({
       setSaveStatus(false);
     }, 2000);
   };
+
+
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -209,10 +221,10 @@ export default function VerbalConsents({
             )}
           </div>
           <DatePickerSaveMany
-                name="verbal_signed_date"
-                value={formData.verbal_signed_date || null}
-                onChange={handleChange}
-              />
+            name="verbal_signed_date"
+            value={formData.verbal_signed_date || null}
+            onChange={handleChange}
+          />
           {/* <input
             type="date"
             name="verbal_signed_date"
@@ -270,15 +282,16 @@ export default function VerbalConsents({
             >
               Clear Signature
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                saveStatus ? "bg-green-600" : ""
-              }`}
-            >
-              {saveStatus ? "Saved!" : "Save Signature"}
-            </button>
+            {!hideSaveButton && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus ? "bg-green-600" : ""
+                  }`}
+              >
+                {saveStatus ? "Saved!" : "Save Signature"}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -32,28 +32,37 @@ interface ServiceAgreementConsentProps {
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string | null;
+  hideSaveButton?: boolean;
 }
 
-export default function ServiceAgreementConsent({ formData, handleChange, uuid }: ServiceAgreementConsentProps) {
+export default function ServiceAgreementConsent({
+  formData,
+  handleChange,
+  uuid,
+  hideSaveButton = false,
+}: ServiceAgreementConsentProps) {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
+
+  // Save statuses
+  const [acceptedSaveStatus, setAcceptedSaveStatus] = useState(false);
+  const [participantSaveStatus, setParticipantSaveStatus] = useState(false);
+  const [witnessSaveStatus, setWitnessSaveStatus] = useState(false);
+  const [verbalStaffSaveStatus, setVerbalStaffSaveStatus] = useState(false);
 
   // Signature pad refs and state
   const acceptedSignaturePad = useRef<SignaturePad | null>(null);
   const participantSignaturePad = useRef<SignaturePad | null>(null);
   const witnessSignaturePad = useRef<SignaturePad | null>(null);
   const verbalStaffSignaturePad = useRef<SignaturePad | null>(null);
-  
+
   const acceptedCanvasRef = useRef<HTMLCanvasElement>(null);
   const participantCanvasRef = useRef<HTMLCanvasElement>(null);
   const witnessCanvasRef = useRef<HTMLCanvasElement>(null);
   const verbalStaffCanvasRef = useRef<HTMLCanvasElement>(null);
-  
-  const [acceptedSaveStatus, setAcceptedSaveStatus] = useState(false);
-  const [participantSaveStatus, setParticipantSaveStatus] = useState(false);
-  const [witnessSaveStatus, setWitnessSaveStatus] = useState(false);
-  const [verbalStaffSaveStatus, setVerbalStaffSaveStatus] = useState(false);
+
+
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -62,7 +71,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
 
   // Initialize signature pads
   useEffect(() => {
-    const initializePad = (padRef: React.MutableRefObject<SignaturePad | null>, canvasRef: React.MutableRefObject<HTMLCanvasElement | null>, signature: string) => {
+    const initializePad = (padRef: React.MutableRefObject<SignaturePad | null>, canvasRef: React.MutableRefObject<HTMLCanvasElement | null>, signature: string, fieldName: string) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -75,12 +84,19 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
       if (signature && signature.startsWith('data:image')) {
         pad.fromDataURL(signature);
       }
+
+      // Auto-save on end stroke
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({ target: { name: fieldName, value: data } });
+      });
     };
 
-    initializePad(acceptedSignaturePad, acceptedCanvasRef, formData.accepted_signature || '');
-    initializePad(participantSignaturePad, participantCanvasRef, formData.participant_signature || '');
-    initializePad(witnessSignaturePad, witnessCanvasRef, formData.witness_signature || '');
-    initializePad(verbalStaffSignaturePad, verbalStaffCanvasRef, formData.verbal_staff_signature || '');
+    initializePad(acceptedSignaturePad, acceptedCanvasRef, formData.accepted_signature || '', 'accepted_signature');
+    initializePad(participantSignaturePad, participantCanvasRef, formData.participant_signature || '', 'participant_signature');
+    initializePad(witnessSignaturePad, witnessCanvasRef, formData.witness_signature || '', 'witness_signature');
+    initializePad(verbalStaffSignaturePad, verbalStaffCanvasRef, formData.verbal_staff_signature || '', 'verbal_staff_signature');
 
     // Resize handling
     const handleResize = () => {
@@ -110,16 +126,20 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
     handleChange({ target: { name: fieldName, value: '' } });
   };
 
-  const handleSave = (padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string, setSaveStatus: React.Dispatch<React.SetStateAction<boolean>>) => {
+  const handleSave = (
+    padRef: React.MutableRefObject<SignaturePad | null>,
+    fieldName: string,
+    setStatus: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
     if (!padRef.current) return;
-    const data = padRef.current.isEmpty() ? '' : padRef.current.toDataURL();
+    const data = padRef.current.isEmpty() ? "" : padRef.current.toDataURL();
     handleChange({ target: { name: fieldName, value: data } });
 
-    setSaveStatus(true);
-    setTimeout(() => {
-      setSaveStatus(false);
-    }, 2000);
+    setStatus(true);
+    setTimeout(() => setStatus(false), 2000);
   };
+
+
 
   return (
     <div className="mb-4 border border-gray-300 rounded shadow">
@@ -133,10 +153,10 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
           {/* Accepted By Section */}
           <div className="md:col-span-2 border-b border-gray-200 pb-4 mb-4">
             <h5 className="font-medium text-gray-700 mb-3">Accepted By (Organization Representative)</h5>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Accepted Name */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('accepted_name')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -164,7 +184,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Accepted Position */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('accepted_position')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -192,7 +212,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Accepted Signature */}
-              <div 
+              <div
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('accepted_signature')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -209,7 +229,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                     </button>
                   )}
                 </div>
-                
+
                 <canvas
                   ref={acceptedCanvasRef}
                   className="w-full h-32 border rounded mb-2 touch-none"
@@ -228,6 +248,8 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 )}
 
                 <div className="flex gap-2 mt-2">
+
+
                   <button
                     type="button"
                     onClick={() => handleClear(acceptedSignaturePad, 'accepted_signature')}
@@ -235,20 +257,27 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                   >
                     Clear
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave(acceptedSignaturePad, 'accepted_signature', setAcceptedSaveStatus)}
-                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                      acceptedSaveStatus ? 'bg-green-600' : ''
-                    }`}
-                  >
-                    {acceptedSaveStatus ? 'Saved!' : 'Save Signature'}
-                  </button>
+                  {!hideSaveButton && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSave(
+                          acceptedSignaturePad,
+                          "accepted_signature",
+                          setAcceptedSaveStatus
+                        )
+                      }
+                      className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${acceptedSaveStatus ? "bg-green-600" : ""
+                        }`}
+                    >
+                      {acceptedSaveStatus ? "Saved!" : "Save Signature"}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Accepted Date */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('accepted_date')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -295,10 +324,10 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
           {/* Participant Section */}
           <div className="md:col-span-2 border-b border-gray-200 pb-4 mb-4">
             <h5 className="font-medium text-gray-700 mb-3">Participant</h5>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Participant Name */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('consents_participant_name')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -326,7 +355,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Participant Role */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('participant_role')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -344,23 +373,23 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                   )}
                 </div>
                 <div className="flex flex-wrap gap-4">
-                {['participant', 'representative'].map((type) => (
-                  <label key={type} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="participant_role"
-                      value={type}
-                      checked={formData.participant_role === type}
-                      onChange={handleChange}
-                    />
-                    {type}
-                  </label>
-                ))}
-              </div>
+                  {['participant', 'representative'].map((type) => (
+                    <label key={type} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="participant_role"
+                        value={type}
+                        checked={formData.participant_role === type}
+                        onChange={handleChange}
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Participant Signature */}
-              <div 
+              <div
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('participant_signature')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -377,7 +406,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                     </button>
                   )}
                 </div>
-                
+
                 <canvas
                   ref={participantCanvasRef}
                   className="w-full h-32 border rounded mb-2 touch-none"
@@ -396,6 +425,8 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 )}
 
                 <div className="flex gap-2 mt-2">
+
+
                   <button
                     type="button"
                     onClick={() => handleClear(participantSignaturePad, 'participant_signature')}
@@ -403,20 +434,27 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                   >
                     Clear
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave(participantSignaturePad, 'participant_signature', setParticipantSaveStatus)}
-                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                      participantSaveStatus ? 'bg-green-600' : ''
-                    }`}
-                  >
-                    {participantSaveStatus ? 'Saved!' : 'Save Signature'}
-                  </button>
+                  {!hideSaveButton && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSave(
+                          participantSignaturePad,
+                          "participant_signature",
+                          setParticipantSaveStatus
+                        )
+                      }
+                      className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${participantSaveStatus ? "bg-green-600" : ""
+                        }`}
+                    >
+                      {participantSaveStatus ? "Saved!" : "Save Signature"}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Participant Date */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('participant_date')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -451,10 +489,10 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
           {/* Witness Section */}
           <div className="md:col-span-2 border-b border-gray-200 pb-4 mb-4">
             <h5 className="font-medium text-gray-700 mb-3">Witness</h5>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Witness Name */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('witness_name')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -482,7 +520,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Witness Signature */}
-              <div 
+              <div
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('witness_signature')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -499,7 +537,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                     </button>
                   )}
                 </div>
-                
+
                 <canvas
                   ref={witnessCanvasRef}
                   className="w-full h-32 border rounded mb-2 touch-none"
@@ -518,6 +556,8 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 )}
 
                 <div className="flex gap-2 mt-2">
+
+
                   <button
                     type="button"
                     onClick={() => handleClear(witnessSignaturePad, 'witness_signature')}
@@ -525,20 +565,27 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                   >
                     Clear
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave(witnessSignaturePad, 'witness_signature', setWitnessSaveStatus)}
-                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                      witnessSaveStatus ? 'bg-green-600' : ''
-                    }`}
-                  >
-                    {witnessSaveStatus ? 'Saved!' : 'Save Signature'}
-                  </button>
+                  {!hideSaveButton && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSave(
+                          witnessSignaturePad,
+                          "witness_signature",
+                          setWitnessSaveStatus
+                        )
+                      }
+                      className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${witnessSaveStatus ? "bg-green-600" : ""
+                        }`}
+                    >
+                      {witnessSaveStatus ? "Saved!" : "Save Signature"}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Witness Date */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('witness_date')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -581,15 +628,15 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
             </div>
           </div>
 
-          
+
 
           {/* Verbal Agreement Section */}
           <div className="md:col-span-2 border-b border-gray-200 pb-4 mb-4">
             <h5 className="font-medium text-gray-700 mb-3">Verbal Agreement</h5>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Verbal Staff Name */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('verbal_staff_name')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -617,7 +664,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Verbal Staff Position */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('verbal_staff_position')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -645,7 +692,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Verbal Staff Signature */}
-              <div 
+              <div
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('verbal_staff_signature')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -662,7 +709,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                     </button>
                   )}
                 </div>
-                
+
                 <canvas
                   ref={verbalStaffCanvasRef}
                   className="w-full h-32 border rounded mb-2 touch-none"
@@ -681,6 +728,8 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 )}
 
                 <div className="flex gap-2 mt-2">
+
+
                   <button
                     type="button"
                     onClick={() => handleClear(verbalStaffSignaturePad, 'verbal_staff_signature')}
@@ -688,20 +737,27 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                   >
                     Clear
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave(verbalStaffSignaturePad, 'verbal_staff_signature', setVerbalStaffSaveStatus)}
-                    className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                      verbalStaffSaveStatus ? 'bg-green-600' : ''
-                    }`}
-                  >
-                    {verbalStaffSaveStatus ? 'Saved!' : 'Save Signature'}
-                  </button>
+                  {!hideSaveButton && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSave(
+                          verbalStaffSignaturePad,
+                          "verbal_staff_signature",
+                          setVerbalStaffSaveStatus
+                        )
+                      }
+                      className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${verbalStaffSaveStatus ? "bg-green-600" : ""
+                        }`}
+                    >
+                      {verbalStaffSaveStatus ? "Saved!" : "Save Signature"}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Verbal Date */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('verbal_date')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -732,11 +788,12 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 /> */}
               </div>
             </div>
-          </div>
+          </div >
           {/* Other Notes */}
-          <div 
+          < div
             className="relative md:col-span-2"
-            onMouseEnter={() => setHoveredField('other_notes')}
+            onMouseEnter={() => setHoveredField('other_notes')
+            }
             onMouseLeave={() => setHoveredField(null)}
           >
             <div className="flex justify-between items-center mb-1">
@@ -759,11 +816,11 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               className="w-full border border-gray-300 rounded px-3 py-2"
               rows={3}
             />
-          </div>
+          </div >
           <div className="mt-8 mb-6 p-6 bg-gray-50 rounded-lg border-l-4 border-blue-500 md:col-span-2">
             <div className="text-gray-700 space-y-3 w-full">
               <h2 className="text-xl font-semibold text-gray-700 mt-4 mb-2">
-                SA-01b Schedule of Supports– Attached 
+                SA-01b Schedule of Supports– Attached
               </h2>
               <p className="text-gray-600 mb-4">
                 <strong>Please also note, our schedule of fees is subject to change by direction of the National Disability Insurance Scheme. Office use only:</strong>
@@ -774,10 +831,10 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
           {/* Additional Information Section */}
           <div className="md:col-span-2">
             <h5 className="font-medium text-gray-700 mb-3">Additional Information</h5>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Received Signed Copy */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('received_signed_copy')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -811,7 +868,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* Agreed Verbally */}
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setHoveredField('agreed_verbally')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -845,7 +902,7 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
               </div>
 
               {/* CMS Comments */}
-              <div 
+              <div
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('cms_comments_entered')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -878,11 +935,11 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
                 </div>
               </div>
 
-              
+
             </div>
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
       <FieldLogsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -891,6 +948,6 @@ export default function ServiceAgreementConsent({ formData, handleChange, uuid }
         field={selectedField}
         url="service-agreement/logs"
       />
-    </div>
+    </div >
   );
 }

@@ -19,17 +19,19 @@ interface ConfidentialConsentsProps {
   handleChange: (
     event:
       | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function ConfidentialConsents({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: ConfidentialConsentsProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,6 +61,13 @@ export default function ConfidentialConsents({
       if (formData.signature && formData.signature.startsWith("data:image")) {
         pad.fromDataURL(formData.signature);
       }
+
+      // Auto-save on end stroke
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({ target: { name: "signature", value: data } });
+      });
     };
 
     initializePad();
@@ -85,6 +94,7 @@ export default function ConfidentialConsents({
     if (!signaturePad.current) return;
     signaturePad.current.clear();
     handleChange({ target: { name: "signature", value: "" } });
+    handleChange({ target: { name: "signature", value: "" } });
   };
 
   const handleSave = () => {
@@ -99,6 +109,8 @@ export default function ConfidentialConsents({
       setSaveStatus(false);
     }, 2000);
   };
+
+
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -205,10 +217,10 @@ export default function ConfidentialConsents({
             )}
           </div>
           <DatePickerSaveMany
-                name="signed_date"
-                value={formData.signed_date || null}
-                onChange={handleChange}
-              />
+            name="signed_date"
+            value={formData.signed_date || null}
+            onChange={handleChange}
+          />
           {/* <input
             type="date"
             name="signed_date"
@@ -290,15 +302,16 @@ export default function ConfidentialConsents({
             >
               Clear
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                saveStatus ? "bg-green-600" : ""
-              }`}
-            >
-              {saveStatus ? "Saved!" : "Save Signature"}
-            </button>
+            {!hideSaveButton && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus ? "bg-green-600" : ""
+                  }`}
+              >
+                {saveStatus ? "Saved!" : "Save Signature"}
+              </button>
+            )}
           </div>
         </div>
       </div>

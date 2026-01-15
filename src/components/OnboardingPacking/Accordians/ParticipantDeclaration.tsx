@@ -17,17 +17,19 @@ interface ParticipantDeclarationsProps {
   handleChange: (
     event:
       | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function ParticipantDeclarations({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: ParticipantDeclarationsProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,6 +66,13 @@ export default function ParticipantDeclarations({
       ) {
         pad.fromDataURL(formData.participant_signature);
       }
+
+      // Auto-save on end stroke
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({ target: { name: "participant_signature", value: data } });
+      });
     };
 
     initializePad();
@@ -209,10 +218,10 @@ export default function ParticipantDeclarations({
             )}
           </div>
           <DatePickerSaveMany
-                name="signed_date"
-                value={formData.signed_date || null}
-                onChange={handleChange}
-              />
+            name="signed_date"
+            value={formData.signed_date || null}
+            onChange={handleChange}
+          />
           {/* <input
             type="date"
             name="signed_date"
@@ -272,36 +281,37 @@ export default function ParticipantDeclarations({
             >
               Clear Signature
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                saveStatus
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "hover:bg-blue-700"
-              }`}
-            >
-              {saveStatus ? (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Saved!
-                </>
-              ) : (
-                "Save Signature"
-              )}
-            </button>
+            {!hideSaveButton && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "hover:bg-blue-700"
+                  }`}
+              >
+                {saveStatus ? (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Saved!
+                  </>
+                ) : (
+                  "Save Signature"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

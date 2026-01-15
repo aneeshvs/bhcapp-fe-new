@@ -19,12 +19,14 @@ interface SupportPlanApprovalProps {
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
+  hideSaveButton?: boolean;
 }
 
 export default function SupportPlanApproval({
   formData,
   handleChange,
   uuid,
+  hideSaveButton = false,
 }: SupportPlanApprovalProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,9 +51,15 @@ export default function SupportPlanApproval({
       signaturePad.current = pad;
 
       // Load existing signature if available
-      if (formData.signature && formData.signature.startsWith('data:image')) {
+      if (formData.signature && formData.signature.startsWith("data:image")) {
         pad.fromDataURL(formData.signature);
       }
+
+      pad.addEventListener("endStroke", () => {
+        if (pad.isEmpty()) return;
+        const data = pad.toDataURL();
+        handleChange({ target: { name: "signature", value: data } });
+      });
     };
 
     initializePad();
@@ -77,13 +85,15 @@ export default function SupportPlanApproval({
   const handleClear = () => {
     if (!signaturePad.current) return;
     signaturePad.current.clear();
-    handleChange({ target: { name: 'signature', value: '' } });
+    handleChange({ target: { name: "signature", value: "" } });
   };
 
   const handleSave = () => {
     if (!signaturePad.current) return;
-    const data = signaturePad.current.isEmpty() ? '' : signaturePad.current.toDataURL();
-    handleChange({ target: { name: 'signature', value: data } });
+    const data = signaturePad.current.isEmpty()
+      ? ""
+      : signaturePad.current.toDataURL();
+    handleChange({ target: { name: "signature", value: data } });
 
     setSaveStatus(true);
     setTimeout(() => {
@@ -185,7 +195,7 @@ export default function SupportPlanApproval({
               </button>
             )}
           </div>
-          
+
           <canvas
             ref={canvasRef}
             className="w-full h-32 border rounded mb-2 touch-none"
@@ -211,15 +221,16 @@ export default function SupportPlanApproval({
             >
               Clear
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${
-                saveStatus ? 'bg-green-600' : ''
-              }`}
-            >
-              {saveStatus ? 'Saved!' : 'Save Signature'}
-            </button>
+            {!hideSaveButton && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus ? "bg-green-600" : ""
+                  }`}
+              >
+                {saveStatus ? "Saved!" : "Save Signature"}
+              </button>
+            )}
           </div>
         </div>
       </div>

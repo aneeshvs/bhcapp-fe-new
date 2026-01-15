@@ -18,8 +18,8 @@ type SupportPlanFormDataType = typeof supportPlanFormData;
 const DEFAULT_OPEN_SECTIONS: SectionKey[] = ["Approval"];
 
 const createInitialOpenSections = (
-  openExtraSections: SectionKey[] = []
-    ): Record<SectionKey, boolean> => {
+    openExtraSections: SectionKey[] = []
+): Record<SectionKey, boolean> => {
     const openSections = new Set([
         ...DEFAULT_OPEN_SECTIONS,
         ...openExtraSections,
@@ -152,7 +152,7 @@ export default function ShowSupportPlanPage() {
 
         try {
 
-             const missingFields = [];
+            const missingFields = [];
 
             if (!formData.signature) missingFields.push("Signature");
 
@@ -180,9 +180,7 @@ export default function ShowSupportPlanPage() {
                 data.append("uuid", uuid);
             }
 
-            if (formData.submit_final === 1) {
-                data.append("submit_final", "1");
-            }
+            data.append("submit_final", "1");
             if (!formData.signature) {
                 alert("Please provide your signature");
                 return;
@@ -218,16 +216,16 @@ export default function ShowSupportPlanPage() {
             formData.signature.startsWith("data:image");
         return supportPlanSteps.map((step) =>
             step.key === "Approval"
-            ? {
-                ...step,
-                badge: isSigned
-                    ? { text: "Signed", className: "bg-green-100 text-green-700" }
-                    : {
-                        text: "Not signed",
-                        className: "bg-amber-100 text-amber-700",
-                    },
+                ? {
+                    ...step,
+                    badge: isSigned
+                        ? { text: "Signed", className: "bg-green-100 text-green-700" }
+                        : {
+                            text: "Not signed",
+                            className: "bg-amber-100 text-amber-700",
+                        },
                 }
-            : step
+                : step
         );
     }, [formData.signature]);
 
@@ -390,32 +388,15 @@ export default function ShowSupportPlanPage() {
                                         formData={formData}
                                         handleChange={handleChange}
                                         uuid={uuid || undefined}
+                                        // @ts-ignore
+                                        hideSaveButton={true}
                                     />
                                 </fieldset>
                             </AccordianPlanSection>
                         </React.Fragment>
                     ))}
 
-                    <div className="flex items-center mt-6">
-                        <input
-                            type="checkbox"
-                            id="submit_final"
-                            name="submit_final"
-                            checked={formData.submit_final === 1}
-                            onChange={(e) =>
-                                handleChange({
-                                    target: {
-                                        name: "submit_final",
-                                        value: e.target.checked ? 1 : 0,
-                                    },
-                                })
-                            }
-                            className="mr-2"
-                        />
-                        <label className="font-medium text-gray-700">
-                            Final Submit (Tick to confirm all information is correct)
-                        </label>
-                    </div>
+
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
                         <button
@@ -423,7 +404,7 @@ export default function ShowSupportPlanPage() {
                             disabled={loading}
                             className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
                         >
-                            {loading ? "Submitting Signature..." : "Submit Signature"}
+                            {loading ? "Submitting..." : "Submit"}
                         </button>
                     </div>
                 </form>

@@ -117,7 +117,7 @@ export default function ShowOnboardingPage() {
 
         try {
 
-             const missingFields = [];
+            const missingFields = [];
 
             if (!formData.participant_signature) missingFields.push("Participant Signature");
 
@@ -153,9 +153,7 @@ export default function ShowOnboardingPage() {
             }
 
             // Also potentially submit_final if needed (assumed yes as it's a signoff)
-            if (formData.submit_final === 1) {
-                data.append("submit_final", "1");
-            }
+            data.append("submit_final", "1");
 
             console.log("Submitting signature data...");
             const apiResponse = await update(
@@ -311,6 +309,7 @@ export default function ShowOnboardingPage() {
                                             formData={formData}
                                             handleChange={handleChange}
                                             uuid={uuid || undefined}
+                                            hideSaveButton={true}
                                         />
                                     </fieldset>
                                 </AccordianPlanSection>
@@ -350,26 +349,7 @@ export default function ShowOnboardingPage() {
                     })}
 
                     {/* Submit Actions */}
-                    <div className="flex items-center mt-6">
-                        <input
-                            type="checkbox"
-                            id="submit_final"
-                            name="submit_final"
-                            checked={formData.submit_final === 1}
-                            onChange={(e) =>
-                                handleChange({
-                                    target: {
-                                        name: "submit_final",
-                                        value: e.target.checked ? 1 : 0,
-                                    },
-                                })
-                            }
-                            className="mr-2"
-                        />
-                        <label className="font-medium text-gray-700">
-                            Final Submit (Tick to confirm all information is correct)
-                        </label>
-                    </div>
+
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
                         <button
@@ -377,7 +357,7 @@ export default function ShowOnboardingPage() {
                             disabled={loading}
                             className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
                         >
-                            {loading ? "Submitting Signature..." : "Submit Signature"}
+                            {loading ? "Submitting..." : "Submit"}
                         </button>
                     </div>
                 </form>
