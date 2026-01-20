@@ -28,8 +28,9 @@ const SECTION_NAMES = [
   "AssessmentPersonalCare",
   "PlanManualHandlings",
   "AssessmentFinancialRisks",
-  "AssessmentOtherRisks",
+  
   "AssessmentViolenceRisks",
+  "AssessmentOtherRisks",
 ] as const;
 
 const ManualHandlings: PlanManualHandlingsFormData[] = [
@@ -444,8 +445,9 @@ export default function SupportPlanPage() {
       { key: "AssessmentPersonalCare", label: "Assessment Personal Care" },
       { key: "PlanManualHandlings", label: "Plan Manual Handlings" },
       { key: "AssessmentFinancialRisks", label: "Financial Risks" },
-      { key: "AssessmentOtherRisks", label: "Other Risks" },
+      
       { key: "AssessmentViolenceRisks", label: "Assessment Violence Risks" },
+      { key: "AssessmentOtherRisks", label: "Other Risks" },
     ];
   }, []);
 

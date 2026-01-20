@@ -7,6 +7,7 @@ export const RiskAssessmentTracker = [
   { key: "AssessmentPersonalCare", label: "Personal Care And Support" },
   { key: "PlanManualHandlings", label: "Manual Handlings" },
   { key: "AssessmentFinancialRisks", label: "Financial Risks" },
-  { key: "AssessmentOtherRisks", label: "Other Risks" },
+  
   { key: "AssessmentViolenceRisks", label: "Violence Risks" },
+  { key: "AssessmentOtherRisks", label: "Other Risks" },
 ];
