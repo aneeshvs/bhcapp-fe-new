@@ -51,13 +51,13 @@ export const sectionsConfig = [
         Component: AssessmentFinancialRisksForm,
     },
     {
-        key: 'AssessmentOtherRisks',
-        title: '9. OTHER RISKS',
-        Component: AssessmentOtherRisksForm,
+        key: 'AssessmentViolenceRisks',
+        title: '9. VIOLENCE RISKS',
+        Component: AssessmentViolenceRisksForm,
     },
     {
-        key: 'AssessmentViolenceRisks', // Add this
-        title: '10. VIOLENCE RISKS',
-        Component: AssessmentViolenceRisksForm,
+        key: 'AssessmentOtherRisks',
+        title: '10. OTHER RISKS',
+        Component: AssessmentOtherRisksForm,
     },
 ];
