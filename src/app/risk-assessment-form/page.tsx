@@ -27,6 +27,8 @@ const SECTION_NAMES = [
   "AssesmentMobility",
   "AssessmentPersonalCare",
   "PlanManualHandlings",
+  "AssessmentFinancialRisks",
+  "AssessmentOtherRisks",
   "AssessmentViolenceRisks",
 ] as const;
 
@@ -441,6 +443,8 @@ export default function SupportPlanPage() {
       { key: "AssesmentMobility", label: "Assessment Mobility" },
       { key: "AssessmentPersonalCare", label: "Assessment Personal Care" },
       { key: "PlanManualHandlings", label: "Plan Manual Handlings" },
+      { key: "AssessmentFinancialRisks", label: "Financial Risks" },
+      { key: "AssessmentOtherRisks", label: "Other Risks" },
       { key: "AssessmentViolenceRisks", label: "Assessment Violence Risks" },
     ];
   }, []);

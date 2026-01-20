@@ -46,18 +46,9 @@ interface AssessmentViolenceRisksFormData {
   emotional_management_plan?: string;
   emotional_bsp_plan?: number;
 
-  // Other Known Risks
-  other_known_risks?: number;
-  other_risks_hazards?: string;
-  other_risks_management_plan?: string;
-  other_risks_bsp_plan?: number;
 
-  // Finance Management
-  finance_management?: string;
-  finance_hazards?: string;
-  finance_management_plan?: string;
-  finance_bsp_plan?: number;
-  finance_management_notes?: string;
+
+
 }
 
 interface AssessmentViolenceRisksProps {
@@ -158,23 +149,9 @@ export default function AssessmentViolenceRisksForm({
     ]);
   }, [formData.emotional_manipulation, formData.emotional_hazards, formData.emotional_management_plan, formData.emotional_bsp_plan, handleChange]);
 
-  // Other Known Risks
-  useEffect(() => {
-    clearRiskFields('other_known_risks', [
-      'other_risks_hazards',
-      'other_risks_management_plan',
-      'other_risks_bsp_plan'
-    ]);
-  }, [formData.other_known_risks, formData.other_risks_hazards, formData.other_risks_management_plan, formData.other_risks_bsp_plan, handleChange]);
 
-  // Finance Management
-  useEffect(() => {
-    clearRiskFields('finance_management', [
-      'finance_hazards',
-      'finance_management_plan',
-      'finance_bsp_plan'
-    ]);
-  }, [formData.finance_management, formData.finance_hazards, formData.finance_management_plan, formData.finance_bsp_plan, handleChange]);
+
+
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -599,24 +576,9 @@ export default function AssessmentViolenceRisksForm({
             "emotional_bsp_plan"
           )}
 
-          {/* Other Known Risks */}
-          {renderRiskSection(
-            "other_known_risks",
-            "Other Known Risks",
-            "other_risks_hazards",
-            "other_risks_management_plan",
-            "other_risks_bsp_plan"
-          )}
 
-          {/* Finance Management */}
-          {renderEnumRiskSection(
-            "finance_management",
-            "Does the participant need help to manage their finances?",
-            "finance_hazards",
-            "finance_management_plan",
-            "finance_bsp_plan",
-            "finance_management_notes"
-          )}
+
+
         </div>
       </div>
 

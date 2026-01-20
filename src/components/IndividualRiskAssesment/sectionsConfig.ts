@@ -1,11 +1,13 @@
 import RiskAssessmentForm from '@/src/components/IndividualRiskAssesment/Accordians/IndividualRiskAssessment';
-import AssessmentDetailsForm  from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentDetailsForm';
+import AssessmentDetailsForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentDetailsForm';
 import AssessmentCommunicationsForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentCommunicationsForm';
 import AssessmentCognitionsForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentCongnition';
 import AssessmentMobilitiesForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentMobilities';
 import AssessmentPersonalCareForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentPersonalCare';
 import PlanManualHandlingsForm from '@/src/components/IndividualRiskAssesment/Accordians/PlanManualHandlings'
 import AssessmentViolenceRisksForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentViolenceRisks';
+import AssessmentFinancialRisksForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentFinancialRisks';
+import AssessmentOtherRisksForm from '@/src/components/IndividualRiskAssesment/Accordians/AssessmentOtherRisks';
 
 export const sectionsConfig = [
     {
@@ -44,8 +46,18 @@ export const sectionsConfig = [
         Component: PlanManualHandlingsForm,
     },
     {
+        key: 'AssessmentFinancialRisks',
+        title: '8. FINANCIAL RISKS',
+        Component: AssessmentFinancialRisksForm,
+    },
+    {
+        key: 'AssessmentOtherRisks',
+        title: '9. OTHER RISKS',
+        Component: AssessmentOtherRisksForm,
+    },
+    {
         key: 'AssessmentViolenceRisks', // Add this
-        title: '8. VIOLENCE RISKS',
+        title: '10. VIOLENCE RISKS',
         Component: AssessmentViolenceRisksForm,
     },
 ];
