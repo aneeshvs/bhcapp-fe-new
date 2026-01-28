@@ -118,24 +118,8 @@ export default function ShowServiceAgreementPage() {
         setLoading(true);
 
         try {
-            // Validation: Check for required signature fields
-            const missingFields = [];
+            // Validation removed as per request
 
-            // Accepted By (Provider) requirements
-            if (!formData.accepted_signature) missingFields.push("Accepted By Signature");
-
-            // Participant requirements
-            if (!formData.participant_signature) missingFields.push("Participant Signature");
-
-            if (!formData.witness_signature) missingFields.push("Witness Signature");
-
-            if (!formData.verbal_staff_signature) missingFields.push("Verbal Staff Signature");
-
-            if (missingFields.length > 0) {
-                window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
-                setLoading(false);
-                return;
-            }
 
             const data = new FormData();
 

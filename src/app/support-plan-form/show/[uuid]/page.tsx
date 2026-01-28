@@ -152,17 +152,17 @@ export default function ShowSupportPlanPage() {
 
         try {
 
-            const missingFields = [];
+            // const missingFields = [];
 
-            if (!formData.signature) missingFields.push("Signature");
+            // if (!formData.signature) missingFields.push("Signature");
 
 
 
-            if (missingFields.length > 0) {
-                window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
-                setLoading(false);
-                return;
-            }
+            // if (missingFields.length > 0) {
+            //     window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
+            //     setLoading(false);
+            //     return;
+            // }
 
 
             const data = new FormData();
