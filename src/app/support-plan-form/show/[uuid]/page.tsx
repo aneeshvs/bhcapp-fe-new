@@ -181,10 +181,10 @@ export default function ShowSupportPlanPage() {
             }
 
             data.append("submit_final", "1");
-            if (!formData.signature) {
-                alert("Please provide your signature");
-                return;
-            }
+            // if (!formData.signature) {
+            //     alert("Please provide your signature");
+            //     return;
+            // }
             console.log("Submitting signature data...");
             const apiResponse = await update(
                 "client/support-plan/update",
