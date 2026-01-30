@@ -21,6 +21,7 @@ interface UnfundedSupport {
   deleted_at?: string | null;
   updated_at?: string;
   uuid?: string;
+  
 }
 
 interface UnfundedSupportsProps {
@@ -39,7 +40,7 @@ export default function UnfundedSupportsForm({
   const [unsavedSupportIndexes, setUnsavedSupportIndexes] = useState<
     Set<number>
   >(new Set());
-  
+
   // Helper function to round to 2 decimal places
   const roundToTwoDecimals = (num: number): number => {
     return Math.round(num * 100) / 100;
@@ -49,14 +50,14 @@ export default function UnfundedSupportsForm({
     if (unfunded_price === null || unfunded_price === undefined || unfunded_unit === null || unfunded_unit === undefined) {
       return null;
     }
-    
+
     const priceNum = Number(unfunded_price);
     const unitNum = Number(unfunded_unit);
-    
+
     if (isNaN(priceNum) || isNaN(unitNum)) {
       return null;
     }
-    
+
     // Round to 2 decimal places to avoid floating-point precision issues
     const result = priceNum * unitNum;
     return roundToTwoDecimals(result);
@@ -79,7 +80,7 @@ export default function UnfundedSupportsForm({
         updatedSupports[index].unfunded_price = isNaN(numValue as number)
           ? null
           : numValue;
-        
+
         // Auto-calculate grand total when price changes
         const calculatedGrandTotal = calculateGrandTotal(
           updatedSupports[index].unfunded_price,
@@ -95,15 +96,15 @@ export default function UnfundedSupportsForm({
           if (isNaN(numValue) || numValue === null) {
             // If invalid number, keep as null (will show empty)
             updatedSupports[index].unfunded_unit = null;
-          } else if (numValue < 1) {
-            // Ensure minimum value is 1
-            updatedSupports[index].unfunded_unit = 1;
+          } else if (numValue < 0) {
+            // Ensure minimum value is 0
+            updatedSupports[index].unfunded_unit = 0;
           } else {
-            // Ensure unit is a whole number
-            updatedSupports[index].unfunded_unit = Math.floor(numValue);
+            // Allow decimals, do not floor
+            updatedSupports[index].unfunded_unit = numValue;
           }
         }
-        
+
         // Auto-calculate grand total when unit changes
         const calculatedGrandTotal = calculateGrandTotal(
           updatedSupports[index].unfunded_price,
@@ -139,7 +140,7 @@ export default function UnfundedSupportsForm({
   const handleUnitBlur = (index: number) => {
     if (!setUnfundedSupports) return;
     const updatedSupports = [...unfundedSupports];
-    
+
     // If unit is null or undefined after blur, set to 1
     if (updatedSupports[index].unfunded_unit === null || updatedSupports[index].unfunded_unit === undefined) {
       updatedSupports[index].unfunded_unit = 1;
@@ -168,6 +169,7 @@ export default function UnfundedSupportsForm({
         unfunded_delivery_details: "",
         unfunded_grand_total: null,
         goal_key: "",
+       
       },
     ]);
 
@@ -261,7 +263,13 @@ export default function UnfundedSupportsForm({
         ) : (
           unfundedSupports.map((support, index) => (
             <div
-              key={support.id || support.goal_key || support.uuid || index}
+              key={
+                support.id ||
+                support.goal_key ||
+                support.uuid ||
+               
+                index
+              }
               className="grid grid-cols-1 gap-6 mb-6 p-4 rounded relative border border-gray-200"
             >
               {/* Support Name */}
@@ -315,8 +323,8 @@ export default function UnfundedSupportsForm({
                     type="number"
                     name="unfunded_unit"
                     placeholder="1"
-                    step="1"
-                    min="1"
+                    step="0.01"
+                    min="0"
                     value={support.unfunded_unit ?? ""}
                     onChange={(e) => handleFieldChange(index, e)}
                     onBlur={() => handleUnitBlur(index)}

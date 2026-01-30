@@ -75,7 +75,7 @@ export default function FundedSupportsForm({
 
     // Convert numeric fields to numbers
     if (name === "price" || name === "grand_total" || name === "unit") {
-      if (name === "price") {
+        if (name === "price") {
         const numValue = value === "" ? null : parseFloat(value);
         updatedSupports[index].price = isNaN(numValue as number)
           ? null
@@ -96,12 +96,12 @@ export default function FundedSupportsForm({
           if (isNaN(numValue) || numValue === null) {
             // If invalid number, keep as null (will show empty)
             updatedSupports[index].unit = null;
-          } else if (numValue < 1) {
-            // Ensure minimum value is 1
-            updatedSupports[index].unit = 1;
+          } else if (numValue < 0) {
+            // Ensure minimum value is 0
+            updatedSupports[index].unit = 0;
           } else {
-            // Ensure unit is a whole number
-            updatedSupports[index].unit = Math.floor(numValue);
+            // Allow decimals, do not floor
+            updatedSupports[index].unit = numValue;
           }
         }
         
@@ -312,8 +312,8 @@ export default function FundedSupportsForm({
                     type="number"
                     name="unit"
                     placeholder="1"
-                    step="1"
-                    min="1"
+                    step="0.01"
+                    min="0"
                     value={support.unit ?? ""}
                     onChange={(e) => handleFieldChange(index, e)}
                     className="w-full border border-gray-300 rounded px-3 py-2"
