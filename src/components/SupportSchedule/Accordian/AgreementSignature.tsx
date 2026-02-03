@@ -45,25 +45,18 @@ export default function AgreementSignatures({
   const [participantSaveStatus, setParticipantSaveStatus] = useState(false);
   const [representativeSaveStatus, setRepresentativeSaveStatus] = useState(false);
 
+  // Initialize pads ONCE
   useEffect(() => {
     const initializePads = () => {
       // Initialize Participant Signature Pad
       const participantCanvas = participantCanvasRef.current;
-      if (participantCanvas) {
+      if (participantCanvas && !participantSignaturePad.current) {
         participantCanvas.width = participantCanvas.offsetWidth;
         participantCanvas.height = participantCanvas.offsetHeight;
         const participantPad = new SignaturePad(participantCanvas, {
           backgroundColor: "rgba(255,255,255,0)",
         });
         participantSignaturePad.current = participantPad;
-
-        // Load existing participant signature if available
-        if (
-          formData.participant_signature &&
-          formData.participant_signature.startsWith("data:image")
-        ) {
-          participantPad.fromDataURL(formData.participant_signature);
-        }
 
         participantPad.addEventListener("endStroke", () => {
           if (participantPad.isEmpty()) return;
@@ -76,21 +69,13 @@ export default function AgreementSignatures({
 
       // Initialize Representative Signature Pad
       const representativeCanvas = representativeCanvasRef.current;
-      if (representativeCanvas) {
+      if (representativeCanvas && !representativeSignaturePad.current) {
         representativeCanvas.width = representativeCanvas.offsetWidth;
         representativeCanvas.height = representativeCanvas.offsetHeight;
         const representativePad = new SignaturePad(representativeCanvas, {
           backgroundColor: "rgba(255,255,255,0)",
         });
         representativeSignaturePad.current = representativePad;
-
-        // Load existing representative signature if available
-        if (
-          formData.representative_signature &&
-          formData.representative_signature.startsWith("data:image")
-        ) {
-          representativePad.fromDataURL(formData.representative_signature);
-        }
 
         representativePad.addEventListener("endStroke", () => {
           if (representativePad.isEmpty()) return;
@@ -122,6 +107,27 @@ export default function AgreementSignatures({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Sync data
+  useEffect(() => {
+    const syncPad = (padRef: React.MutableRefObject<SignaturePad | null>, value: string | undefined) => {
+      const pad = padRef.current;
+      if (!pad) return;
+
+      const currentData = pad.isEmpty() ? "" : pad.toDataURL();
+      if (value !== currentData) {
+        if (value && value.startsWith('data:image')) {
+          pad.fromDataURL(value);
+        }
+        else if (!value) {
+          pad.clear();
+        }
+      }
+    };
+
+    syncPad(participantSignaturePad, formData.participant_signature);
+    syncPad(representativeSignaturePad, formData.representative_signature);
   }, [formData.participant_signature, formData.representative_signature]);
 
   const handleClear = (type: 'participant' | 'representative') => {

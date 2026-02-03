@@ -70,20 +70,21 @@ export default function ServiceAgreementConsent({
   };
 
   // Initialize signature pads
+  // Initialize signature pads (Run ONCE on mount)
   useEffect(() => {
-    const initializePad = (padRef: React.MutableRefObject<SignaturePad | null>, canvasRef: React.MutableRefObject<HTMLCanvasElement | null>, signature: string, fieldName: string) => {
+    const initializePad = (padRef: React.MutableRefObject<SignaturePad | null>, canvasRef: React.MutableRefObject<HTMLCanvasElement | null>, fieldName: string) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      // Only set width/height if not already set or correct, but for init we enforce it.
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
 
+      // Prevent double init if strict mode or re-mount with existing ref
+      if (padRef.current) return;
+
       const pad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)' });
       padRef.current = pad;
-
-      if (signature && signature.startsWith('data:image')) {
-        pad.fromDataURL(signature);
-      }
 
       // Auto-save on end stroke
       pad.addEventListener("endStroke", () => {
@@ -93,10 +94,10 @@ export default function ServiceAgreementConsent({
       });
     };
 
-    initializePad(acceptedSignaturePad, acceptedCanvasRef, formData.accepted_signature || '', 'accepted_signature');
-    initializePad(participantSignaturePad, participantCanvasRef, formData.participant_signature || '', 'participant_signature');
-    initializePad(witnessSignaturePad, witnessCanvasRef, formData.witness_signature || '', 'witness_signature');
-    initializePad(verbalStaffSignaturePad, verbalStaffCanvasRef, formData.verbal_staff_signature || '', 'verbal_staff_signature');
+    initializePad(acceptedSignaturePad, acceptedCanvasRef, 'accepted_signature');
+    initializePad(participantSignaturePad, participantCanvasRef, 'participant_signature');
+    initializePad(witnessSignaturePad, witnessCanvasRef, 'witness_signature');
+    initializePad(verbalStaffSignaturePad, verbalStaffCanvasRef, 'verbal_staff_signature');
 
     // Resize handling
     const handleResize = () => {
@@ -117,6 +118,31 @@ export default function ServiceAgreementConsent({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []); // Empty dependency to run only on mount
+
+  // Sync data from props to signature pad
+  useEffect(() => {
+    const syncPad = (padRef: React.MutableRefObject<SignaturePad | null>, value: string | undefined) => {
+      const pad = padRef.current;
+      if (!pad) return;
+
+      const currentVal = pad.isEmpty() ? "" : pad.toDataURL();
+
+      // Only sync if the value is different from what is currently on the pad
+      // This prevents the loop where endStroke updates props -> props update pad -> pad redraws
+      if (value !== currentVal) {
+        if (value && value.startsWith('data:image')) {
+          pad.fromDataURL(value);
+        } else if (!value) {
+          pad.clear();
+        }
+      }
+    };
+
+    syncPad(acceptedSignaturePad, formData.accepted_signature);
+    syncPad(participantSignaturePad, formData.participant_signature);
+    syncPad(witnessSignaturePad, formData.witness_signature);
+    syncPad(verbalStaffSignaturePad, formData.verbal_staff_signature);
   }, [formData.accepted_signature, formData.participant_signature, formData.witness_signature, formData.verbal_staff_signature]);
 
   // Signature handlers

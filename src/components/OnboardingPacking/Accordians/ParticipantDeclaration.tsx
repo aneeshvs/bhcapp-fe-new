@@ -41,10 +41,12 @@ export default function ParticipantDeclarations({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
+  // Initialize pad ONCE
   useEffect(() => {
     const initializePad = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+      if (signaturePad.current) return; // Prevent double init
 
       // Explicitly set canvas size
       canvas.width = canvas.offsetWidth;
@@ -58,14 +60,6 @@ export default function ParticipantDeclarations({
         maxWidth: 2.5,
       });
       signaturePad.current = pad;
-
-      // Load existing signature if available
-      if (
-        formData.participant_signature &&
-        formData.participant_signature.startsWith("data:image")
-      ) {
-        pad.fromDataURL(formData.participant_signature);
-      }
 
       // Auto-save on end stroke
       pad.addEventListener("endStroke", () => {
@@ -93,6 +87,25 @@ export default function ParticipantDeclarations({
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []); // Run once on mount
+
+  // Sync data
+  useEffect(() => {
+    const pad = signaturePad.current;
+    if (!pad) return;
+
+    if (
+      formData.participant_signature &&
+      formData.participant_signature.startsWith("data:image")
+    ) {
+      // Check if data is different to avoid loop
+      const currentData = pad.isEmpty() ? "" : pad.toDataURL();
+      if (formData.participant_signature !== currentData) {
+        pad.fromDataURL(formData.participant_signature);
+      }
+    } else if (!formData.participant_signature) {
+      pad.clear();
+    }
   }, [formData.participant_signature]);
 
   const handleClear = () => {
@@ -286,8 +299,8 @@ export default function ParticipantDeclarations({
                 type="button"
                 onClick={handleSave}
                 className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "hover:bg-blue-700"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "hover:bg-blue-700"
                   }`}
               >
                 {saveStatus ? (

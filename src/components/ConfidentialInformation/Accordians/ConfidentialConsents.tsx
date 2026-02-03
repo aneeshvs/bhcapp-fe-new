@@ -43,10 +43,12 @@ export default function ConfidentialConsents({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
+  // Initialize pad ONCE
   useEffect(() => {
     const initializePad = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+      if (signaturePad.current) return; // Prevent double init
 
       // Explicitly set canvas size
       canvas.width = canvas.offsetWidth;
@@ -56,11 +58,6 @@ export default function ConfidentialConsents({
         backgroundColor: "rgba(255,255,255,0)",
       });
       signaturePad.current = pad;
-
-      // Load existing signature if available
-      if (formData.signature && formData.signature.startsWith("data:image")) {
-        pad.fromDataURL(formData.signature);
-      }
 
       // Auto-save on end stroke
       pad.addEventListener("endStroke", () => {
@@ -88,6 +85,22 @@ export default function ConfidentialConsents({
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []); // Run once on mount
+
+  // Sync data
+  useEffect(() => {
+    const pad = signaturePad.current;
+    if (!pad) return;
+
+    if (formData.signature && formData.signature.startsWith("data:image")) {
+      // Check if data is different from current pad content to avoid loop
+      const currentData = pad.isEmpty() ? "" : pad.toDataURL();
+      if (formData.signature !== currentData) {
+        pad.fromDataURL(formData.signature);
+      }
+    } else if (!formData.signature) {
+      pad.clear();
+    }
   }, [formData.signature]);
 
   const handleClear = () => {

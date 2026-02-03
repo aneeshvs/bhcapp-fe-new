@@ -43,10 +43,12 @@ export default function VerbalConsents({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
+  // Initialize pad ONCE
   useEffect(() => {
     const initializePad = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+      if (signaturePad.current) return; // Prevent double init
 
       // Explicitly set canvas size
       canvas.width = canvas.offsetWidth;
@@ -56,14 +58,6 @@ export default function VerbalConsents({
         backgroundColor: "rgba(255,255,255,0)",
       });
       signaturePad.current = pad;
-
-      // Load existing signature if available
-      if (
-        formData.verbal_signature &&
-        formData.verbal_signature.startsWith("data:image")
-      ) {
-        pad.fromDataURL(formData.verbal_signature);
-      }
 
       // Auto-save on end stroke
       pad.addEventListener("endStroke", () => {
@@ -91,6 +85,25 @@ export default function VerbalConsents({
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []); // Run once on mount
+
+  // Sync data
+  useEffect(() => {
+    const pad = signaturePad.current;
+    if (!pad) return;
+
+    if (
+      formData.verbal_signature &&
+      formData.verbal_signature.startsWith("data:image")
+    ) {
+      // Check if data is different from current pad content to avoid loop
+      const currentData = pad.isEmpty() ? "" : pad.toDataURL();
+      if (formData.verbal_signature !== currentData) {
+        pad.fromDataURL(formData.verbal_signature);
+      }
+    } else if (!formData.verbal_signature) {
+      pad.clear();
+    }
   }, [formData.verbal_signature]);
 
   const handleClear = () => {
