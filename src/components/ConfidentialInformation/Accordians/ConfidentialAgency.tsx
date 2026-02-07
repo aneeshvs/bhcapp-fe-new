@@ -131,15 +131,16 @@ export default function ConfidentialAgenciesForm({
             <p className="text-gray-600 mb-4">
               <b>
                 PROPOSED USE AND DISCLOSURE OF MY PERSONAL INFORMATION BETWEEN
-                THE ORGANISATION AND AS LISTED BELOW:
+                BHC AND AS LISTED BELOW:
               </b>
             </p>
             <p>
-              I understand that the following service(s) are recommended and
-              relevant information about me may be forwarded to the agency(s)
-              that provide these services, in order that I receive the best
-              possible service, including external agencies (e.g. NDIS, DHHS,
-              and Certification Body) and other service providers.
+              I understand and agree to share information about me with the
+              following services, in order that I receive the best possible
+              service. This includes external agencies (e.g. NDIS, DFFH, and
+              Certification Body) and other service providers. I understand that
+              where permission is granted for an external service, not an
+              individual person within the service.
             </p>
           </div>
         </div>
@@ -153,8 +154,8 @@ export default function ConfidentialAgenciesForm({
               key={index}
               className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 rounded relative border border-gray-200"
             >
-              {/* Name */}
-              <div>
+              {/* Name - Hidden */}
+              {/* <div>
                 <label className="block mb-1 font-medium">Name</label>
                 <input
                   type="text"
@@ -164,10 +165,10 @@ export default function ConfidentialAgenciesForm({
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   placeholder="Enter contact person name"
                 />
-              </div>
+              </div> */}
 
-              {/* Role */}
-              <div>
+              {/* Role - Hidden */}
+              {/* <div>
                 <label className="block mb-1 font-medium">Role</label>
                 <input
                   type="text"
@@ -177,10 +178,10 @@ export default function ConfidentialAgenciesForm({
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   placeholder="e.g., Case Manager, Therapist"
                 />
-              </div>
+              </div> */}
 
-              {/* Contact */}
-              <div>
+              {/* Contact - Hidden */}
+              {/* <div>
                 <label className="block mb-1 font-medium">
                   Contact Information
                 </label>
@@ -192,11 +193,13 @@ export default function ConfidentialAgenciesForm({
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   placeholder="Phone, email, or other contact"
                 />
-              </div>
+              </div> */}
 
               {/* Agency Name */}
               <div>
-                <label className="block mb-1 font-medium">Agency Name</label>
+                <label className="block mb-1 font-medium">
+                  Name of Agency or Personal network
+                </label>
                 <input
                   type="text"
                   name="agency_name"
@@ -209,7 +212,7 @@ export default function ConfidentialAgenciesForm({
 
               {/* Service Type */}
               <div>
-                <label className="block mb-1 font-medium">Service Type</label>
+                <label className="block mb-1 font-medium">Type of Service</label>
                 <input
                   type="text"
                   name="service_type"

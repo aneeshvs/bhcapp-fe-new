@@ -145,10 +145,9 @@ export default function ConfidentialConsents({
           <div className="text-gray-700 space-y-3 w-full">
             <p className="text-gray-600 mb-4">
               <b>
-                Best of Homecare has discussed with me how and why certain
-                information about me may need to be provided to other service
-                providers. I understand the recommendations and I give my
-                permission for the information to be shared as detailed above.
+                Best of Homecare has discussed with me how they will collect, store and share information about me. 
+                They have explained why certain information about me may need to be provided to other service providers or members of my personal network.
+                I give my permission for the information to be shared as detailed above.
               </b>
             </p>
           </div>

@@ -3,6 +3,8 @@ import ConfidentialAgenciesForm from '@/src/components/ConfidentialInformation/A
 import ConfidentialConsents from '@/src/components/ConfidentialInformation/Accordians/ConfidentialConsents';
 import VerbalConsents from '@/src/components/ConfidentialInformation/Accordians/VerbalConsents';
 import PreConsentDisclosures from '@/src/components/ConfidentialInformation/Accordians/PreConsentDisclosures';
+import MediaConsent from '@/src/components/ConfidentialInformation/Accordians/MediaConsent';
+import SilSurveillanceConsent from '@/src/components/ConfidentialInformation/Accordians/SilSurveillanceConsent';
 
 export const sectionsConfig = [
     {
@@ -26,8 +28,18 @@ export const sectionsConfig = [
         Component: VerbalConsents,
     },
     {
+        key: 'MediaConsent',
+        title: '5. MEDIA CONSENT',
+        Component: MediaConsent,
+    },
+    {
+        key: 'SilSurveillanceConsent',
+        title: '6. SIL SURVEILLANCE CONSENT',
+        Component: SilSurveillanceConsent,
+    },
+    {
         key: 'PreConsentDisclosures',
-        title: '5. PRE CONSENT DISCLOSURES',
+        title: '7. PRE CONSENT DISCLOSURES',
         Component: PreConsentDisclosures,
     }
 ]

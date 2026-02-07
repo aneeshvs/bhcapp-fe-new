@@ -18,7 +18,7 @@ import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 const SECTION_NAMES = [
-  "ConfidentialInformation", "ConfidentialAgency", "ConfidentialConsent", "VerbalConsent", "PreConsentDisclosures"
+  "ConfidentialInformation", "ConfidentialAgency", "ConfidentialConsent", "VerbalConsent", "MediaConsent", "PreConsentDisclosures"
 ] as const;
 
 const ConfidentialAgencies: ConfidentialAgency[] = [

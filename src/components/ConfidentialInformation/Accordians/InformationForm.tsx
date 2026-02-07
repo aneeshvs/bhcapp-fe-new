@@ -18,8 +18,8 @@ interface InformationFormProps {
   handleChange: (
     event:
       | React.ChangeEvent<
-          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
@@ -270,10 +270,12 @@ export default function InformationForm({
                 Please discuss the following statement with Participants before proceeding:</b>
               </p>
               <ul className="list-disc ml-6">
-                <li>If your information is required by law, your information may be shared without your consent.</li>
+                <li>I agree to BHC collecting, storing and sharing information, where consent has been provided by me.</li>
                 <li>Information can include data that is held in audio/visual format being photos or any other recorded material.</li>
                 <li>This consent form includes your permission for BHC to provide care/treatment described in the Goal Plan or Support Plan.</li>
                 <li>This consent form includes your permission to conduct surveillance within the common areas of your SIL home. Surveillance does not occur in bedrooms or private spaces. The purpose of the surveillance is for participant and worker safety. This footage may be reviewed during an incident investigation. Video surveillance is stored for a period of 30 days unless the video footage is in relation to a complaint or incident in which the footage could be stored for up to 7 years.</li>
+                <li>If your information is required by law, your information may be shared without your consent.</li>
+                <li>This consent form includes your permission for BHC to provide care/treatment described in the Goal Plan or Support Plan.</li>
                 <li>The organisation will only collect personal information, and details regarding my health, that is necessary for them to deliver a service to me.</li>
                 <li>The organisation will take all necessary steps to protect my right to privacy and confidentiality when collecting my personal information. All information collected will be handled and maintained in a secure environment.</li>
                 <li>I am aware that my personal information and details will be stored electronically.</li>

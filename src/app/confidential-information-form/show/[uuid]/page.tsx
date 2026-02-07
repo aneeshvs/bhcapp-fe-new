@@ -16,6 +16,8 @@ const SECTION_NAMES = [
     "ConfidentialAgency",
     "ConfidentialConsent",
     "VerbalConsent",
+    "MediaConsent",
+    "SilSurveillanceConsent",
     "PreConsentDisclosures",
 ] as const;
 
@@ -141,6 +143,18 @@ export default function ShowConfidentialInformationPage() {
             if (formData.verbal_signed_date) data.append("verbal_signed_date", formData.verbal_signed_date);
             if (formData.verbal_name) data.append("verbal_name", formData.verbal_name);
             if (formData.position) data.append("position", formData.position);
+
+            // Append Media Consent fields
+            data.append("media_permission", formData.media_permission ? "1" : "0");
+            data.append("media_option_on_occasion", formData.media_option_on_occasion ? "1" : "0");
+            data.append("media_permission_denied", formData.media_permission_denied ? "1" : "0");
+
+            // Append Pre-Consent fields
+            data.append("explain_collection_storage", formData.explain_collection_storage ? "1" : "0");
+            data.append("discuss_referral_services", formData.discuss_referral_services ? "1" : "0");
+            data.append("explain_release_agreement", formData.explain_release_agreement ? "1" : "0");
+            data.append("explain_share_without_consent", formData.explain_share_without_consent ? "1" : "0");
+            data.append("provide_privacy_information", formData.provide_privacy_information ? "1" : "0");
 
             // Append Identifiers
             data.append("user_id", sessionUserId);
@@ -278,7 +292,7 @@ export default function ShowConfidentialInformationPage() {
                     />
 
                     {sectionsConfig.map(({ key, title, Component }) => {
-                        const isSignatureSection = key === "ConfidentialConsent" || key === "VerbalConsent";
+                        const isSignatureSection = key === "ConfidentialConsent" || key === "VerbalConsent" || key === "SilSurveillanceConsent";
 
                         return (
                             <React.Fragment key={key}>

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 
 interface PreConsentDisclosure {
+  explain_collection_storage?: number;
   discuss_referral_services?: number;
   explain_release_agreement?: number;
   explain_share_without_consent?: number;
@@ -15,8 +16,8 @@ interface PreConsentDisclosuresProps {
   handleChange: (
     event:
       | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
       | { target: { name: string; value: string | number | boolean } }
   ) => void;
   uuid?: string;
@@ -75,6 +76,42 @@ export default function PreConsentDisclosures({
             </p>
           </div>
         </div>
+        {/* Explain Collection & Storage (NEW) */}
+        <div
+          className="relative mb-4"
+          onMouseEnter={() => setHoveredField("explain_collection_storage")}
+          onMouseLeave={() => setHoveredField(null)}
+        >
+          <div className="flex justify-between items-center mb-1">
+            <label className="block font-medium">
+              Explained how and why BHC collects information about me, and how that information is stored.
+            </label>
+            {hoveredField === "explain_collection_storage" && (
+              <button
+                type="button"
+                onClick={() => handleViewLogs("explain_collection_storage")}
+                className="text-xs btn-primary text-white px-2 py-1 rounded"
+              >
+                View Logs
+              </button>
+            )}
+          </div>
+          <div className="flex gap-4">
+            {yesNoOptions.map(({ label, value }) => (
+              <label key={label} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="explain_collection_storage"
+                  value={value}
+                  checked={formData.explain_collection_storage === value}
+                  onChange={handleRadioNumberChange}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Discuss Referral Services */}
         <div
           className="relative mb-4"
