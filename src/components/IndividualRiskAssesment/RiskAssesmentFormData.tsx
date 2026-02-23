@@ -9,6 +9,9 @@ const RiskAssessmentFormData = {
   vulnerability: '',
   review_frequency: '',
   dependent_on_homecare: 0,
+  has_only_1_support_worker: 0,
+  receives_personal_care: 0,
+  reason_not_reliant: '',
 
 
   hearing_impairment: 0,

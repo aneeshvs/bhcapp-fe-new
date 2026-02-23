@@ -49,6 +49,7 @@ export default function DatePicker({
       dateFormat: "d-m-Y",
       allowInput: true,
       defaultDate: value || undefined,
+      disableMobile: true,
 
       // Calendar select
       onChange(selectedDates) {

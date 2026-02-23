@@ -9,6 +9,7 @@ interface DatePickerSaveManyProps {
   value: string | null;
   onChange: (e: { target: { name: string; value: string } }) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export default function DatePickerSaveMany({
@@ -16,11 +17,20 @@ export default function DatePickerSaveMany({
   value,
   onChange,
   placeholder,
+  disabled,
 }: DatePickerSaveManyProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!inputRef.current) return;
+    if (disabled) return; // Don't init flatpickr if disabled? Or maybe init but it won't open?
+
+    // Check if flatpickr instance exists? 
+    // Actually, if disabled changes, we might want to destroy/re-init or just rely on input disabled.
+    // Flatpickr doesn't automatically unbind if input becomes disabled.
+
+    // Let's just pass disabled to input and hope flatpickr respects it (it usually does).
+    // But if we return early here, we might miss init if it starts enabled.
 
     const emitChange = (date: Date | undefined) => {
       if (!date) {
@@ -39,6 +49,8 @@ export default function DatePickerSaveMany({
       dateFormat: "d-m-Y",
       allowInput: true,
       defaultDate: value || undefined,
+      clickOpens: !disabled,
+      disableMobile: true,
 
       onChange(selectedDates) {
         emitChange(selectedDates[0]);
@@ -49,6 +61,8 @@ export default function DatePickerSaveMany({
       },
     });
 
+    // ... (rest is same)
+
     // Sync display when parent value changes
     if (value && inputRef.current) {
       const [y, m, d] = value.split("-");
@@ -56,15 +70,16 @@ export default function DatePickerSaveMany({
     }
 
     return () => fp.destroy();
-  }, [name, value, onChange]);
+  }, [name, value, onChange, disabled]);
 
   return (
     <input
       ref={inputRef}
       type="text"
       name={name}
+      disabled={disabled}
       placeholder={placeholder || "Select Date"}
-      className="w-full border border-gray-300 rounded px-3 py-2"
+      className={`w-full border border-gray-300 rounded px-3 py-2 ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
     />
   );
 }

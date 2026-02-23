@@ -1,4 +1,4 @@
-import {RiskAssessmentResponse} from './ApiResponse';
+import { RiskAssessmentResponse } from './ApiResponse';
 
 export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
     return {
@@ -13,6 +13,9 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
         vulnerability: responseData.details.vulnerability,
         review_frequency: responseData.details.review_frequency,
         dependent_on_homecare: responseData.details.dependent_on_homecare,
+        has_only_1_support_worker: responseData.details.has_only_1_support_worker,
+        receives_personal_care: responseData.details.receives_personal_care,
+        reason_not_reliant: responseData.details.reason_not_reliant,
 
 
         hearing_impairment: responseData.communications.hearing_impairment,

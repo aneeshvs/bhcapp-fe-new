@@ -22,6 +22,9 @@ export interface AssessmentDetailsFormData {
   vulnerability?: string;
   review_frequency?: string
   dependent_on_homecare?: number; // 0 or 1 for boolean
+  has_only_1_support_worker?: number; // 0 or 1 for boolean
+  receives_personal_care?: number; // 0 or 1 for boolean
+  reason_not_reliant?: string;
 }
 
 export interface AssessmentCommunicationsFormData {
@@ -140,7 +143,7 @@ export interface AssessmentViolenceRisksFormData {
   verbal_hazards?: string;
   verbal_management_plan?: string;
   verbal_bsp_plan?: number;
-  
+
 
   // Client Aggression
   client_aggression?: number;
