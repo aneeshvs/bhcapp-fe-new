@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { destroy } from '@/src/services/crud';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
-import {SilGoal} from "@/src/components/SupportCarePlan/types";
+import { SilGoal } from "@/src/components/SupportCarePlan/types";
 
 interface PreviousSilGoalsProps {
   supportGoals?: SilGoal[];
@@ -28,7 +28,7 @@ export default function SupportCoordinationGoals({ supportGoals = [], setSupport
 
   const addSilGoals = () => {
     if (!setSupportGoals) return;
-    
+
     const newIndex = supportGoals.length;
     setSupportGoals([
       ...supportGoals,
@@ -43,7 +43,7 @@ export default function SupportCoordinationGoals({ supportGoals = [], setSupport
         risk_management_strategies: '',
       },
     ]);
-    
+
     // Track the index of the newly added goal
     setUnsavedGoalIndexes(prev => new Set([...prev, newIndex]));
   };
@@ -223,7 +223,7 @@ export default function SupportCoordinationGoals({ supportGoals = [], setSupport
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         uuid={uuid ?? null}
-        table="sil_goals"
+        table="support_coordination_goals"
         field="all"
         url="support-care-plan/logs"
       />

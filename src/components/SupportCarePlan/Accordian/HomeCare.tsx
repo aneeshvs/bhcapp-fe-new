@@ -28,7 +28,7 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
   const addSilGoals = () => {
     if (!setHomeGoals) return;
-    
+
     const newIndex = homeGoals.length;
     setHomeGoals([
       ...homeGoals,
@@ -43,7 +43,7 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
         risk_management_strategies: '',
       },
     ]);
-    
+
     // Track the index of the newly added goal
     setUnsavedGoalIndexes(prev => new Set([...prev, newIndex]));
   };
@@ -223,7 +223,7 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         uuid={uuid ?? null}
-        table="sil_goals"
+        table="home_cares"
         field="all"
         url="support-care-plan/logs"
       />
