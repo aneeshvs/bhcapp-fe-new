@@ -10,6 +10,11 @@ export function mapApiResponseToFormData(responseData: ScheduleOfSupportsFormDat
         funding_review_date: responseData?.funding_review_date,
         support_on_public_holiday: responseData?.support_on_public_holiday,
 
+        sil_rent_charges: responseData.sil_sda?.sil_rent_charges ?? 390.20,
+        sil_utilities: responseData.sil_sda?.sil_utilities ?? 204.80,
+        sil_food_groceries: responseData.sil_sda?.sil_food_groceries ?? 200.00,
+        sil_total_cost: responseData.sil_sda?.sil_total_cost ?? 795.00,
+
         participant_signature: responseData.agreement_signature?.participant_signature || "",
         agreement_participant_name: responseData.agreement_signature?.agreement_participant_name || "",
         participant_date: responseData.agreement_signature?.participant_date || "",

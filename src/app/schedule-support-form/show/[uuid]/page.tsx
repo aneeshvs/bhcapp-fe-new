@@ -447,7 +447,9 @@ export default function ShowScheduleSupportPage() {
                                                 <tbody>
                                                     <tr className="border-b border-gray-300">
                                                         <td className="p-3">Rent Charges (Rental cost and Commonwealth rent assistance)</td>
-                                                        <td className="p-3">$390.20</td>
+                                                        <td className="p-3">
+                                                            ${Number(formData.sil_rent_charges ?? 390.2).toFixed(2)}
+                                                        </td>
                                                     </tr>
                                                     <tr className="border-b border-gray-300">
                                                         <td className="p-3">
@@ -455,7 +457,9 @@ export default function ShowScheduleSupportPage() {
                                                             <br />
                                                             <small className="text-gray-500">(Above rates are based on the total cost of utilities for a Year)</small>
                                                         </td>
-                                                        <td className="p-3">$204.80</td>
+                                                        <td className="p-3">
+                                                            ${Number(formData.sil_utilities ?? 204.8).toFixed(2)}
+                                                        </td>
                                                     </tr>
                                                     <tr className="border-b border-gray-300">
                                                         <td className="p-3">
@@ -463,11 +467,15 @@ export default function ShowScheduleSupportPage() {
                                                             <br />
                                                             <small className="text-gray-500">(Based on the total cost of the food purchase currently in our SIL accommodation per person)</small>
                                                         </td>
-                                                        <td className="p-3">$200.00</td>
+                                                        <td className="p-3">
+                                                            ${Number(formData.sil_food_groceries ?? 200).toFixed(2)}
+                                                        </td>
                                                     </tr>
                                                     <tr className="bg-gray-50">
                                                         <td className="p-3"><strong>Total Cost</strong></td>
-                                                        <td className="p-3"><strong>$795.00 / Fortnight</strong></td>
+                                                        <td className="p-3">
+                                                            <strong>${Number(formData.sil_total_cost ?? 795).toFixed(2)} / Fortnight</strong>
+                                                        </td>
                                                     </tr>
                                                 </tbody>
                                             </table>

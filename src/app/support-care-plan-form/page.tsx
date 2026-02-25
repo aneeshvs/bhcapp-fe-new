@@ -26,6 +26,7 @@ const SECTION_NAMES = [
   "SilGoals",
   "HomeCares",
   "SupportCoordinations",
+  "DayProgramGoals",
   "CommunicationPlan",
   "Emergency",
   "EmergencyContact",
@@ -109,6 +110,9 @@ export default function SupportCarePlanPage() {
   const [supportGoals, setSupportGoals] = useState<SupportCoordination[]>(() =>
     makeInitialGoals("support_coordination")
   );
+  const [dayProgramGoals, setDayProgramGoals] = useState<SilGoals[]>(() =>
+    makeInitialGoals("day_program")
+  );
   const [emergencyContacts, setEmergencyContacts] =
     useState<EmergencyContact[]>(emergencyContact);
   // Memoized values
@@ -132,6 +136,8 @@ export default function SupportCarePlanPage() {
           return { homeGoals, setHomeGoals };
         case "SupportCoordinations":
           return { supportGoals, setSupportGoals };
+        case "DayProgramGoals":
+          return { myGoals: dayProgramGoals, setMyGoals: setDayProgramGoals };
         case "CommunicationPlan":
           return { communicationPlan, setCommunicationPlan };
         case "EmergencyContact":
@@ -140,7 +146,7 @@ export default function SupportCarePlanPage() {
           return {};
       }
     },
-    [myGoals, homeGoals, supportGoals, communicationPlan, emergencyContacts]
+    [myGoals, homeGoals, supportGoals, dayProgramGoals, communicationPlan, emergencyContacts]
   );
 
   // Function to format field names for display
@@ -264,6 +270,22 @@ export default function SupportCarePlanPage() {
             risk_management_strategies: goal.risk_management_strategies || "",
           }));
         setSupportGoals(typedSupportGoals);
+      }
+
+      if ((response.data as any)?.day_program_goals) {
+        const typedDayProgramGoals: SilGoals[] = (response.data as any).day_program_goals.map(
+          (goal: any) => ({
+            category: goal.category || "day_program",
+            goal_key: goal.goal_key || "",
+            goal_title: goal.goal_title || "",
+            goals_of_support: goal.goals_of_support || "",
+            steps: goal.steps || "",
+            organisation_steps: goal.organisation_steps || "",
+            risk: goal.risk || "",
+            risk_management_strategies: goal.risk_management_strategies || "",
+          })
+        );
+        setDayProgramGoals(typedDayProgramGoals);
       }
 
       // Load communication plan data
@@ -400,7 +422,7 @@ export default function SupportCarePlanPage() {
 
         data.append("user_id", sessionUserId || "");
         data.append("client_type", sessionClientType || "");
-        const allGoals = [...myGoals, ...homeGoals, ...supportGoals];
+        const allGoals = [...myGoals, ...homeGoals, ...supportGoals, ...dayProgramGoals];
         data.append("sil_goals", JSON.stringify(allGoals));
         data.append(
           "helps_me_talk",
@@ -481,6 +503,7 @@ export default function SupportCarePlanPage() {
       myGoals,
       homeGoals,
       supportGoals,
+      dayProgramGoals,
       communicationPlan,
       emergencyContacts,
       sessionUserId,

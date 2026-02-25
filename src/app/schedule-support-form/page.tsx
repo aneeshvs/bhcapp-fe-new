@@ -16,7 +16,9 @@ import { SupportScheduleTracker } from "@/src/components/SupportSchedule/Support
 import { FundedSupportsFormData, UnfundedSupportsFormData } from "@/src/components/SupportSchedule/ApiResponse";
 
 import Image from "next/image";
+import Link from "next/link";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import FieldLogsModal from '@/src/components/FieldLogsModal';
 
 const SECTION_NAMES = [
   "ScheduleOfSupports", "FundedSupports", "UnfundedSupports", "AgreementSignatures"
@@ -77,6 +79,7 @@ export default function SupportCarePlanPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [formData, setFormData] =
     useState<SupportFormaDataType>(SupportScheduleFormData);
+  const [isSilLogsModalOpen, setIsSilLogsModalOpen] = useState(false);
   const [fundedSupportData, setFundedSupportData] =
     useState<FundedSupportsFormData[]>(FundedSupport);
   const [unfundedSupportData, setUnfundedSupportData] =
@@ -218,10 +221,25 @@ export default function SupportCarePlanPage() {
         | { target: { name: string; value: string | number | boolean } }
     ) => {
       const { name, value } = event.target;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setFormData((prev) => {
+        const newData = {
+          ...prev,
+          [name]: value,
+        };
+
+        if (
+          name === "sil_rent_charges" ||
+          name === "sil_utilities" ||
+          name === "sil_food_groceries"
+        ) {
+          const rent = parseFloat(String(newData.sil_rent_charges)) || 0;
+          const utils = parseFloat(String(newData.sil_utilities)) || 0;
+          const food = parseFloat(String(newData.sil_food_groceries)) || 0;
+          newData.sil_total_cost = parseFloat((rent + utils + food).toFixed(2));
+        }
+
+        return newData;
+      });
     },
     []
   );
@@ -598,7 +616,18 @@ export default function SupportCarePlanPage() {
                     </div>
                     {!!formData.sil_section_flag && (
                       <div className="section mt-8">
-                        <div className="font-semibold text-lg mb-4">Supported Independent Living Accommodation - Fortnightly Participants Contribution (SIL/SDA Only)</div>
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="font-semibold text-lg">Supported Independent Living Accommodation - Fortnightly Participants Contribution (SIL/SDA Only)</div>
+                          {sessionUuid && (
+                            <button
+                              type="button"
+                              onClick={() => setIsSilLogsModalOpen(true)}
+                              className="btn-primary text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+                            >
+                              View Logs
+                            </button>
+                          )}
+                        </div>
                         <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
                           <thead className="bg-gray-50 border-b border-gray-300">
                             <tr>
@@ -609,7 +638,20 @@ export default function SupportCarePlanPage() {
                           <tbody>
                             <tr className="border-b border-gray-300">
                               <td className="p-3">Rent Charges (Rental cost and Commonwealth rent assistance)</td>
-                              <td className="p-3">$390.20</td>
+                              <td className="p-3">
+                                <div className="flex items-center">
+                                  <span className="mr-1">$</span>
+                                  <input
+                                    type="number"
+                                    name="sil_rent_charges"
+                                    value={formData.sil_rent_charges ?? ""}
+                                    onChange={handleChange}
+                                    className="border border-gray-300 rounded p-1 w-full max-w-[150px]"
+                                    step="0.01"
+                                    min="0"
+                                  />
+                                </div>
+                              </td>
                             </tr>
                             <tr className="border-b border-gray-300">
                               <td className="p-3">
@@ -617,7 +659,20 @@ export default function SupportCarePlanPage() {
                                 <br />
                                 <small className="text-gray-500">(Above rates are based on the total cost of utilities for a Year)</small>
                               </td>
-                              <td className="p-3">$204.80</td>
+                              <td className="p-3">
+                                <div className="flex items-center">
+                                  <span className="mr-1">$</span>
+                                  <input
+                                    type="number"
+                                    name="sil_utilities"
+                                    value={formData.sil_utilities ?? ""}
+                                    onChange={handleChange}
+                                    className="border border-gray-300 rounded p-1 w-full max-w-[150px]"
+                                    step="0.01"
+                                    min="0"
+                                  />
+                                </div>
+                              </td>
                             </tr>
                             <tr className="border-b border-gray-300">
                               <td className="p-3">
@@ -625,11 +680,38 @@ export default function SupportCarePlanPage() {
                                 <br />
                                 <small className="text-gray-500">(Based on the total cost of the food purchase currently in our SIL accommodation per person)</small>
                               </td>
-                              <td className="p-3">$200.00</td>
+                              <td className="p-3">
+                                <div className="flex items-center">
+                                  <span className="mr-1">$</span>
+                                  <input
+                                    type="number"
+                                    name="sil_food_groceries"
+                                    value={formData.sil_food_groceries ?? ""}
+                                    onChange={handleChange}
+                                    className="border border-gray-300 rounded p-1 w-full max-w-[150px]"
+                                    step="0.01"
+                                    min="0"
+                                  />
+                                </div>
+                              </td>
                             </tr>
                             <tr className="bg-gray-50">
                               <td className="p-3"><strong>Total Cost</strong></td>
-                              <td className="p-3"><strong>$795.00 / Fortnight</strong></td>
+                              <td className="p-3">
+                                <div className="flex items-center font-bold">
+                                  <span className="mr-1">$</span>
+                                  <input
+                                    type="number"
+                                    name="sil_total_cost"
+                                    value={formData.sil_total_cost ?? ""}
+                                    onChange={handleChange}
+                                    className="border border-gray-300 rounded p-1 w-full max-w-[150px] font-bold"
+                                    step="0.01"
+                                    min="0"
+                                  />
+                                  <span className="ml-2">/ Fortnight</span>
+                                </div>
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -698,6 +780,15 @@ export default function SupportCarePlanPage() {
               </label>
             </div>
           </form>
+
+          <FieldLogsModal
+            isOpen={isSilLogsModalOpen}
+            onClose={() => setIsSilLogsModalOpen(false)}
+            uuid={sessionUuid ?? null}
+            table="schedule_of_support_sil_sdas"
+            field="all"
+            url="schedule-of-supports/logs"
+          />
         </div>
       ) : (
         // Loader when flag is false

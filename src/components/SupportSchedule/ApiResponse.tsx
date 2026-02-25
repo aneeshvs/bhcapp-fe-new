@@ -2,6 +2,12 @@ export interface ScheduleOfSupportsFormData {
   form_status: string;
   submit_final: number;
   sil_section_flag: number;
+  sil_sda?: {
+    sil_rent_charges: number | null;
+    sil_utilities: number | null;
+    sil_food_groceries: number | null;
+    sil_total_cost: number | null;
+  } | null;
   staff_id: number;
   uuid: string;
   completion_percentage: number;

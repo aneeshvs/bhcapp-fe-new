@@ -5,6 +5,10 @@ const SupportScheduleFormData = {
     support_on_public_holiday: 0,
     submit_final: 0,
     sil_section_flag: 0,
+    sil_rent_charges: 390.20,
+    sil_utilities: 204.80,
+    sil_food_groceries: 200.00,
+    sil_total_cost: 795.00,
     form_status: '',
 
 

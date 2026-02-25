@@ -43,6 +43,8 @@ export interface SilGoal {
   risk_management_strategies?: string;
 }
 
+export type DayProgramGoal = SilGoal;
+
 export interface CommunicationPlan {
   helps_me_talk?: string[] | string;
   helps_me_understand?: string[] | string;
@@ -51,7 +53,7 @@ export interface CommunicationPlan {
 
 }
 
-export interface Emergency{
+export interface Emergency {
   participant_name?: string;
   date?: string;
   review_date?: string;
@@ -73,14 +75,14 @@ export interface ImportantContactsFormData {
 }
 
 
-export interface LocalServiceContact{
+export interface LocalServiceContact {
   council?: string;
   hospital?: string;
   electricity?: string;
   water?: string;
 }
 
-export interface SupportPlanEmergencyScenarios{
+export interface SupportPlanEmergencyScenarios {
   admitted_to_hospital?: number;
   admitted_to_hospital_action?: string;
   medical_emergencies?: number;

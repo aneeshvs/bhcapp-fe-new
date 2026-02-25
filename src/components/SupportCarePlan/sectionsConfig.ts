@@ -3,6 +3,7 @@ import AlternativeDecisionMakerForm from '@/src/components/SupportCarePlan/Accor
 import SilGoals from '@/src/components/SupportCarePlan/Accordian/SilGoals';
 import HomeCareGoals from '@/src/components/SupportCarePlan/Accordian/HomeCare';
 import SupportCoordinationGoals from '@/src/components/SupportCarePlan/Accordian/SupportCoordination';
+import DayProgramGoals from '@/src/components/SupportCarePlan/Accordian/DayProgramGoals';
 import CommunicationPlan from '@/src/components/SupportCarePlan/Accordian/CommunicationPlan';
 import EmergencyForm from '@/src/components/SupportCarePlan/Accordian/Emergency';
 import EmergencyContactsForm from '@/src/components/SupportCarePlan/Accordian/EmergencyContact';
@@ -29,17 +30,22 @@ export const sectionsConfig = [
   },
   {
     key: 'HomeCares',
-    title: '4. HOME CARE',
+    title: '4. HOME CARE GOALS',
     Component: HomeCareGoals
   },
   {
     key: 'SupportCoordinations',
-    title: '5. SUPPORT COORDINATION',
+    title: '5. SUPPORT COORDINATION GOALS',
     Component: SupportCoordinationGoals
   },
   {
+    key: 'DayProgramGoals',
+    title: '6. DAY PROGRAM GOALS',
+    Component: DayProgramGoals
+  },
+  {
     key: 'CommunicationPlan',
-    title: '6. COMMUNICATION PLAN',
+    title: '7. COMMUNICATION PLAN',
     Component: CommunicationPlan
   },
   {
@@ -48,7 +54,7 @@ export const sectionsConfig = [
     Component: EmergencyForm
   },
   {
-    key:'EmergencyContact',
+    key: 'EmergencyContact',
     title: '8. EMERGENCY CONTACT',
     Component: EmergencyContactsForm
   },
@@ -61,7 +67,7 @@ export const sectionsConfig = [
     key: 'LocalServiceContact',
     title: '10. LOCAL SERVICE CONTACT',
     Component: LocalServicesContactsForm
-  },{
+  }, {
     key: 'EmergencyScenario',
     title: '11. EMERGENCY SCENARIO',
     Component: PlanEmergencyScenariosForm
