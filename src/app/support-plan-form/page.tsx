@@ -433,9 +433,10 @@ export default function SupportPlanPage() {
           router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
           await fetchFormData();
         } else if (
-          sessionUuid ||
-          searchParams.get("form-uuid") ||
-          searchParams.get("uuid")
+          (sessionUuid ||
+            searchParams.get("form-uuid") ||
+            searchParams.get("uuid")) &&
+          response.success
         ) {
           await fetchFormData();
         }
