@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { destroy } from '@/src/services/crud';
+import FieldLogsModal from '@/src/components/FieldLogsModal';
 
 interface SupportPlanMyGoal {
   goal: string;
@@ -23,7 +24,9 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
   const searchParams = useSearchParams();
   const urlUuid = searchParams.get('uuid');
   const effectiveUuid = uuid || urlUuid || undefined;
-  
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Track newly added goals that haven't been submitted
   const [unsavedGoalIndexes, setUnsavedGoalIndexes] = useState<Set<number>>(new Set());
 
@@ -43,7 +46,7 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
         goal_key: '' // Empty goal_key for new unsaved goals
       }
     ]);
-    
+
     // Track the index of the newly added goal
     setUnsavedGoalIndexes(prev => new Set([...prev, newIndex]));
   };
@@ -77,7 +80,7 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
     const updated = [...myGoals];
     updated.splice(index, 1);
     setMyGoals(updated);
-    
+
     // Update the unsavedGoalIndexes to adjust indexes
     const updatedIndexes = new Set<number>();
     unsavedGoalIndexes.forEach(unsavedIndex => {
@@ -99,7 +102,18 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">My Goals</h3>
+      <div className="flex justify-between items-center bg-gray-100 px-4 py-3 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-heading">13. MY GOALS</h3>
+        {effectiveUuid && (
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary text-white px-3 py-1.5 rounded text-sm hover:bg-indigo-700 transition"
+          >
+            View Logs
+          </button>
+        )}
+      </div>
 
       {myGoals.length === 0 ? (
         <p className="text-gray-500">No goals added yet.</p>
@@ -202,6 +216,15 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
       >
         Add Goal
       </button>
+
+      <FieldLogsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        uuid={effectiveUuid ?? null}
+        table="support_plan_my_goal"
+        field="all"
+        url="logs/view/support"
+      />
     </div>
   );
 }

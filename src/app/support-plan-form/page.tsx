@@ -290,63 +290,22 @@ export default function SupportPlanPage() {
     [validationErrors]
   );
 
-  // Memoized tracker click handler
-  const handleTrackerClick = useCallback(
-    (key: SectionKey) => {
-      setOpenSections((prev) => {
-        if (prev[key]) {
-          return { ...prev, [key]: false };
-        }
-
-        const newState = SECTION_NAMES.reduce(
-          (acc, sectionKey) => ({
-            ...acc,
-            [sectionKey]: false,
-          }),
-          {} as Record<SectionKey, boolean>
-        );
-
-        return { ...newState, [key]: true };
-      });
-
-      // Delay scroll until after DOM updates
-      setTimeout(() => {
-        sectionRefs[key]?.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 100);
-    },
-    [sectionRefs]
-  );
-
-  // Function to format field names for display
-  const formatFieldName = (fieldName: string): string => {
-    return fieldName
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
-  // Memoized submit handler
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      console.log("Form submitted");
-      setLoading(true);
-      setValidationErrors({}); // Clear previous errors
-      setFormSubmissionError(""); // Clear previous submission error
-
-      // Check for token and refresh if missing
-      // localStorage.removeItem("token");
-      // Check for token and refresh if missing
-      // localStorage.removeItem("token");
-      if (!localStorage.getItem("token") || localStorage.getItem("token") === "null") {
-        setShowLoginModal(true);
-        setLoading(false);
-        return;
+  // Memoized save function
+  const saveForm = useCallback(
+    async (isAutoSave = false) => {
+      if (!isAutoSave) {
+        setLoading(true);
+        setValidationErrors({}); // Clear previous errors
+        setFormSubmissionError(""); // Clear previous submission error
       }
 
+      // Check for token and refresh if missing
+      const token = localStorage.getItem("token");
+      if (!token || token === "null") {
+        setShowLoginModal(true);
+        if (!isAutoSave) setLoading(false);
+        return false;
+      }
 
       try {
         const data = new FormData();
@@ -385,10 +344,35 @@ export default function SupportPlanPage() {
               supportPlan: { uuid: string; id: number };
             },
           };
-          window.alert("Form submitted successfully.");
-          // Clear errors on successful submission
-          setValidationErrors({});
-          setFormSubmissionError("");
+
+          if (!isAutoSave) {
+            window.alert("Form submitted successfully.");
+            setValidationErrors({});
+            setFormSubmissionError("");
+          }
+
+          if (
+            !sessionUuid &&
+            !searchParams.get("form-uuid") &&
+            !searchParams.get("uuid") &&
+            response.success &&
+            response.data?.supportPlan?.uuid
+          ) {
+            const newUuid = response.data.supportPlan.uuid;
+            setSessionUuid(newUuid);
+            // use router.replace or router.push to get the parameter in the url but without doing full page navigation
+            router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
+            if (!isAutoSave) await fetchFormData();
+          } else if (
+            (sessionUuid ||
+              searchParams.get("form-uuid") ||
+              searchParams.get("uuid")) &&
+            response.success
+          ) {
+            if (!isAutoSave) await fetchFormData();
+          }
+
+          return response.success;
         } else {
           response = {
             success: false,
@@ -396,55 +380,40 @@ export default function SupportPlanPage() {
             message: apiResponse.message,
           };
 
-          // Handle validation errors
-          if (apiResponse.data && typeof apiResponse.data === 'object') {
-            const errorData = apiResponse.data as Record<string, string | string[]>;
-            const newErrors: ValidationErrors = {};
+          if (!isAutoSave) {
+            // Handle validation errors
+            if (apiResponse.data && typeof apiResponse.data === 'object') {
+              const errorData = apiResponse.data as Record<string, string | string[]>;
+              const newErrors: ValidationErrors = {};
 
-            // Extract validation errors from response
-            Object.entries(errorData).forEach(([field, errors]) => {
-              if (Array.isArray(errors)) {
-                newErrors[field] = errors;
-              } else if (typeof errors === 'string') {
-                newErrors[field] = [errors];
+              // Extract validation errors from response
+              Object.entries(errorData).forEach(([field, errors]) => {
+                if (Array.isArray(errors)) {
+                  newErrors[field] = errors;
+                } else if (typeof errors === 'string') {
+                  newErrors[field] = [errors];
+                }
+              });
+
+              setValidationErrors(newErrors);
+
+              // Set general error message if no specific field errors
+              if (Object.keys(newErrors).length === 0 && apiResponse.message) {
+                setFormSubmissionError(apiResponse.message);
               }
-            });
-
-            setValidationErrors(newErrors);
-
-            // Set general error message if no specific field errors
-            if (Object.keys(newErrors).length === 0 && apiResponse.message) {
+            } else if (apiResponse.message) {
               setFormSubmissionError(apiResponse.message);
             }
-          } else if (apiResponse.message) {
-            setFormSubmissionError(apiResponse.message);
           }
-        }
 
-        if (
-          !sessionUuid &&
-          !searchParams.get("form-uuid") &&
-          !searchParams.get("uuid") &&
-          response.success &&
-          response.data?.supportPlan?.uuid
-        ) {
-          const newUuid = response.data.supportPlan.uuid;
-          setSessionUuid(newUuid);
-          router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
-          await fetchFormData();
-        } else if (
-          (sessionUuid ||
-            searchParams.get("form-uuid") ||
-            searchParams.get("uuid")) &&
-          response.success
-        ) {
-          await fetchFormData();
+          return false;
         }
       } catch (error) {
         console.error("Submission error:", error);
-        setFormSubmissionError("An error occurred while submitting the form. Please try again.");
+        if (!isAutoSave) setFormSubmissionError("An error occurred while submitting the form. Please try again.");
+        return false;
       } finally {
-        setLoading(false);
+        if (!isAutoSave) setLoading(false);
       }
     },
     [
@@ -458,6 +427,57 @@ export default function SupportPlanPage() {
       fetchFormData,
       router,
     ]
+  );
+
+  // Memoized tracker click handler
+  const handleTrackerClick = useCallback(
+    (key: SectionKey) => {
+      // Trigger background auto-save before changing tabs
+      saveForm(true).catch(console.error);
+
+      setOpenSections((prev) => {
+        if (prev[key]) {
+          return { ...prev, [key]: false };
+        }
+
+        const newState = SECTION_NAMES.reduce(
+          (acc, sectionKey) => ({
+            ...acc,
+            [sectionKey]: false,
+          }),
+          {} as Record<SectionKey, boolean>
+        );
+
+        return { ...newState, [key]: true };
+      });
+
+      // Delay scroll until after DOM updates
+      setTimeout(() => {
+        sectionRefs[key]?.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    },
+    [sectionRefs, saveForm]
+  );
+
+  // Function to format field names for display
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Memoized submit handler
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      console.log("Form submitted via button");
+      await saveForm(false);
+    },
+    [saveForm]
   );
 
   useEffect(() => {
