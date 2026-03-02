@@ -3,7 +3,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
 import supportPlanFormData from "@/src/components/SupportPlan/SupportPlanFormData";
-import { SupportApiResponse } from "@/src/components/SupportPlan/ApiResponse";
+import { SupportApiResponse, SupportPlanService, SupportPlanMyGoal } from "@/src/components/SupportPlan/ApiResponse";
 import { mapApiResponseToFormData } from "@/src/components/SupportPlan/MapApiResponseToFormData";
 import { sectionsConfig } from "@/src/components/SupportPlan/sectionsConfig";
 import Tracker from "@/src/components/Tracker";
@@ -50,6 +50,8 @@ export default function ShowSupportPlanPage() {
     const [clientName, setClientName] = useState("");
 
     const [formData, setFormData] = useState<SupportPlanFormDataType>(supportPlanFormData);
+    const [services, setServices] = useState<SupportPlanService[]>([]);
+    const [myGoals, setMyGoals] = useState<SupportPlanMyGoal[]>([]);
 
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
@@ -68,10 +70,55 @@ export default function ShowSupportPlanPage() {
             setFormData(
                 mapApiResponseToFormData(response.data) as SupportPlanFormDataType
             );
+
+            if (response.data?.services) {
+                const typedServices: SupportPlanService[] = response.data.services.map(
+                    (service) => ({
+                        name: service.name || "",
+                        service_provided: service.service_provided || "",
+                        funded_by: service.funded_by || "",
+                        duration_frequency: service.duration_frequency || "",
+                        support_to_implement_by_us: service.support_to_implement_by_us
+                            ? 1
+                            : 0,
+                        goal_key: service.goal_key || "",
+                    })
+                );
+                setServices(typedServices);
+            }
+
+            if (response.data?.my_goals) {
+                const typedMyGoals: SupportPlanMyGoal[] = response.data.my_goals.map(
+                    (goal) => ({
+                        goal: goal.goal || "",
+                        measure_progress: goal.measure_progress || "",
+                        success_look_like: goal.success_look_like || "",
+                        who_will_support: goal.who_will_support || "",
+                        participant_support: goal.participant_support || "",
+                        target_date: goal.target_date || "",
+                        goal_key: goal.goal_key || "",
+                    })
+                );
+                setMyGoals(typedMyGoals);
+            }
         } catch (error) {
             console.error("Error fetching data:", error);
         }
     }, [uuid]);
+
+    const getComponentProps = useCallback(
+        (key: string) => {
+            switch (key) {
+                case "SupportPlanServices":
+                    return { services, setServices };
+                case "SupportPlanMyGoals":
+                    return { myGoals, setMyGoals };
+                default:
+                    return {};
+            }
+        },
+        [services, myGoals]
+    );
 
     const handleChange = useCallback(
         (
@@ -388,6 +435,7 @@ export default function ShowSupportPlanPage() {
                                         formData={formData}
                                         handleChange={handleChange}
                                         uuid={uuid || undefined}
+                                        {...getComponentProps(key)}
                                         // @ts-ignore
                                         hideSaveButton={true}
                                     />

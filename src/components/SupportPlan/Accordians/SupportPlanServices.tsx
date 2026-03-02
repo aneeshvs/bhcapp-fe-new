@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { destroy } from '@/src/services/crud';
 import { useSearchParams } from 'next/navigation';
+import FieldLogsModal from '@/src/components/FieldLogsModal';
 
 interface SupportPlanService {
   name: string;
@@ -22,7 +23,9 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
   const searchParams = useSearchParams();
   const urlUuid = searchParams.get('uuid');
   const effectiveUuid = uuid || urlUuid || undefined;
-  
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Track newly added services that haven't been submitted
   const [unsavedServiceIndexes, setUnsavedServiceIndexes] = useState<Set<number>>(new Set());
 
@@ -41,7 +44,7 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
         goal_key: '', // Empty goal_key for new unsaved services
       },
     ]);
-    
+
     // Track the index of the newly added service
     setUnsavedServiceIndexes(prev => new Set([...prev, newIndex]));
   };
@@ -75,7 +78,7 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
     const updated = [...services];
     updated.splice(index, 1);
     setServices(updated);
-    
+
     // Update the unsavedServiceIndexes to adjust indexes
     const updatedIndexes = new Set<number>();
     unsavedServiceIndexes.forEach(unsavedIndex => {
@@ -90,7 +93,7 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
 
   const updateService = (index: number, field: keyof SupportPlanService, value: string | number | boolean) => {
     if (!setServices) return;
-    
+
     const updated = [...services];
 
     // Handle checkbox conversion from boolean → number
@@ -108,7 +111,18 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Support Plan Services</h3>
+      <div className="flex justify-between items-center bg-gray-100 px-4 py-3 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-heading">Support Plan Services</h3>
+        {effectiveUuid && (
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary text-white px-3 py-1.5 rounded text-sm hover:bg-indigo-700 transition"
+          >
+            View Logs
+          </button>
+        )}
+      </div>
 
       {services.length === 0 ? (
         <p className="text-gray-500">No services added yet.</p>
@@ -195,6 +209,15 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
       >
         Add Service
       </button>
+
+      <FieldLogsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        uuid={effectiveUuid ?? null}
+        table="support_plan_service"
+        field="all"
+        url="logs/view/support"
+      />
     </div>
   );
 }
