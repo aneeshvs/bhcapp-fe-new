@@ -21,28 +21,9 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 type ValidationErrors = Record<string, string[]>;
 
 // Constants
-const INITIAL_SERVICES: SupportPlanService[] = [
-  {
-    name: "",
-    service_provided: "",
-    funded_by: "",
-    duration_frequency: "",
-    support_to_implement_by_us: 0,
-    goal_key: "",
-  },
-];
+const INITIAL_SERVICES: SupportPlanService[] = [];
 
-const INITIAL_GOALS: SupportPlanMyGoal[] = [
-  {
-    goal: "",
-    measure_progress: "",
-    success_look_like: "",
-    who_will_support: "",
-    participant_support: "",
-    target_date: "",
-    goal_key: "",
-  },
-];
+const INITIAL_GOALS: SupportPlanMyGoal[] = [];
 
 const SECTION_NAMES = [
   "SupportPlan",
@@ -131,6 +112,18 @@ export default function SupportPlanPage() {
   const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
+  const [isExpandedAll, setIsExpandedAll] = useState(false);
+
+  const toggleExpandAll = () => {
+    const nextState = !isExpandedAll;
+    setIsExpandedAll(nextState);
+    setOpenSections(
+      SECTION_NAMES.reduce((acc, sectionKey) => {
+        acc[sectionKey] = nextState;
+        return acc;
+      }, {} as Record<SectionKey, boolean>)
+    );
+  };
 
   // Memoized component props getter
   const getComponentProps = useCallback(
@@ -221,23 +214,25 @@ export default function SupportPlanPage() {
       );
 
       if (response.data?.services) {
-        const typedServices: SupportPlanService[] = response.data.services.map(
+        console.log("fetchFormData received services:", response.data.services);
+        const fetchedServices: SupportPlanService[] = response.data.services.map(
           (service) => ({
             name: service.name || "",
             service_provided: service.service_provided || "",
             funded_by: service.funded_by || "",
             duration_frequency: service.duration_frequency || "",
-            support_to_implement_by_us: service.support_to_implement_by_us
-              ? 1
-              : 0,
+            support_to_implement_by_us: service.support_to_implement_by_us ? 1 : 0,
             goal_key: service.goal_key || "",
           })
         );
-        setServices(typedServices);
+
+        // Direct replacement: autoSave only runs on tab-switch (when user isn't actively typing)
+        // so we can safely mirror exactly what the database has, avoiding merge collisions.
+        setServices(fetchedServices.length > 0 ? fetchedServices : INITIAL_SERVICES);
       }
 
       if (response.data?.my_goals) {
-        const typedMyGoals: SupportPlanMyGoal[] = response.data.my_goals.map(
+        const fetchedGoals: SupportPlanMyGoal[] = response.data.my_goals.map(
           (goal) => ({
             goal: goal.goal || "",
             measure_progress: goal.measure_progress || "",
@@ -248,7 +243,8 @@ export default function SupportPlanPage() {
             goal_key: goal.goal_key || "",
           })
         );
-        setMyGoals(typedMyGoals);
+
+        setMyGoals(fetchedGoals.length > 0 ? fetchedGoals : INITIAL_GOALS);
       }
     } catch (error) {
       console.error("Error fetching support plan data:", error);
@@ -450,6 +446,7 @@ export default function SupportPlanPage() {
 
         return { ...newState, [key]: true };
       });
+      setIsExpandedAll(false);
 
       // Delay scroll until after DOM updates
       setTimeout(() => {
@@ -584,6 +581,15 @@ export default function SupportPlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
+              >
+                {isExpandedAll ? "Collapse All" : "Expand All"}
+              </button>
+            </div>
             <Tracker
               steps={trackerSteps}
               onStepClick={(key) => handleTrackerClick(key as SectionKey)}

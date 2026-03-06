@@ -4,6 +4,16 @@ import { destroy } from '@/src/services/crud';
 import { useSearchParams } from 'next/navigation';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `goal_${crypto.randomUUID()}`;
+  }
+  return 'goal_' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 interface SupportPlanService {
   name: string;
   service_provided: string;
@@ -41,7 +51,7 @@ export default function SupportPlanServices({ services = [], setServices, uuid }
         funded_by: '',
         duration_frequency: '',
         support_to_implement_by_us: 0,
-        goal_key: '', // Empty goal_key for new unsaved services
+        goal_key: generateUUID(), // Pre-generate goal_key to prevent auto-save duplicates
       },
     ]);
 

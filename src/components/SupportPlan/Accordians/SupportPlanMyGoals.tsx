@@ -4,6 +4,16 @@ import { useSearchParams } from 'next/navigation';
 import { destroy } from '@/src/services/crud';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `goal_${crypto.randomUUID()}`;
+  }
+  return 'goal_' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 interface SupportPlanMyGoal {
   goal: string;
   measure_progress: string;
@@ -43,7 +53,7 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
         who_will_support: '',
         participant_support: '',
         target_date: '',
-        goal_key: '' // Empty goal_key for new unsaved goals
+        goal_key: generateUUID() // Pre-generate goal_key to prevent auto-save duplicates
       }
     ]);
 
