@@ -79,6 +79,18 @@ export default function ClientProfileForm() {
     healthSummaries: false,
     supportInfo: false
   });
+  const [isExpandedAll, setIsExpandedAll] = useState(false);
+
+  const toggleExpandAll = () => {
+    const nextState = !isExpandedAll;
+    setIsExpandedAll(nextState);
+    setOpenSections(
+      Object.keys(openSections).reduce((acc, key) => {
+        acc[key] = nextState;
+        return acc;
+      }, {} as Record<string, boolean>)
+    );
+  };
 
 
   const searchParams = useSearchParams();
@@ -594,6 +606,17 @@ export default function ClientProfileForm() {
                 Form-F18 Client Profile (Onboarding)
               </h1>
             </div>
+
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
+              >
+                {isExpandedAll ? "Collapse All" : "Expand All"}
+              </button>
+            </div>
+
             <div className="flex overflow-x-auto space-x-4 py-4 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               {[
                 { key: 'clientDetails', label: 'Intial Enquiry' },

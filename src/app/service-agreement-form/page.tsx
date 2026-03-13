@@ -72,6 +72,18 @@ export default function ServiceAgreementPage() {
   const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
+  const [isExpandedAll, setIsExpandedAll] = useState(true);
+
+  const toggleExpandAll = () => {
+    const nextState = !isExpandedAll;
+    setIsExpandedAll(nextState);
+    setOpenSections(
+      SECTION_NAMES.reduce((acc, sectionKey) => {
+        acc[sectionKey] = nextState;
+        return acc;
+      }, {} as Record<SectionKey, boolean>)
+    );
+  };
 
   // Session bootstrap (token, userid, client_type, optional uuid)
   useEffect(() => {
@@ -400,6 +412,15 @@ export default function ServiceAgreementPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
+              >
+                {isExpandedAll ? "Collapse All" : "Expand All"}
+              </button>
+            </div>
             <Tracker
               steps={trackerSteps}
               onStepClick={(key) => handleTrackerClick(key as SectionKey)}

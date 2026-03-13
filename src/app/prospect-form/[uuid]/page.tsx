@@ -20,8 +20,21 @@ import type {ClientFormResponse} from '@/src/types/type'
 import type {ServiceProvider} from '@/src/components/ProspectForm/PreviousServiceProvider'
 import type {NdisGoals} from '@/src/components/ProspectForm/NdisPlan'
 import type {ServiceRequired} from '@/src/components/ProspectForm/BHCServices'
+const PROSPECT_SECTION_NAMES = [
+  'accommodation_support',
+  'client_details',
+  'person_referral',
+  'previous_providers',
+  'bhc_services',
+  'client_ndis',
+  'medical_info',
+  'housing_history',
+  'roster_care',
+  'ndis_plan_goals',
+  'independent_living'
+] as const;
 
-
+type ProspectSectionKey = (typeof PROSPECT_SECTION_NAMES)[number];
 
 export default function FormPage() {
   const params = useParams();
@@ -167,6 +180,37 @@ export default function FormPage() {
     declaration_guardian_name: '',
     guardian_signature: '',
   });
+
+  const [openSections, setOpenSections] = useState<Record<ProspectSectionKey, boolean>>({
+    accommodation_support: false,
+    client_details: false,
+    person_referral: false,
+    previous_providers: false,
+    bhc_services: false,
+    client_ndis: false,
+    medical_info: false,
+    housing_history: false,
+    roster_care: false,
+    ndis_plan_goals: false,
+    independent_living: false,
+  });
+  const [isExpandedAll, setIsExpandedAll] = useState(false);
+
+  const toggleSection = (key: ProspectSectionKey) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleExpandAll = () => {
+    const nextState = !isExpandedAll;
+    setIsExpandedAll(nextState);
+    setOpenSections(
+      PROSPECT_SECTION_NAMES.reduce((acc, key) => {
+        acc[key] = nextState;
+        return acc;
+      }, {} as Record<ProspectSectionKey, boolean>)
+    );
+  };
+
   const [serviceProviders, setServiceProviders] = useState([
     { provider: '', contact_details: '', length_of_support: '', reason_for_leaving: '', goal_key: '' },
   ]);
@@ -667,6 +711,15 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
                   />
                 </div>
       <form className="bg-gray-100 p-4 sm:p-6 rounded shadow max-w-7xl mx-auto">
+        <div className="flex justify-end mb-4">
+          <button
+            type="button"
+            onClick={toggleExpandAll}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
+          >
+            {isExpandedAll ? "Collapse All" : "Expand All"}
+          </button>
+        </div>
         {/* Heading and Intro */}
         {/* <label className="font-bold text-center block mb-2 text-heading">
           Document Number:
@@ -684,7 +737,11 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
         </p>
 
         {/* Accordion Sections */}
-        <AccordionItem title="ACCOMMODATION & SUPPORT">
+        <AccordionItem 
+          title="ACCOMMODATION & SUPPORT" 
+          isOpen={openSections.accommodation_support} 
+          onToggle={() => toggleSection('accommodation_support')}
+        >
           <AccommodationSupport
             type_of_accommodation={formData.type_of_accommodation}
             requested_support={formData.requested_support}
@@ -696,31 +753,59 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
           />
         </AccordionItem>
 
-        <AccordionItem title="CLIENT DETAILS">
+        <AccordionItem 
+          title="CLIENT DETAILS"
+          isOpen={openSections.client_details}
+          onToggle={() => toggleSection('client_details')}
+        >
           <ClientAndGuardianDetails formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
-        <AccordionItem title="PERSON MAKING REFERRAL (IF APPLICABLE)">
+        <AccordionItem 
+          title="PERSON MAKING REFERRAL (IF APPLICABLE)"
+          isOpen={openSections.person_referral}
+          onToggle={() => toggleSection('person_referral')}
+        >
           <PersonMakingReferral formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
-        <AccordionItem title="PREVIOUS SERVICE PROVIDERS (SIL OR OTHER)">
+        <AccordionItem 
+          title="PREVIOUS SERVICE PROVIDERS (SIL OR OTHER)"
+          isOpen={openSections.previous_providers}
+          onToggle={() => toggleSection('previous_providers')}
+        >
           <PreviousServiceProviders serviceProviders={serviceProviders} setServiceProviders={setServiceProviders} />
         </AccordionItem>
 
-        <AccordionItem title="SERVICES REQUIRED FROM BHC">
+        <AccordionItem 
+          title="SERVICES REQUIRED FROM BHC"
+          isOpen={openSections.bhc_services}
+          onToggle={() => toggleSection('bhc_services')}
+        >
           <BHCServices serviceRequired={serviceRequired} setServiceRequired={setServiceRequired} />
         </AccordionItem>
 
-        <AccordionItem title="CLIENT NDIS DETAILS">
+        <AccordionItem 
+          title="CLIENT NDIS DETAILS"
+          isOpen={openSections.client_ndis}
+          onToggle={() => toggleSection('client_ndis')}
+        >
           <ClientNdisDetails formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
-        <AccordionItem title="CLIENT MEDICAL INFORMATION">
+        <AccordionItem 
+          title="CLIENT MEDICAL INFORMATION"
+          isOpen={openSections.medical_info}
+          onToggle={() => toggleSection('medical_info')}
+        >
           <ClientMedicalInfo formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
-        <AccordionItem title="HOUSING HISTORY AND OTHER PROVIDER/GOVT SERVICE INVOLVEMENT">
+        <AccordionItem 
+          title="HOUSING HISTORY AND OTHER PROVIDER/GOVT SERVICE INVOLVEMENT"
+          isOpen={openSections.housing_history}
+          onToggle={() => toggleSection('housing_history')}
+        >
           <HouseHistories formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
@@ -730,15 +815,27 @@ const handlePasswordSubmit = async (e: React.FormEvent) => {
           However, if In-Home Supports are required, please complete the entire form.
         </div>
 
-        <AccordionItem title="ROSTER OF CARE (SIL OR OTHER)">
+        <AccordionItem 
+          title="ROSTER OF CARE (SIL OR OTHER)"
+          isOpen={openSections.roster_care}
+          onToggle={() => toggleSection('roster_care')}
+        >
           <RosterOfCare formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
-        <AccordionItem title="NDIS PLAN – CURRENT GOALS">
+        <AccordionItem 
+          title="NDIS PLAN – CURRENT GOALS"
+          isOpen={openSections.ndis_plan_goals}
+          onToggle={() => toggleSection('ndis_plan_goals')}
+        >
           <NdisPlan ndisPlans={ndisPlans} setNdisPlans={setNdisPlans} />
         </AccordionItem>
 
-        <AccordionItem title="INDEPENDENT LIVING OPTIONS (ILO)">
+        <AccordionItem 
+          title="INDEPENDENT LIVING OPTIONS (ILO)"
+          isOpen={openSections.independent_living}
+          onToggle={() => toggleSection('independent_living')}
+        >
           <IndependentLiving formData={formData} handleChange={handleChange} />
         </AccordionItem>
 
