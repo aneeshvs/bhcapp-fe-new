@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
 import { ParticipantSignature } from "@/src/components/ParticipantSignature/ApiResponse";
@@ -10,6 +10,8 @@ import Tracker from "@/src/components/Tracker";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import Image from "next/image";
 import { Participant } from "@/src/components/ParticipantSignature/FormTracker";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 
 const SECTION_NAMES = [
     "ParticipantSignature",
@@ -45,6 +47,16 @@ export default function ShowMultipleSupportsPage() {
 
     const [formData, setFormData] =
         useState<SupportFormaDataType>(ParticipantSignatures);
+    const [isSignatureOnly, setIsSignatureOnly] = useState(false);
+
+    const isAdmin = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const urlAdmin = searchParams.get("admin") === "1";
+        const localToken = !!localStorage.getItem("token");
+        return urlAdmin || localToken;
+    }, [searchParams]);
+
+    const isReadOnly = isSignatureOnly;
 
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
@@ -67,6 +79,29 @@ export default function ShowMultipleSupportsPage() {
             console.error("Error fetching data:", error);
         }
     }, [uuid]);
+
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const response = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'multiple-supports'
+                }
+            });
+            if (response.data.success) {
+                setIsSignatureOnly(response.data.signature_only === 1);
+            }
+        } catch (error) {
+            console.error("Error fetching signature mode:", error);
+        }
+    }, [uuid]);
+
+    useEffect(() => {
+        fetchSignatureMode();
+        if (authenticated) {
+            fetchFormData();
+        }
+    }, [fetchSignatureMode, authenticated, fetchFormData]);
 
     const handleChange = useCallback(
         (
@@ -106,25 +141,21 @@ export default function ShowMultipleSupportsPage() {
         setLoading(true);
 
         try {
-
-
-            // const missingFields = [];
-
-            // if (!formData.participant_signature) missingFields.push("Participant Signature");
-
-
-
-            // if (missingFields.length > 0) {
-            //     window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
-            //     setLoading(false);
-            //     return;
-            // }
-
             const data = new FormData();
 
-            // Append signature related fields
-            if (formData.participant_signature) data.append("participant_signature", formData.participant_signature);
-            if (formData.date_signed) data.append("date_signed", formData.date_signed);
+            if (!isSignatureOnly) {
+                // ✅ FULL UPDATE
+                Object.entries(formData).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        data.append(key, String(value));
+                    }
+                });
+            } else {
+                // ✅ SIGNATURE ONLY
+                if (formData.participant_signature) data.append("participant_signature", formData.participant_signature);
+                if (formData.date_signed) data.append("date_signed", formData.date_signed);
+                data.append("signature_only", "1");
+            }
 
             // Append Identifiers
             data.append("user_id", sessionUserId);
@@ -135,18 +166,19 @@ export default function ShowMultipleSupportsPage() {
 
             data.append("submit_final", "1");
 
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
-                "client/multiple-supports/update",
-                data
+            console.log("Submitting form data...");
+            const apiResponse = await api.post(
+                "/client/multiple-supports/update",
+                data,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
-            if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");
+            if (apiResponse.data.success) {
+                window.alert("Form submitted successfully.");
                 await fetchFormData();
             } else {
                 console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                window.alert(`Submission failed: ${apiResponse.data.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -314,7 +346,7 @@ export default function ShowMultipleSupportsPage() {
                                     isOpen={openSections[key as SectionKey]}
                                     onToggle={() => handleTrackerClick(key as SectionKey)}
                                 >
-                                    <fieldset>
+                                    <fieldset disabled={isReadOnly}>
                                         <Component
                                             formData={formData}
                                             handleChange={handleChange}
@@ -331,13 +363,15 @@ export default function ShowMultipleSupportsPage() {
 
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
-                        >
-                            {loading ? "Submitting..." : "Submit"}
-                        </button>
+                        {(!isReadOnly || isSignatureOnly) && (
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+                            >
+                                {loading ? "Submitting..." : "Submit"}
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
+import { verifyFormOtp, show, update, VerifyOtpResponse, getFormSession } from "@/src/services/crud";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 import { OnboardingResponse } from "@/src/components/OnboardingPacking/ApiResponse";
 import OnboardingFormData from "@/src/components/OnboardingPacking/FormData";
 import { mapApiResponseToFormData } from "@/src/components/OnboardingPacking/MapApiResponseToFormData";
@@ -49,11 +51,32 @@ export default function ShowOnboardingPage() {
 
     const [formData, setFormData] =
         useState<SupportFormaDataType>(OnboardingFormData);
+
+    const [isSignatureOnly, setIsSignatureOnly] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
+
     // Refs and Sections
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
     const [openSections, setOpenSections] =
         useState<Record<SectionKey, boolean>>(initialOpenSections);
+
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const response = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'onboarding-packing-signoff'
+                }
+            });
+            if (response.data.success) {
+                setIsSignatureOnly(response.data.signature_only === 1);
+                setIsReadOnly(response.data.signature_only === 1);
+            }
+        } catch (error) {
+            console.error("Error fetching signature mode:", error);
+        }
+    }, [uuid]);
 
     // 2. Data Fetching
     const fetchFormData = useCallback(async () => {
@@ -68,10 +91,13 @@ export default function ShowOnboardingPage() {
             setFormData(
                 mapApiResponseToFormData(response.data) as SupportFormaDataType
             );
+
+            // Fetch signature mode after data is fetched
+            fetchSignatureMode();
         } catch (error) {
             console.error("Error fetching data:", error);
         }
-    }, []);
+    }, [uuid, fetchSignatureMode]);
 
     // 3. Handle Change (Generic)
     const handleChange = useCallback(
@@ -131,42 +157,56 @@ export default function ShowOnboardingPage() {
 
             const data = new FormData();
 
-            // ONLY append signature related fields
-            // Based on ParticipantDeclaration interface
-            if (formData.participant_name)
-                data.append("participant_name", formData.participant_name);
-            if (formData.relationship_to_participant)
-                data.append(
-                    "relationship_to_participant",
-                    formData.relationship_to_participant
-                );
-            if (formData.participant_signature)
-                data.append("participant_signature", formData.participant_signature);
-            if (formData.signed_date)
-                data.append("signed_date", formData.signed_date);
+            if (!isSignatureOnly) {
+                // ⭐ FULL UPDATE: Append ALL fields
+                Object.entries(formData).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        data.append(key, value.toString());
+                    }
+                });
+            } else {
+                // ⭐ SIGNATURE ONLY: Manually append signature fields
+                if (formData.participant_name)
+                    data.append("participant_name", formData.participant_name);
+                if (formData.relationship_to_participant)
+                    data.append(
+                        "relationship_to_participant",
+                        formData.relationship_to_participant
+                    );
+                if (formData.participant_signature)
+                    data.append("participant_signature", formData.participant_signature);
+                if (formData.signed_date)
+                    data.append("signed_date", formData.signed_date);
+            }
 
-            // Append Identifiers
+            // Append Identifiers and Flags
             data.append("user_id", sessionUserId);
             data.append("client_type", sessionClientType);
+            data.append("signature_only", isSignatureOnly ? "1" : "0");
+            data.append("submit_final", "1");
             if (uuid) {
                 data.append("uuid", uuid);
             }
 
-            // Also potentially submit_final if needed (assumed yes as it's a signoff)
-            data.append("submit_final", "1");
-
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
+            console.log("Submitting form data...");
+            const apiResponse = await api.post(
                 "client/onboarding-packing-signoff/update",
-                data
+                data,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
             );
+            
+            const resData = apiResponse.data;
 
-            if (apiResponse.success) {
+            if (resData.success) {
                 window.alert("Signature submitted successfully.");
                 await fetchFormData(); // Refresh data
             } else {
-                console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                console.error("Submission failed", resData);
+                window.alert(`Submission failed: ${resData.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -217,6 +257,7 @@ export default function ShowOnboardingPage() {
                 setClientName(data.client_name);
             }
             fetchFormData();
+            fetchSignatureMode();
         }
     };
 
@@ -298,9 +339,9 @@ export default function ShowOnboardingPage() {
                                     onToggle={() => handleTrackerClick(key as SectionKey)}
                                 >
                                     <fieldset
-                                        disabled={!isSignatureSection}
+                                        disabled={isReadOnly && !isSignatureSection}
                                         className={
-                                            !isSignatureSection
+                                            (isReadOnly && !isSignatureSection)
                                                 ? "opacity-75 pointer-events-none"
                                                 : ""
                                         }

@@ -19,10 +19,11 @@ export interface ServiceAgreementResponse {
     representative_name: string;
     representative_relationship: string;
     representative_contact: string;
-    representative_email: string; 
+    representative_email: string;
     consent: ServiceAgreementConsent;
-     
-} 
+    signature_only: boolean;
+
+}
 
 export interface ServiceAgreementConsent {
     accepted_name: string;

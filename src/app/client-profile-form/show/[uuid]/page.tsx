@@ -1,9 +1,11 @@
 "use client";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
+import { verifyFormOtp, show, update, VerifyOtpResponse, index } from "@/src/services/crud";
 import clientProfileFormData from "@/src/components/ClientProfileForm/ClientProfileFormData";
 import { ClientApiResponse } from "@/src/components/ClientProfileForm/ApiResponse";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 import { mapApiResponseToFormData } from "@/src/components/ClientProfileForm/MapApiResponseToFormData";
 import Image from "next/image";
 
@@ -38,6 +40,17 @@ export default function ShowClientProfilePage() {
     const [enteredPassword, setEnteredPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [clientName, setClientName] = useState("");
+    const [isSignatureOnly, setIsSignatureOnly] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isAdmin = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const urlAdmin = searchParams.get("admin") === "1";
+        const localToken = !!localStorage.getItem("token");
+        return urlAdmin || localToken;
+    }, [searchParams]);
+
+    const isReadOnly = isSignatureOnly;
 
     const [formData, setFormData] = useState<ClientProfileFormDataType>(clientProfileFormData);
 
@@ -104,9 +117,36 @@ export default function ShowClientProfilePage() {
             console.error("Error fetching data:", error);
         }
     }, [uuid]);
+    
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const response = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'onboarding'
+                }
+            });
+            if (response.data.success) {
+                setIsSignatureOnly(response.data.signature_only === 1);
+            }
+        } catch (error) {
+            console.error("Error fetching signature mode:", error);
+        }
+    }, [uuid]);
+
+    useEffect(() => {
+        fetchSignatureMode();
+        if (authenticated) {
+            fetchFormData();
+        }
+    }, [fetchSignatureMode, authenticated, fetchFormData]);
 
     const handleChange = useCallback((e: any) => {
-        // Read-only, but needed to prevent crashes types
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     }, []);
 
     const toggleSection = (key: string) => {
@@ -151,9 +191,64 @@ export default function ShowClientProfilePage() {
         if (data) {
             setAuthenticated(true);
             setLoading(false);
-            fetchFormData();
         } else {
             setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (isFinal = false) => {
+        setIsSubmitting(true);
+        try {
+            const dataToSave = new FormData();
+            
+            // Append basic formData
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    dataToSave.append(key, value.toString());
+                }
+            });
+
+            // Append complex fields
+            dataToSave.append('schedule_of_cares', JSON.stringify(careEntries));
+            dataToSave.append('ndis_goals_onboarding', JSON.stringify(ndisGoals));
+            dataToSave.append('health_professional_details', JSON.stringify(healthProffessional));
+            
+            // Health Information
+            if (healthInformationState.health_conditions) {
+                dataToSave.append('health_conditions', JSON.stringify(healthInformationState.health_conditions));
+            }
+            dataToSave.append('health_other_description', healthInformationState.health_other_description || '');
+
+            dataToSave.append('uuid', uuid);
+            dataToSave.append('user_id', sessionUserId);
+            dataToSave.append('client_type', sessionClientType);
+            
+            if (isFinal) {
+                dataToSave.append('submit_final', '1');
+            }
+
+            if (isSignatureOnly) {
+                dataToSave.append('signature_only', '1');
+            }
+
+
+            const response = await api.post('/client/form-data/update', dataToSave, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (response.data.success) {
+                alert(isFinal ? "Form submitted successfully" : "Form saved successfully");
+                if (isFinal) {
+                    setIsSignatureOnly(true);
+                }
+            } else {
+                alert(response.data.message || "Failed to save form");
+            }
+        } catch (error) {
+            console.error("Error saving form:", error);
+            alert("An error occurred while saving the form");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -218,7 +313,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.clientDetails}
                     onToggle={() => toggleSection("clientDetails")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isSignatureOnly} className={isSignatureOnly ? "pointer-events-none opacity-75" : ""}>
                         <IntialEnquiry
                             formData={formData}
                             handleChange={handleChange}
@@ -233,7 +328,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.funding}
                     onToggle={() => toggleSection("funding")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <Funding
                             formData={formData}
                             handleChange={handleChange}
@@ -248,7 +343,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.emergency}
                     onToggle={() => toggleSection("emergency")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <Emergency
                             formData={formData}
                             handleChange={handleChange}
@@ -263,7 +358,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.schedule}
                     onToggle={() => toggleSection("schedule")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <ScheduleOfCare
                             careEntries={careEntries}
                             setCareEntries={setCareEntries}
@@ -278,7 +373,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.culture}
                     onToggle={() => toggleSection("culture")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <ReligiousCulturalBackground
                             formData={formData}
                             handleChange={handleChange}
@@ -293,7 +388,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.goals}
                     onToggle={() => toggleSection("goals")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <NdisGoals
                             ndisGoals={ndisGoals}
                             setNdisGoals={setNdisGoals}
@@ -308,7 +403,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.healthPro}
                     onToggle={() => toggleSection("healthPro")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <HealthProffessional
                             healthProffessional={healthProffessional}
                             setHealthProffessional={setHealthProffessional}
@@ -323,7 +418,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.diagnosis}
                     onToggle={() => toggleSection("diagnosis")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <DiagnosisSummary
                             formData={formData}
                             handleChange={handleChange}
@@ -338,7 +433,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.healthInfo}
                     onToggle={() => toggleSection("healthInfo")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <HealthInformation
                             healthInformation={healthInformationState}
                             setHealthInformation={setHealthInformationState}
@@ -353,7 +448,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.healthcareSupport}
                     onToggle={() => toggleSection("healthcareSupport")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <HealthcareSupport
                             formData={formData}
                             handleChange={handleChange}
@@ -368,7 +463,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.behaviour}
                     onToggle={() => toggleSection("behaviour")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <Behaviour
                             formData={formData}
                             handleChange={handleChange}
@@ -383,7 +478,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.medicalAlerts}
                     onToggle={() => toggleSection("medicalAlerts")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <MedicalAlerts
                             formData={formData}
                             handleChange={handleChange}
@@ -398,7 +493,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.healthSummaries}
                     onToggle={() => toggleSection("healthSummaries")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <HealthSummaries
                             formData={formData}
                             handleChange={handleChange}
@@ -413,7 +508,7 @@ export default function ShowClientProfilePage() {
                     isOpen={openSections.supportInfo}
                     onToggle={() => toggleSection("supportInfo")}
                 >
-                    <fieldset disabled className="pointer-events-none opacity-75">
+                    <fieldset disabled={isReadOnly} className={isReadOnly ? "pointer-events-none opacity-75" : ""}>
                         <SupportInformation
                             formData={formData}
                             handleChange={handleChange}
@@ -422,8 +517,16 @@ export default function ShowClientProfilePage() {
                     </fieldset>
                 </AccordionItem>
 
-                <div className="mt-8 text-center">
-                    <p className="text-gray-600 italic"></p>
+                <div className="mt-8 text-center flex justify-center gap-4">
+                    {(!isReadOnly || isSignatureOnly) && (
+                        <button
+                            onClick={() => handleSubmit(true)}
+                            disabled={isSubmitting}
+                            className="btn-primary text-white font-medium py-2 px-8 rounded-lg transition disabled:opacity-50"
+                        >
+                            {isSubmitting ? "Submitting..." : "Submit"}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

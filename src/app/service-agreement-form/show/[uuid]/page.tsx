@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
 import AgreementFormaData from "@/src/components/ServiceAgreement/AgreementFormData";
@@ -9,6 +9,8 @@ import { sectionsConfig } from "@/src/components/ServiceAgreement/sectionsConfig
 import Tracker from "@/src/components/Tracker";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import Image from "next/image";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 import { AgreementPlanTracker } from "@/src/components/ServiceAgreement/AgreementPlanTracker";
 
 const SECTION_NAMES = [
@@ -38,7 +40,19 @@ export default function ShowServiceAgreementPage() {
     const searchParams = useSearchParams();
     const sessionUserId = searchParams.get("userid") || "";
     const sessionClientType = searchParams.get("client_type") || "";
+    const mode = searchParams.get("mode") || "";
+    // const isSignatureOnlyParams = mode === "signature_only";
+    const [isSignatureOnly, setIsSignatureOnly] = useState(mode === "signature_only");
     const [loading, setLoading] = useState(false);
+
+    const isAdmin = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const urlAdmin = searchParams.get("admin") === "1";
+        const localToken = !!localStorage.getItem("token");
+        return urlAdmin || localToken;
+    }, [searchParams]);
+
+    const isReadOnly = isSignatureOnly;
     const [authenticated, setAuthenticated] = useState(false);
     const [enteredPassword, setEnteredPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
@@ -56,7 +70,6 @@ export default function ShowServiceAgreementPage() {
                 "service-agreement",
                 uuid as string
             );
-
             if (!response?.data) return;
 
             setFormData(
@@ -66,6 +79,31 @@ export default function ShowServiceAgreementPage() {
             console.error("Error fetching data:", error);
         }
     }, [uuid]);
+
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const modeResponse = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'service_agreement'
+                }
+            });
+            if (modeResponse.data.success) {
+                const isSigOnly = modeResponse.data.signature_only === 1;
+                console.log("PHP backend signature_only:", isSigOnly);
+                setIsSignatureOnly(isSigOnly);
+            }
+        } catch (err) {
+            console.error("Error checking signature mode:", err);
+        }
+    }, [uuid]);
+
+    useEffect(() => {
+        fetchSignatureMode();
+        if (authenticated) {
+            fetchFormData();
+        }
+    }, [fetchSignatureMode, authenticated, fetchFormData]);
 
     const handleChange = useCallback(
         (
@@ -123,39 +161,25 @@ export default function ShowServiceAgreementPage() {
 
             const data = new FormData();
 
-            // Append signature related fields
-            if (formData.accepted_signature) data.append("accepted_signature", formData.accepted_signature);
-            if (formData.accepted_date) data.append("accepted_date", formData.accepted_date);
-            if (formData.accepted_name) data.append("accepted_name", formData.accepted_name);
-            if (formData.accepted_position) data.append("accepted_position", formData.accepted_position);
-
-            if (formData.participant_signature) data.append("participant_signature", formData.participant_signature);
-            if (formData.participant_date) data.append("participant_date", formData.participant_date);
-            if (formData.consents_participant_name) data.append("consents_participant_name", formData.consents_participant_name);
-            if (formData.participant_role) data.append("participant_role", formData.participant_role);
-
-            // Other signatures if needed (Witness, Verbal Staff)
-            if (formData.witness_signature) data.append("witness_signature", formData.witness_signature);
-            if (formData.witness_date) data.append("witness_date", formData.witness_date);
-            if (formData.witness_name) data.append("witness_name", formData.witness_name);
-
-            if (formData.verbal_staff_signature) data.append("verbal_staff_signature", formData.verbal_staff_signature);
-            if (formData.verbal_date) data.append("verbal_date", formData.verbal_date);
-            if (formData.verbal_staff_name) data.append("verbal_staff_name", formData.verbal_staff_name);
-            if (formData.verbal_staff_position) data.append("verbal_staff_position", formData.verbal_staff_position);
-            if (formData.other_notes) data.append("other_notes", formData.other_notes);
-            if (formData.received_signed_copy) data.append("received_signed_copy", formData.received_signed_copy ? "1" : "0");
-            if (formData.agreed_verbally) data.append("agreed_verbally", formData.agreed_verbally ? "1" : "0");
-            if (formData.cms_comments_entered) data.append("cms_comments_entered", formData.cms_comments_entered);
-
-            // Handle area_of_support as JSON string
-            if (Array.isArray(formData.area_of_support)) {
-                data.append("area_of_support", JSON.stringify(formData.area_of_support));
-            } else if (formData.area_of_support) {
-                // If for some reason it's a string, just append it
-                data.append("area_of_support", formData.area_of_support);
+            if (formData.submit_final === 1) {
+                data.append('submit_final', '1');
             }
 
+            // Append all form fields dynamically
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    if (key === 'area_of_support' && Array.isArray(value)) {
+                        data.append(key, JSON.stringify(value));
+                    } else if (['received_signed_copy', 'agreed_verbally', 'cms_comments_entered'].includes(key)) {
+                        if (value === 'Yes') data.append(key, '1');
+                        else if (value === 'No') data.append(key, '0');
+                    } else if (typeof value === 'boolean') {
+                        data.append(key, value ? '1' : '0');
+                    } else {
+                        data.append(key, String(value));
+                    }
+                }
+            });
 
             // Append Identifiers
             data.append("user_id", sessionUserId);
@@ -163,24 +187,25 @@ export default function ShowServiceAgreementPage() {
             if (uuid) {
                 data.append("uuid", uuid);
             }
+            if (isSignatureOnly) {
+                data.append("signature_only", "1");
+            }
 
             data.append("submit_final", "1");
 
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
-                "client/service-agreement/update",
-                data
+            console.log("Submitting form data...");
+            const apiResponse = await api.post(
+                "/client/service-agreement/update",
+                data,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
-            // Also try service-agreement/update if the first one fails or as a fallback logic?
-            // Usually we stick to one. Based on schedule-support, it was client/...
-
-            if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");
+            if (apiResponse.data.success) {
+                window.alert("submitted successfully.");
                 await fetchFormData();
             } else {
                 console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                window.alert(`Submission failed: ${apiResponse.data.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -227,7 +252,6 @@ export default function ShowServiceAgreementPage() {
         if (data) {
             setAuthenticated(true);
             setLoading(false);
-            fetchFormData();
         } else {
             setLoading(false);
         }
@@ -306,13 +330,15 @@ export default function ShowServiceAgreementPage() {
                                 isOpen={openSections[key as SectionKey]}
                                 onToggle={() => handleTrackerClick(key as SectionKey)}
                             >
-                                <fieldset disabled={key !== "ServiceAgreementConsent"} className={key !== "ServiceAgreementConsent" ? "opacity-75 pointer-events-none" : ""}>
+                                <fieldset disabled={isReadOnly && key !== "ServiceAgreementConsent"} className={isReadOnly && key !== "ServiceAgreementConsent" ? "opacity-75 pointer-events-none" : ""}>
                                     <Component
                                         formData={formData}
                                         handleChange={handleChange}
                                         uuid={uuid || undefined}
                                         // @ts-ignore
                                         hideSaveButton={true}
+                                        // @ts-ignore
+                                        isSignatureOnly={isSignatureOnly}
                                     />
                                 </fieldset>
                             </AccordianPlanSection>

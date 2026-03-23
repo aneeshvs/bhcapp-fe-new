@@ -5,6 +5,7 @@ import DatePickerSaveMany from "../../DatePickerSaveMany";
 
 
 interface ScheduleOfSupportsFormData {
+  client_name: string;
   participant_name: string;
   creation_date: string;
   funding_review_date: string;
@@ -62,6 +63,33 @@ export default function ScheduleOfSupportsForm({
 
       <div className="p-4 bg-white">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Client Name */}
+          <div
+            className="relative"
+            onMouseEnter={() => setHoveredField("client_name")}
+            onMouseLeave={() => setHoveredField(null)}
+          >
+            <div className="flex justify-between items-center mb-1">
+              <label className="block font-medium">Client Name</label>
+              {hoveredField === "client_name" && (
+                <button
+                  type="button"
+                  onClick={() => handleViewLogs("client_name")}
+                  className="text-xs btn-primary text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              name="client_name"
+              placeholder="Enter client name"
+              value={formData.client_name || ""}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-2"
+            />
+          </div>
           {/* Participant Name */}
           <div
             className="relative"

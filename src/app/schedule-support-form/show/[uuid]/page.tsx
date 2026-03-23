@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
+import { verifyFormOtp, show, VerifyOtpResponse, getFormSession } from "@/src/services/crud";
 import { ScheduleOfSupportsFormData, FundedSupportsFormData, UnfundedSupportsFormData } from "@/src/components/SupportSchedule/ApiResponse";
 import SupportScheduleFormData from "@/src/components/SupportSchedule/FormData";
 import { mapApiResponseToFormData } from "@/src/components/SupportSchedule/MapApiResponseToFormData";
@@ -10,6 +10,8 @@ import Tracker from "@/src/components/Tracker";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import Image from "next/image";
 import { SupportScheduleTracker } from "@/src/components/SupportSchedule/SupportScheduleTracker";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 
 const SECTION_NAMES = [
     "ScheduleOfSupports", "FundedSupports", "UnfundedSupports", "AgreementSignatures"
@@ -64,6 +66,16 @@ export default function ShowScheduleSupportPage() {
         useState<FundedSupportsFormData[]>(FundedSupport);
     const [unfundedSupportData, setUnfundedSupportData] =
         useState<UnfundedSupportsFormData[]>(UnfundedSupport);
+    const [isSignatureOnly, setIsSignatureOnly] = useState(false);
+
+    const isAdmin = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const urlAdmin = searchParams.get("admin") === "1";
+        const localToken = !!localStorage.getItem("token");
+        return urlAdmin || localToken;
+    }, [searchParams]);
+
+    const isReadOnly = isSignatureOnly;
 
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
@@ -111,6 +123,44 @@ export default function ShowScheduleSupportPage() {
             console.error("Error fetching data:", error);
         }
     }, [uuid]);
+
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const modeResponse = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'schedule_of_support'
+                }
+            });
+            if (modeResponse.data.success) {
+                const isSigOnly = modeResponse.data.signature_only === 1;
+                console.log("PHP backend signature_only:", isSigOnly);
+                setIsSignatureOnly(isSigOnly);
+            }
+        } catch (err) {
+            console.error("Error checking signature mode:", err);
+        }
+    }, [uuid]);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                if (sessionUserId) {
+                    const { client_name } = await getFormSession("schedule-of-support", uuid as string, sessionUserId, sessionClientType);
+                    if (client_name) setClientName(client_name);
+                }
+            } catch (e) {
+                console.error("getFormSession failed", e);
+            }
+        })();
+    }, [uuid, sessionUserId, sessionClientType]);
+
+    useEffect(() => {
+        fetchSignatureMode();
+        if (authenticated) {
+            fetchFormData();
+        }
+    }, [fetchSignatureMode, authenticated, fetchFormData]);
 
     const handleChange = useCallback(
         (
@@ -162,54 +212,53 @@ export default function ShowScheduleSupportPage() {
         setLoading(true);
 
         try {
-
-            // const missingFields = [];
-
-            // // Accepted By (Provider) requirements
-            // if (!formData.participant_signature) missingFields.push("Participant Signature");
-
-            // // Participant requirements
-            // if (!formData.representative_signature) missingFields.push("Representative Signature");
-
-
-            // if (missingFields.length > 0) {
-            //     window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
-            //     setLoading(false);
-            //     return;
-            // }
-
             const data = new FormData();
 
-            // Append signature related fields
-            if (formData.participant_signature) data.append("participant_signature", formData.participant_signature);
-            if (formData.participant_date) data.append("participant_date", formData.participant_date);
-            if (formData.agreement_participant_name) data.append("agreement_participant_name", formData.agreement_participant_name);
+            // Append all form fields dynamically
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    if (typeof value === 'boolean') {
+                        data.append(key, value ? '1' : '0');
+                    } else {
+                        data.append(key, String(value));
+                    }
+                }
+            });
 
-            if (formData.representative_signature) data.append("representative_signature", formData.representative_signature);
-            if (formData.representative_date) data.append("representative_date", formData.representative_date);
-            if (formData.representative_name) data.append("representative_name", formData.representative_name);
+            // Append Funded and Unfunded Supports
+            data.append("funded_supports", JSON.stringify(fundedSupportData));
+            data.append("unfunded_supports", JSON.stringify(unfundedSupportData));
 
-            // Append Identifiers
+            if (isSignatureOnly) {
+                data.append("signature_only", "1");
+            }
+
             data.append("user_id", sessionUserId);
             data.append("client_type", sessionClientType);
             if (uuid) {
                 data.append("uuid", uuid);
             }
-
             data.append("submit_final", "1");
 
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
+            console.log("Submitting schedule data...");
+            const apiResponse = await api.post(
                 "client/schedule-of-support/update",
-                data
+                data,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
             );
 
-            if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");
+            const resData = apiResponse.data;
+
+            if (resData.success) {
+                window.alert("Form submitted successfully.");
                 await fetchFormData();
             } else {
-                console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                console.error("Submission failed", resData);
+                window.alert(`Submission failed: ${resData.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -245,6 +294,7 @@ export default function ShowScheduleSupportPage() {
 
         if (!enteredPassword) {
             setPasswordError("Please enter a password");
+            setLoading(false);
             return;
         }
 
@@ -256,7 +306,8 @@ export default function ShowScheduleSupportPage() {
             if (data.client_name) {
                 setClientName(data.client_name);
             }
-            fetchFormData();
+        } else {
+            setLoading(false);
         }
     };
 
@@ -295,7 +346,7 @@ export default function ShowScheduleSupportPage() {
                 <div className="flex justify-end">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
                         <h1 className="text-xl md:text-2xl font-bold text-blue-800">
-                            {clientName || "N/A"}
+                            {formData.client_name || clientName || "N/A"}
                         </h1>
                     </div>
                 </div>
@@ -333,7 +384,7 @@ export default function ShowScheduleSupportPage() {
                                 isOpen={openSections[key as SectionKey]}
                                 onToggle={() => handleTrackerClick(key as SectionKey)}
                             >
-                                <fieldset disabled={key !== "AgreementSignatures"} className={key !== "AgreementSignatures" ? "opacity-75 pointer-events-none" : ""}>
+                                <fieldset disabled={isReadOnly && key !== "AgreementSignatures"} className={isReadOnly && key !== "AgreementSignatures" ? "opacity-75 pointer-events-none" : ""}>
                                     <Component
                                         formData={formData}
                                         handleChange={handleChange}
@@ -347,65 +398,67 @@ export default function ShowScheduleSupportPage() {
                                 <div className="section">
                                     <div className="font-semibold text-lg mb-4">Transport</div>
 
-                                    <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
-                                        <tbody>
+                                    <fieldset disabled={isReadOnly} className={isReadOnly ? "opacity-75 pointer-events-none" : ""}>
+                                        <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
+                                            <tbody>
 
-                                            <tr className="border-b border-gray-300">
-                                                <td className="p-3 w-10 text-center align-top">[ ]</td>
-                                                <td className="p-3 font-medium align-top">Fully funded for transport</td>
-                                                <td className="p-3 align-top">Funding meets participant transport needs</td>
-                                                <td className="p-3 align-top">
-                                                    Participant only uses KM funded for $. This figure should be based on _____ cents per kilometre and does not include GST.
-                                                </td>
-                                            </tr>
+                                                <tr className="border-b border-gray-300">
+                                                    <td className="p-3 w-10 text-center align-top">[ ]</td>
+                                                    <td className="p-3 font-medium align-top">Fully funded for transport</td>
+                                                    <td className="p-3 align-top">Funding meets participant transport needs</td>
+                                                    <td className="p-3 align-top">
+                                                        Participant only uses KM funded for $. This figure should be based on _____ cents per kilometre and does not include GST.
+                                                    </td>
+                                                </tr>
 
-                                            <tr className="border-b border-gray-300">
-                                                <td className="p-3 w-10 text-center align-top">[ ]</td>
-                                                <td className="p-3 font-medium align-top">Partially funded for transport – converts support hours</td>
-                                                <td className="p-3 align-top">
-                                                    Indicate core support $ to be converted. Funding does not meet transport needs. Participant converts support hours to pay for KM.
-                                                </td>
-                                                <td className="p-3 align-top">
-                                                    Conversion of core support funding into transport must not negatively impact goals and outcomes.
-                                                    Conversion of supports can only occur where participant has transport within their plan,
-                                                    and Core Daily Activity & Transport are managed by Best of Homecare.
-                                                </td>
-                                            </tr>
+                                                <tr className="border-b border-gray-300">
+                                                    <td className="p-3 w-10 text-center align-top">[ ]</td>
+                                                    <td className="p-3 font-medium align-top">Partially funded for transport – converts support hours</td>
+                                                    <td className="p-3 align-top">
+                                                        Indicate core support $ to be converted. Funding does not meet transport needs. Participant converts support hours to pay for KM.
+                                                    </td>
+                                                    <td className="p-3 align-top">
+                                                        Conversion of core support funding into transport must not negatively impact goals and outcomes.
+                                                        Conversion of supports can only occur where participant has transport within their plan,
+                                                        and Core Daily Activity & Transport are managed by Best of Homecare.
+                                                    </td>
+                                                </tr>
 
-                                            <tr className="border-b border-gray-300">
-                                                <td className="p-3 w-10 text-center align-top">[ ]</td>
-                                                <td className="p-3 font-medium align-top">Partially funded for transport – converts support hours</td>
-                                                <td className="p-3 align-top">Indicate core support $ to be converted</td>
-                                                <td className="p-3 align-top">
-                                                    *Funding does not meet transport needs. Participant converts support hours to pay for KM.<br />
-                                                    *Conversion must not negatively impact goals and outcomes.<br />
-                                                    *Supports can only be converted where the participant has transport within their plan and both Core Daily Activity & Transport are managed by Best of Homecare.
-                                                </td>
-                                            </tr>
+                                                <tr className="border-b border-gray-300">
+                                                    <td className="p-3 w-10 text-center align-top">[ ]</td>
+                                                    <td className="p-3 font-medium align-top">Partially funded for transport – converts support hours</td>
+                                                    <td className="p-3 align-top">Indicate core support $ to be converted</td>
+                                                    <td className="p-3 align-top">
+                                                        *Funding does not meet transport needs. Participant converts support hours to pay for KM.<br />
+                                                        *Conversion must not negatively impact goals and outcomes.<br />
+                                                        *Supports can only be converted where the participant has transport within their plan and both Core Daily Activity & Transport are managed by Best of Homecare.
+                                                    </td>
+                                                </tr>
 
-                                            <tr className="border-b border-gray-300">
-                                                <td className="p-3 w-10 text-center align-top">[ ]</td>
-                                                <td className="p-3 font-medium align-top">Not funded for transport within NDIS plan</td>
-                                                <td className="p-3 align-top">Participant is not funded for transport</td>
-                                                <td className="p-3 align-top">
-                                                    Participant uses public transport or will be invoiced for KM at the rate of _____ cents per KM + GST
-                                                </td>
-                                            </tr>
+                                                <tr className="border-b border-gray-300">
+                                                    <td className="p-3 w-10 text-center align-top">[ ]</td>
+                                                    <td className="p-3 font-medium align-top">Not funded for transport within NDIS plan</td>
+                                                    <td className="p-3 align-top">Participant is not funded for transport</td>
+                                                    <td className="p-3 align-top">
+                                                        Participant uses public transport or will be invoiced for KM at the rate of _____ cents per KM + GST
+                                                    </td>
+                                                </tr>
 
-                                            <tr>
-                                                <td className="p-3 w-10 text-center align-top">[ ]</td>
-                                                <td className="p-3 font-medium align-top">No transport costs</td>
-                                                <td className="p-3 align-top">
-                                                    Participant has not authorised Best of Homecare to charge for transport
-                                                </td>
-                                                <td className="p-3 align-top">
-                                                    Participant uses public transport or does not require transport. If transport is required,
-                                                    costs will be negotiated in advance.
-                                                </td>
-                                            </tr>
+                                                <tr>
+                                                    <td className="p-3 w-10 text-center align-top">[ ]</td>
+                                                    <td className="p-3 font-medium align-top">No transport costs</td>
+                                                    <td className="p-3 align-top">
+                                                        Participant has not authorised Best of Homecare to charge for transport
+                                                    </td>
+                                                    <td className="p-3 align-top">
+                                                        Participant uses public transport or does not require transport. If transport is required,
+                                                        costs will be negotiated in advance.
+                                                    </td>
+                                                </tr>
 
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </fieldset>
 
                                     <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mt-6 mb-6">
                                         <strong>Note:</strong><br />
@@ -437,56 +490,56 @@ export default function ShowScheduleSupportPage() {
                                     {!!formData.sil_section_flag && (
                                         <div className="section mt-8">
                                             <div className="font-semibold text-lg mb-4">Supported Independent Living Accommodation - Fortnightly Participants Contribution (SIL/SDA Only)</div>
-                                            <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
-                                                <thead className="bg-gray-50 border-b border-gray-300">
-                                                    <tr>
-                                                        <th className="p-3 text-left font-semibold" style={{ width: '70%' }}>Description</th>
-                                                        <th className="p-3 text-left font-semibold" style={{ width: '30%' }}>Amount (Per Fortnight)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr className="border-b border-gray-300">
-                                                        <td className="p-3">Rent Charges (Rental cost and Commonwealth rent assistance)</td>
-                                                        <td className="p-3">
-                                                            ${Number(formData.sil_rent_charges ?? 390.2).toFixed(2)}
-                                                        </td>
-                                                    </tr>
-                                                    <tr className="border-b border-gray-300">
-                                                        <td className="p-3">
-                                                            33% of the total cost of utilities such as electricity, gas, water, and internet
-                                                            <br />
-                                                            <small className="text-gray-500">(Above rates are based on the total cost of utilities for a Year)</small>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            ${Number(formData.sil_utilities ?? 204.8).toFixed(2)}
-                                                        </td>
-                                                    </tr>
-                                                    <tr className="border-b border-gray-300">
-                                                        <td className="p-3">
-                                                            Food/Groceries
-                                                            <br />
-                                                            <small className="text-gray-500">(Based on the total cost of the food purchase currently in our SIL accommodation per person)</small>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            ${Number(formData.sil_food_groceries ?? 200).toFixed(2)}
-                                                        </td>
-                                                    </tr>
-                                                    <tr className="bg-gray-50">
-                                                        <td className="p-3"><strong>Total Cost</strong></td>
-                                                        <td className="p-3">
-                                                            <strong>${Number(formData.sil_total_cost ?? 795).toFixed(2)} / Fortnight</strong>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
+                                            <fieldset disabled={isReadOnly} className={isReadOnly ? "opacity-75 pointer-events-none" : ""}>
+                                                <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
+                                                    <thead className="bg-gray-50 border-b border-gray-300">
+                                                        <tr>
+                                                            <th className="p-3 text-left font-semibold" style={{ width: '70%' }}>Description</th>
+                                                            <th className="p-3 text-left font-semibold" style={{ width: '30%' }}>Amount (Per Fortnight)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr className="border-b border-gray-300">
+                                                            <td className="p-3">Rent Charges (Rental cost and Commonwealth rent assistance)</td>
+                                                            <td className="p-3">
+                                                                ${Number(formData.sil_rent_charges ?? 390.2).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                        <tr className="border-b border-gray-300">
+                                                            <td className="p-3">
+                                                                33% of the total cost of utilities such as electricity, gas, water, and internet
+                                                                <br />
+                                                                <small className="text-gray-500">(Above rates are based on the total cost of utilities for a Year)</small>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                ${Number(formData.sil_utilities ?? 204.8).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                        <tr className="border-b border-gray-300">
+                                                            <td className="p-3">
+                                                                Food/Groceries
+                                                                <br />
+                                                                <small className="text-gray-500">(Based on the total cost of the food purchase currently in our SIL accommodation per person)</small>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                ${Number(formData.sil_food_groceries ?? 200).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                        <tr className="bg-gray-50">
+                                                            <td className="p-3"><strong>Total Cost</strong></td>
+                                                            <td className="p-3">
+                                                                <strong>${Number(formData.sil_total_cost ?? 795).toFixed(2)} / Fortnight</strong>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </fieldset>
                                         </div>
                                     )}
                                 </>
                             )}
                         </React.Fragment>
                     ))}
-
-
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
                         <button

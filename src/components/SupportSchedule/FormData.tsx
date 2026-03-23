@@ -1,4 +1,5 @@
 const SupportScheduleFormData = {
+    client_name: "",
     participant_name: "",
     creation_date: "",
     funding_review_date: "",

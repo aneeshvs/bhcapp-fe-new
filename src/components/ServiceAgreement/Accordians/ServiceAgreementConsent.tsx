@@ -33,6 +33,7 @@ interface ServiceAgreementConsentProps {
   ) => void;
   uuid?: string | null;
   hideSaveButton?: boolean;
+  isSignatureOnly?: boolean;
 }
 
 export default function ServiceAgreementConsent({
@@ -40,6 +41,7 @@ export default function ServiceAgreementConsent({
   handleChange,
   uuid,
   hideSaveButton = false,
+  isSignatureOnly = false,
 }: ServiceAgreementConsentProps) {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,6 +205,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="accepted_name"
                   placeholder="Enter name"
+                  disabled={isSignatureOnly}
                   value={formData.accepted_name || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -231,6 +234,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="accepted_position"
                   placeholder="Enter position"
+                  disabled={isSignatureOnly}
                   value={formData.accepted_position || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -322,6 +326,7 @@ export default function ServiceAgreementConsent({
                 </div>
                 <DatePickerSaveMany
                   name="accepted_date"
+                  disabled={isSignatureOnly}
                   value={formData.accepted_date || null}
                   onChange={handleChange}
                 />
@@ -374,6 +379,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="consents_participant_name"
                   placeholder="Enter participant name"
+                  disabled={isSignatureOnly}
                   value={formData.consents_participant_name || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -406,6 +412,7 @@ export default function ServiceAgreementConsent({
                         name="participant_role"
                         value={type}
                         checked={formData.participant_role === type}
+                        disabled={isSignatureOnly}
                         onChange={handleChange}
                       />
                       {type}
@@ -500,6 +507,7 @@ export default function ServiceAgreementConsent({
                 <DatePickerSaveMany
                   name="participant_date"
                   value={formData.participant_date || null}
+                  disabled={isSignatureOnly}
                   onChange={handleChange}
                 />
                 {/* <input
@@ -539,6 +547,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="witness_name"
                   placeholder="Enter witness name"
+                  disabled={isSignatureOnly}
                   value={formData.witness_name || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -631,6 +640,7 @@ export default function ServiceAgreementConsent({
                 <DatePickerSaveMany
                   name="witness_date"
                   value={formData.witness_date || null}
+                  disabled={isSignatureOnly}
                   onChange={handleChange}
                 />
                 {/* <input
@@ -683,6 +693,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="verbal_staff_name"
                   placeholder="Enter staff name"
+                  disabled={isSignatureOnly}
                   value={formData.verbal_staff_name || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -711,6 +722,7 @@ export default function ServiceAgreementConsent({
                   type="text"
                   name="verbal_staff_position"
                   placeholder="Enter position"
+                  disabled={isSignatureOnly}
                   value={formData.verbal_staff_position || ''}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -803,6 +815,7 @@ export default function ServiceAgreementConsent({
                 <DatePickerSaveMany
                   name="verbal_date"
                   value={formData.verbal_date || null}
+                  disabled={isSignatureOnly}
                   onChange={handleChange}
                 />
                 {/* <input
@@ -838,6 +851,7 @@ export default function ServiceAgreementConsent({
               name="other_notes"
               placeholder="Enter additional notes"
               value={formData.other_notes || ''}
+              disabled={isSignatureOnly}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded px-3 py-2"
               rows={3}
@@ -884,6 +898,7 @@ export default function ServiceAgreementConsent({
                         type="radio"
                         name="received_signed_copy"
                         value={option}
+                        disabled={isSignatureOnly}
                         checked={formData.received_signed_copy === option}
                         onChange={handleChange}
                       />
@@ -918,6 +933,7 @@ export default function ServiceAgreementConsent({
                         type="radio"
                         name="agreed_verbally"
                         value={option}
+                        disabled={isSignatureOnly}
                         checked={formData.agreed_verbally === option}
                         onChange={handleChange}
                       />
@@ -952,6 +968,7 @@ export default function ServiceAgreementConsent({
                         type="radio"
                         name="cms_comments_entered"
                         value={option}
+                        disabled={isSignatureOnly}
                         checked={formData.cms_comments_entered === option}
                         onChange={handleChange}
                       />

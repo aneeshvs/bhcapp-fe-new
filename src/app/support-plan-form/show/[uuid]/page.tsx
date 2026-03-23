@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
 import supportPlanFormData from "@/src/components/SupportPlan/SupportPlanFormData";
@@ -9,6 +9,8 @@ import { sectionsConfig } from "@/src/components/SupportPlan/sectionsConfig";
 import Tracker from "@/src/components/Tracker";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import Image from "next/image";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 import { supportPlanSteps } from "@/src/components/SupportPlan/SupportPlanTrackerLIst";
 
 const SECTION_NAMES = sectionsConfig.map(s => s.key);
@@ -50,12 +52,22 @@ export default function ShowSupportPlanPage() {
     const [clientName, setClientName] = useState("");
 
     const [formData, setFormData] = useState<SupportPlanFormDataType>(supportPlanFormData);
+    const [isSignatureOnly, setIsSignatureOnly] = useState(true);
     const [services, setServices] = useState<SupportPlanService[]>([]);
     const [myGoals, setMyGoals] = useState<SupportPlanMyGoal[]>([]);
 
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
     const [openSections, setOpenSections] = useState<Record<string, boolean>>(initialOpenSections);
+
+    const isAdmin = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const urlAdmin = searchParams.get("admin") === "1";
+        const localToken = !!localStorage.getItem("token");
+        return urlAdmin || localToken;
+    }, [searchParams]);
+
+    const isReadOnly = isSignatureOnly;
 
     const fetchFormData = useCallback(async () => {
         try {
@@ -103,6 +115,22 @@ export default function ShowSupportPlanPage() {
             }
         } catch (error) {
             console.error("Error fetching data:", error);
+        }
+    }, [uuid]);
+    
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const response = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'support_plan'
+                }
+            });
+            if (response.data.success) {
+                setIsSignatureOnly(response.data.signature_only === 1);
+            }
+        } catch (error) {
+            console.error("Error fetching signature mode:", error);
         }
     }, [uuid]);
 
@@ -193,32 +221,34 @@ export default function ShowSupportPlanPage() {
     // else close all others.
     // I will use that.
 
+    useEffect(() => {
+        fetchSignatureMode();
+        if (authenticated) {
+            fetchFormData();
+        }
+    }, [fetchSignatureMode, authenticated, fetchFormData]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-
-            // const missingFields = [];
-
-            // if (!formData.signature) missingFields.push("Signature");
-
-
-
-            // if (missingFields.length > 0) {
-            //     window.alert(`Please fill in the following required fields:\n- ${missingFields.join("\n- ")}`);
-            //     setLoading(false);
-            //     return;
-            // }
-
-
             const data = new FormData();
 
-            // Append signature related fields for Support Plan
-            // Approval Section (Participant)
-            if (formData.signature) data.append("signature", formData.signature);
-            if (formData.date_of_approval) data.append("date_of_approval", formData.date_of_approval);
-            if (formData.participant_name) data.append("participant_name", formData.participant_name);
+            // Append all form fields dynamically
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    if (typeof value === 'boolean') {
+                        data.append(key, value ? '1' : '0');
+                    } else {
+                        data.append(key, String(value));
+                    }
+                }
+            });
+
+            // Append Services and Goals
+            data.append("support_plan_services", JSON.stringify(services));
+            data.append("support_plan_my_goals", JSON.stringify(myGoals));
 
             // Append Identifiers
             data.append("user_id", sessionUserId);
@@ -227,27 +257,31 @@ export default function ShowSupportPlanPage() {
                 data.append("uuid", uuid);
             }
 
+            if (isSignatureOnly) {
+                data.append("signature_only", "1");
+            }
+
             data.append("submit_final", "1");
-            // if (!formData.signature) {
-            //     alert("Please provide your signature");
-            //     return;
-            // }
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
+
+            console.log("Submitting form data...");
+            const apiResponse = await api.post(
                 "client/support-plan/update",
-                data
+                data,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
             );
+            
+            const resData = apiResponse.data;
 
-            // Note: schedule-support used "client/schedule-of-support/update".
-            // Service agreement used "client/service-agreement/update".
-            // Support plan likely "client/support-plan/update".
-
-            if (apiResponse.success) {
-                window.alert("Signature submitted successfully.");
+            if (resData.success) {
+                window.alert("Form submitted successfully.");
                 await fetchFormData();
             } else {
-                console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                console.error("Submission failed", resData);
+                window.alert(`Submission failed: ${resData.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -312,6 +346,7 @@ export default function ShowSupportPlanPage() {
             setAuthenticated(true);
             setLoading(false);
             fetchFormData();
+            fetchSignatureMode();
         } else {
             setLoading(false);
         }
@@ -428,8 +463,8 @@ export default function ShowSupportPlanPage() {
                                 onToggle={() => handleTrackerClick(key)}
                             >
                                 <fieldset
-                                    disabled={key !== "Approval"}
-                                    className={(key !== "Approval") ? "opacity-75 pointer-events-none" : ""}
+                                    disabled={isReadOnly && key !== "Approval"}
+                                    className={(isReadOnly && key !== "Approval") ? "opacity-75 pointer-events-none" : ""}
                                 >
                                     <Component
                                         formData={formData}

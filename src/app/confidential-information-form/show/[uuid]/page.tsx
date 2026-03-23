@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { verifyFormOtp, show, update, VerifyOtpResponse } from "@/src/services/crud";
+import { verifyFormOtp, show, update, VerifyOtpResponse, getFormSession } from "@/src/services/crud";
+import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 import { ConfidentialInformation } from "@/src/components/ConfidentialInformation/ApiResponse";
 import ConfidentialInformationFormData from "@/src/components/ConfidentialInformation/FormData";
 import { mapApiResponseToFormData } from "@/src/components/ConfidentialInformation/MapApiResponseToFormData";
@@ -52,10 +54,30 @@ export default function ShowConfidentialInformationPage() {
     const [formData, setFormData] =
         useState<SupportFormaDataType>(ConfidentialInformationFormData);
 
+    const [isSignatureOnly, setIsSignatureOnly] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
+
     const sectionRefs = useMemo(() => createSectionRefs(), []);
     const initialOpenSections = useMemo(() => createInitialOpenSections(), []);
     const [openSections, setOpenSections] =
         useState<Record<SectionKey, boolean>>(initialOpenSections);
+
+    const fetchSignatureMode = useCallback(async () => {
+        try {
+            const response = await phpApi.get('/php/check-signature-mode.php', {
+                params: {
+                    uuid,
+                    form_name: 'confidential-information'
+                }
+            });
+            if (response.data.success) {
+                setIsSignatureOnly(response.data.signature_only === 1);
+                setIsReadOnly(response.data.signature_only === 1);
+            }
+        } catch (error) {
+            console.error("Error fetching signature mode:", error);
+        }
+    }, [uuid]);
 
     const fetchFormData = useCallback(async () => {
         try {
@@ -69,10 +91,13 @@ export default function ShowConfidentialInformationPage() {
             setFormData(
                 mapApiResponseToFormData(response.data) as SupportFormaDataType
             );
+
+            // Fetch signature mode after data is fetched
+            fetchSignatureMode();
         } catch (error) {
             console.error("Error fetching data:", error);
         }
-    }, [uuid]);
+    }, [uuid, fetchSignatureMode]);
 
     const handleChange = useCallback(
         (
@@ -130,53 +155,53 @@ export default function ShowConfidentialInformationPage() {
 
             const data = new FormData();
 
-            // ONLY append signature related fields
-            // Map 'signature' to 'signature_consent' as per backend validation error
-            if (formData.signature) data.append("signature_consent", formData.signature);
-            if (formData.signed_date) data.append("signed_date", formData.signed_date);
-            if (formData.signed_by) data.append("signed_by", formData.signed_by);
-            if (formData.name) data.append("name", formData.name);
-            if (formData.witnessed_by) data.append("witnessed_by", formData.witnessed_by);
+            if (!isSignatureOnly) {
+                // ⭐ FULL UPDATE: Append ALL fields
+                Object.entries(formData).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        if (Array.isArray(value)) {
+                            data.append(key, JSON.stringify(value));
+                        } else {
+                            data.append(key, value.toString());
+                        }
+                    }
+                });
+            } else {
+                // ⭐ SIGNATURE ONLY: Manually append signature fields
+                if (formData.signature) data.append("signature_consent", formData.signature);
+                if (formData.signed_date) data.append("signed_date", formData.signed_date);
+                if (formData.signed_by) data.append("signed_by", formData.signed_by);
+                if (formData.name) data.append("name", formData.name);
+                if (formData.witnessed_by) data.append("witnessed_by", formData.witnessed_by);
 
-            // Append Verbal Consent fields
-            if (formData.verbal_signature) data.append("verbal_signature", formData.verbal_signature);
-            if (formData.verbal_signed_date) data.append("verbal_signed_date", formData.verbal_signed_date);
-            if (formData.verbal_name) data.append("verbal_name", formData.verbal_name);
-            if (formData.position) data.append("position", formData.position);
+                if (formData.verbal_signature) data.append("verbal_signature", formData.verbal_signature);
+                if (formData.verbal_signed_date) data.append("verbal_signed_date", formData.verbal_signed_date);
+                if (formData.verbal_name) data.append("verbal_name", formData.verbal_name);
+                if (formData.position) data.append("position", formData.position);
+            }
 
-            // Append Media Consent fields
-            data.append("media_permission", formData.media_permission ? "1" : "0");
-            data.append("media_option_on_occasion", formData.media_option_on_occasion ? "1" : "0");
-            data.append("media_permission_denied", formData.media_permission_denied ? "1" : "0");
-
-            // Append Pre-Consent fields
-            data.append("explain_collection_storage", formData.explain_collection_storage ? "1" : "0");
-            data.append("discuss_referral_services", formData.discuss_referral_services ? "1" : "0");
-            data.append("explain_release_agreement", formData.explain_release_agreement ? "1" : "0");
-            data.append("explain_share_without_consent", formData.explain_share_without_consent ? "1" : "0");
-            data.append("provide_privacy_information", formData.provide_privacy_information ? "1" : "0");
-
-            // Append Identifiers
+            // Append Identifiers and Flags
             data.append("user_id", sessionUserId);
             data.append("client_type", sessionClientType);
+            data.append("signature_only", isSignatureOnly ? "1" : "0");
+            data.append("submit_final", "1");
             if (uuid) {
                 data.append("uuid", uuid);
             }
 
-            data.append("submit_final", "1");
-
-            console.log("Submitting signature data...");
-            const apiResponse = await update(
-                "client/confidential-form/update",
-                data
+            console.log("Submitting form data...");
+            const apiResponse = await api.post(
+                "/client/confidential-form/update",
+                data,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
-            if (apiResponse.success) {
+            if (apiResponse.data.success) {
                 window.alert("Signature submitted successfully.");
                 await fetchFormData();
             } else {
                 console.error("Submission failed", apiResponse);
-                window.alert(`Submission failed: ${apiResponse.message}`);
+                window.alert(`Submission failed: ${apiResponse.data.message}`);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -224,6 +249,7 @@ export default function ShowConfidentialInformationPage() {
                 setClientName(data.client_name);
             }
             fetchFormData();
+            fetchSignatureMode();
         }
     };
 
@@ -303,9 +329,9 @@ export default function ShowConfidentialInformationPage() {
                                     onToggle={() => handleTrackerClick(key as SectionKey)}
                                 >
                                     <fieldset
-                                        disabled={!isSignatureSection}
+                                        disabled={isReadOnly && !isSignatureSection}
                                         className={
-                                            !isSignatureSection
+                                            (isReadOnly && !isSignatureSection)
                                                 ? "opacity-75 pointer-events-none"
                                                 : ""
                                         }

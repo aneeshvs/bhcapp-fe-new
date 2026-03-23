@@ -5,6 +5,7 @@ export function mapApiResponseToFormData(responseData: ScheduleOfSupportsFormDat
         form_status: responseData.form_status || '',
         submit_final: responseData.submit_final ?? 0,
         sil_section_flag: responseData.sil_section_flag ?? 0,
+        client_name: responseData?.client_name || '',
         participant_name: responseData?.participant_name,
         creation_date: responseData?.creation_date,
         funding_review_date: responseData?.funding_review_date,

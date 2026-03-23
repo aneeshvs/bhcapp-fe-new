@@ -1,5 +1,11 @@
 import { ServiceAgreementResponse } from "@/src/components/ServiceAgreement/ApiResponse";
 
+const toYesNo = (value: string | number | boolean | undefined | null): string => {
+  if (value === 1 || value === '1' || value === true || value === 'true' || value === 'Yes') return 'Yes';
+  if (value === 0 || value === '0' || value === false || value === 'false' || value === 'No') return 'No';
+  return '';
+};
+
 export function mapApiResponseToFormData(responseData: ServiceAgreementResponse) {
   return {
     staff_id: responseData.staff_id,
@@ -58,9 +64,9 @@ export function mapApiResponseToFormData(responseData: ServiceAgreementResponse)
     verbal_staff_position: responseData.consent?.verbal_staff_position,
     verbal_date: responseData.consent?.verbal_date,
     other_notes: responseData.consent?.other_notes,
-    received_signed_copy: responseData.consent?.received_signed_copy,
-    agreed_verbally: responseData.consent?.agreed_verbally,
-    cms_comments_entered: responseData.consent?.cms_comments_entered
+    received_signed_copy: toYesNo(responseData.consent?.received_signed_copy),
+    agreed_verbally: toYesNo(responseData.consent?.agreed_verbally),
+    cms_comments_entered: toYesNo(responseData.consent?.cms_comments_entered)
 
   };
 }
