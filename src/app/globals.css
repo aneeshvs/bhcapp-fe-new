@@ -323,3 +323,17 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
   border-color: #8EC641;
   color: #fff;
 }
+
+/* Participants Report Table Styles */
+.participants-report-table thead tr:first-of-type th {
+    background-color: #ffff00 !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+}
+
+.participants-report-table thead tr:last-of-type th {
+    background-color: #87ceeb !important;
+    color: #000 !important;
+    font-weight: bold !important;
+}

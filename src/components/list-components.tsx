@@ -35,26 +35,11 @@ const ListComponents = ({ listData, columnData, groups, onPageChange}: ChildProp
     return (
         <div className="datatables pagination-padding">
             <DataTable
-                className="table-hover whitespace-nowrap"
+                className="table-hover whitespace-nowrap participants-report-table"
                 records={listData.data}
                 columns={columnData as any}
                 groups={groups as any}
                 highlightOnHover
-                styles={{
-                    root: {
-                        '& thead tr:first-of-type th': {
-                            backgroundColor: '#ffff00 !important',
-                            color: '#000 !important',
-                            fontWeight: 'bold !important',
-                            textAlign: 'center !important',
-                        },
-                    },
-                    header: {
-                        backgroundColor: '#87ceeb', // Light Blue from image
-                        color: '#000',
-                        fontWeight: 'bold'
-                    }
-                }}
                 withTableBorder
                 withColumnBorders
                 totalRecords={listData.total}
