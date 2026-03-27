@@ -37,15 +37,17 @@ const ListComponents = ({ listData, columnData, groups, onPageChange}: ChildProp
             <DataTable
                 className="table-hover whitespace-nowrap"
                 records={listData.data}
-                columns={columnData}
-                groups={groups}
+                columns={columnData as any}
+                groups={groups as any}
                 highlightOnHover
                 styles={{
-                    headerGroup: {
-                        backgroundColor: '#ffff00', // Yellow from image
-                        color: '#000',
-                        fontWeight: 'bold',
-                        textAlign: 'center'
+                    root: {
+                        '& thead tr:first-of-type th': {
+                            backgroundColor: '#ffff00 !important',
+                            color: '#000 !important',
+                            fontWeight: 'bold !important',
+                            textAlign: 'center !important',
+                        },
                     },
                     header: {
                         backgroundColor: '#87ceeb', // Light Blue from image
