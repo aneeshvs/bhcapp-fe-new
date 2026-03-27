@@ -25,19 +25,36 @@ interface ChildProps {
     },
     onPageChange: (newPage: number) => void;
     onPerPageChange?: (newPerPage: number) => void;
-    columnData:any[];
+    columnData?: any[];
+    groups?: any[];
   }
 /* eslint-enable */
 
 
-const ListComponents = ({ listData, columnData, onPageChange}: ChildProps) => {
+const ListComponents = ({ listData, columnData, groups, onPageChange}: ChildProps) => {
     return (
         <div className="datatables pagination-padding">
             <DataTable
                 className="table-hover whitespace-nowrap"
                 records={listData.data}
                 columns={columnData}
+                groups={groups}
                 highlightOnHover
+                styles={{
+                    headerGroup: {
+                        backgroundColor: '#ffff00', // Yellow from image
+                        color: '#000',
+                        fontWeight: 'bold',
+                        textAlign: 'center'
+                    },
+                    header: {
+                        backgroundColor: '#87ceeb', // Light Blue from image
+                        color: '#000',
+                        fontWeight: 'bold'
+                    }
+                }}
+                withTableBorder
+                withColumnBorders
                 totalRecords={listData.total}
                 recordsPerPage={listData.per_page}
                 page={listData.current_page}
