@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
-import { update, show } from "@/src/services/crud";
+import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import { OnboardingResponse } from "@/src/components/OnboardingPacking/ApiResponse";
 import OnboardingFormData from "@/src/components/OnboardingPacking/FormData";
@@ -126,46 +126,77 @@ export default function SupportCarePlanPage() {
     })();
   }, [searchParams]);
 
-  // Memoized fetch function
+  // Memoized fetch function for EXISTING forms (has UUID)
   const fetchFormData = useCallback(async () => {
+    if (!sessionUuid) return;
+    
     try {
-      const effectiveUuid = sessionUuid;
-      if (!effectiveUuid) {
-        console.log("No UUID - skipping initial data fetch");
-        return;
-      }
-
       const response = await show<OnboardingResponse>(
         "onboarding-packing-signoff",
-        effectiveUuid || ""
-      );
-      console.log(response);
+        sessionUuid
+      ) as any;
 
       if (response.data?.completion_percentage !== undefined) {
         setCompletionPercentage(response.data.completion_percentage);
       }
 
-      if (!response?.data) {
-        console.log("No service agreement data found");
-        return;
+      if (response?.data) {
+        const mappedData = mapApiResponseToFormData(response.data) as SupportFormaDataType;
+        
+        // Merge with autofill if present in the response
+        if (response.autofill_dates) {
+          applyAutofill(mappedData, response.autofill_dates);
+        }
+        setFormData(mappedData);
       }
-
-      // Set form data from API response
-      setFormData(
-        mapApiResponseToFormData(response.data) as SupportFormaDataType
-      );
-
-
-
-    } catch (error) {
-      console.error("Error fetching service agreement data:", error);
+    } catch (e) {
+      console.error("fetchFormData failed", e);
     }
   }, [sessionUuid]);
 
-  // Fetch data effect
+  // Dedicated Autofill Effect for NEW forms (no UUID yet)
   useEffect(() => {
-    const effectiveUuid = sessionUuid;
-    if (effectiveUuid) {
+    // Only run if we DON'T have a UUID and we DO have a User ID
+    if (sessionUuid) return; 
+    if (!sessionUserId) return;
+
+    const fetchAutofillOnly = async () => {
+      try {
+        const response = await index<any>("onboarding-packing-signoff/autofill-dates", {
+          userid: sessionUserId
+        }) as any;
+
+        if (response.success && response.autofill_dates) {
+          // Start with fresh initial data
+          const newData = { ...OnboardingFormData };
+          applyAutofill(newData, response.autofill_dates);
+          setFormData(newData);
+        }
+      } catch (e) {
+        console.error("fetchAutofillOnly failed", e);
+      }
+    };
+
+    fetchAutofillOnly();
+  }, [sessionUuid, sessionUserId]);
+
+  // Helper to apply autofill values to a target data object
+  const applyAutofill = (targetData: SupportFormaDataType, autofill: any) => {
+    Object.entries(autofill).forEach(([key, value]) => {
+      const currentValue = targetData[key as keyof SupportFormaDataType];
+      
+      // Only autofill if the current field is empty or 0 (for provided/offered flags)
+      if (value !== null && value !== undefined) {
+        if (!currentValue || currentValue === "" || currentValue === 0) {
+          (targetData as any)[key] = value;
+        }
+      }
+    });
+  };
+
+  // Trigger fetch for existing forms
+  useEffect(() => {
+    if (sessionUuid) {
       fetchFormData();
     }
   }, [sessionUuid, fetchFormData]);

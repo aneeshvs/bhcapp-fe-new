@@ -91,6 +91,7 @@ const ParticipantsFullReport = () => {
                 { accessor: 'ndis_plan_start_date', title: 'NDIS Start Date', render: (row: any) => formatDate(row.ndis_plan_start_date) },
                 { accessor: 'ndis_plan_end_date', title: 'NDIS End Date', render: (row: any) => formatDate(row.ndis_plan_end_date) },
                 { accessor: 'sa_signed_date', title: 'service agreement signed date', render: (row: any) => formatDate(row.sa_signed_date) },
+                { accessor: 'sa_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.sa_completion_percentage || 0}%</span> },
             ]
         },
         {
@@ -99,6 +100,7 @@ const ParticipantsFullReport = () => {
             columns: [
                 { accessor: 'scp_start_date', title: 'support care plan start date', render: (row: any) => formatDate(row.scp_start_date) },
                 { accessor: 'scp_review_date', title: 'support care plan review date', render: (row: any) => formatDate(row.scp_review_date) },
+                { accessor: 'scp_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.scp_completion_percentage || 0}%</span> },
             ]
         },
         {
@@ -107,6 +109,7 @@ const ParticipantsFullReport = () => {
             columns: [
                 { accessor: 'ira_assessment_date', title: 'Assessment Date', render: (row: any) => formatDate(row.ira_assessment_date) },
                 { accessor: 'ira_review_date', title: 'Planned Review Date', render: (row: any) => formatDate(row.ira_review_date) },
+                { accessor: 'ira_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.ira_completion_percentage || 0}%</span> },
             ]
         },
         {
@@ -118,6 +121,7 @@ const ParticipantsFullReport = () => {
                     title: 'Review Date', 
                     render: (row: any) => formatDate(row.hsca_review_date)
                 },
+                { accessor: 'hsca_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.hsca_completion_percentage || 0}%</span> },
             ]
         }
     ];
