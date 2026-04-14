@@ -1,37 +1,36 @@
 "use client";
-import React, { useState,useEffect  } from "react";
+import React, { useState, useEffect } from "react";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 
 interface AssessmentPersonalCareFormData {
-  // Personal care fields
   showering?: number;
   showering_hazards?: string;
   showering_management_plan?: string;
-  
+
   meal?: number;
   meal_hazards?: string;
   meal_management_plan?: string;
-  
+
   toileting?: number;
   toileting_hazards?: string;
   toileting_management_plan?: string;
-  
+
   grooming?: number;
   grooming_hazards?: string;
   grooming_management_plan?: string;
-  
+
   repositioning_bed?: number;
   repositioning_bed_hazards?: string;
   repositioning_bed_management_plan?: string;
-  
+
   repositioning_chair?: number;
   repositioning_chair_hazards?: string;
   repositioning_chair_management_plan?: string;
-  
+
   mouthcare?: number;
   mouthcare_hazards?: string;
   mouthcare_management_plan?: string;
-  
+
   skin_care?: number;
   skin_care_hazards?: string;
   skin_care_management_plan?: string;
@@ -57,28 +56,19 @@ export default function AssessmentPersonalCareForm({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
+  // ✅ KEEP ALL YOUR EXISTING useEffects (NO CHANGE)
   useEffect(() => {
     if (formData.showering === 0) {
       if (formData.showering_hazards) {
-        handleChange({
-          target: {
-            name: 'showering_hazards',
-            value: ''
-          }
-        });
+        handleChange({ target: { name: "showering_hazards", value: "" } });
       }
       if (formData.showering_management_plan) {
-        handleChange({
-          target: {
-            name: 'showering_management_plan',
-            value: ''
-          }
-        });
+        handleChange({ target: { name: "showering_management_plan", value: "" } });
       }
     }
   }, [formData.showering, formData.showering_hazards, formData.showering_management_plan, handleChange]);
 
-  // Clear meal hazards and management plan when meal is set to "No"
+  // (ALL OTHER useEffects SAME — keep as is)
   useEffect(() => {
     if (formData.meal === 0) {
       if (formData.meal_hazards) {
@@ -232,6 +222,8 @@ export default function AssessmentPersonalCareForm({
     }
   }, [formData.skin_care, formData.skin_care_hazards, formData.skin_care_management_plan, handleChange]);
 
+
+
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
     setIsModalOpen(true);
@@ -253,12 +245,13 @@ export default function AssessmentPersonalCareForm({
   };
 
   const renderYesNoField = (
-    fieldName: string, 
-    label: string, 
-    hazardsField?: string, 
+    fieldName: string,
+    label: string,
+    hazardsField?: string,
     managementPlanField?: string
   ) => (
-    <>
+    <div className="w-full border-b pb-4">
+      {/* Question */}
       <div
         className="relative"
         onMouseEnter={() => setHoveredField(fieldName)}
@@ -266,6 +259,7 @@ export default function AssessmentPersonalCareForm({
       >
         <div className="flex justify-between items-center mb-1">
           <label className="block font-medium">{label}</label>
+
           {hoveredField === fieldName && (
             <button
               type="button"
@@ -276,6 +270,7 @@ export default function AssessmentPersonalCareForm({
             </button>
           )}
         </div>
+
         <div className="flex gap-4">
           {yesNoOptions.map(({ label, value }) => (
             <label key={label} className="flex items-center gap-2">
@@ -283,7 +278,11 @@ export default function AssessmentPersonalCareForm({
                 type="radio"
                 name={fieldName}
                 value={value}
-                checked={formData[fieldName as keyof AssessmentPersonalCareFormData] === value}
+                checked={
+                  formData[
+                    fieldName as keyof AssessmentPersonalCareFormData
+                  ] === value
+                }
                 onChange={handleRadioNumberChange}
               />
               {label}
@@ -292,123 +291,125 @@ export default function AssessmentPersonalCareForm({
         </div>
       </div>
 
-      {/* Show hazards and management plan only if Yes is selected */}
-      {formData[fieldName as keyof AssessmentPersonalCareFormData] === 1 && hazardsField && managementPlanField && (
-        <>
-          <div
-            className="relative md:col-span-2"
-            onMouseEnter={() => setHoveredField(hazardsField)}
-            onMouseLeave={() => setHoveredField(null)}
-          >
-            <div className="flex justify-between items-center mb-1">
-              <label className="block font-medium">Hazards Identified</label>
-              {hoveredField === hazardsField && (
-                <button
-                  type="button"
-                  onClick={() => handleViewLogs(hazardsField)}
-                  className="text-xs btn-primary text-white px-2 py-1 rounded"
-                >
-                  View Logs
-                </button>
-              )}
-            </div>
-            <textarea
-              name={hazardsField}
-              placeholder={"Describe hazards related"}
-              value={formData[hazardsField as keyof AssessmentPersonalCareFormData] || ""}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-              rows={3}
-            />
-          </div>
+      {/* Conditional Fields */}
+      {formData[fieldName as keyof AssessmentPersonalCareFormData] === 1 &&
+        hazardsField &&
+        managementPlanField && (
+          <div className="mt-3 flex flex-col gap-3">
+            {/* Hazards */}
+            <div
+              className="relative"
+              onMouseEnter={() => setHoveredField(hazardsField)}
+              onMouseLeave={() => setHoveredField(null)}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium">Hazards Identified</label>
 
-          <div
-            className="relative md:col-span-2"
-            onMouseEnter={() => setHoveredField(managementPlanField)}
-            onMouseLeave={() => setHoveredField(null)}
-          >
-            <div className="flex justify-between items-center mb-1">
-              <label className="block font-medium">Management Plan</label>
-              {hoveredField === managementPlanField && (
-                <button
-                  type="button"
-                  onClick={() => handleViewLogs(managementPlanField)}
-                  className="text-xs btn-primary text-white px-2 py-1 rounded"
-                >
-                  View Logs
-                </button>
-              )}
+                {hoveredField === hazardsField && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewLogs(hazardsField)}
+                    className="text-xs btn-primary text-white px-2 py-1 rounded"
+                  >
+                    View Logs
+                  </button>
+                )}
+              </div>
+
+              <textarea
+                name={hazardsField}
+                value={
+                  formData[
+                    hazardsField as keyof AssessmentPersonalCareFormData
+                  ] || ""
+                }
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                rows={3}
+              />
             </div>
-            <textarea
-              name={managementPlanField}
-              placeholder={"Describe management plan"}
-              value={formData[managementPlanField as keyof AssessmentPersonalCareFormData] || ""}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-              rows={3}
-            />
+
+            {/* Management */}
+            <div
+              className="relative"
+              onMouseEnter={() => setHoveredField(managementPlanField)}
+              onMouseLeave={() => setHoveredField(null)}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium">Management Plan</label>
+
+                {hoveredField === managementPlanField && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewLogs(managementPlanField)}
+                    className="text-xs btn-primary text-white px-2 py-1 rounded"
+                  >
+                    View Logs
+                  </button>
+                )}
+              </div>
+
+              <textarea
+                name={managementPlanField}
+                value={
+                  formData[
+                    managementPlanField as keyof AssessmentPersonalCareFormData
+                  ] || ""
+                }
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                rows={3}
+              />
+            </div>
           </div>
-        </>
-      )}
-    </>
+        )}
+    </div>
   );
 
   return (
     <div className="mb-4 border border-gray-300 rounded shadow">
-      <div className="flex justify-between items-center bg-gray-100 px-4 py-3">
-        <h4 className="text-lg font-semibold mb-4 text-heading">
+      <div className="bg-gray-100 px-4 py-3">
+        <h4 className="text-lg font-semibold text-heading">
           ASSESSMENT PERSONAL CARE
         </h4>
       </div>
 
-      <div className="p-4 bg-white">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Basic Personal Care */}
-          <div className="md:col-span-2">
-            <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
+      <div className="p-4 bg-white flex flex-col gap-6">
+        {/* Basic */}
+        <div>
+          <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
               Basic Personal Care
             </h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Showering */}
-              {renderYesNoField("showering", "Does the participant require assistance with showering?", "showering_hazards", "showering_management_plan")}
 
-              {/* Meal */}
-              {renderYesNoField("meal", "Does the participant require assistance with meal?", "meal_hazards", "meal_management_plan")}
-
-              {/* Toileting */}
-              {renderYesNoField("toileting", "Does the participant require assistance with Toileting?", "toileting_hazards", "toileting_management_plan")}
-
-              {/* Grooming */}
-              {renderYesNoField("grooming", "Does the participant require assistance Grooming?", "grooming_hazards", "grooming_management_plan")}
-            </div>
+          <div className="flex flex-col gap-4">
+            {renderYesNoField("showering", "Does the participant require assistance with showering?", "showering_hazards", "showering_management_plan")}
+            {renderYesNoField("meal", "Does the participant require assistance with meal?", "meal_hazards", "meal_management_plan")}
+            {renderYesNoField("toileting", "Does the participant require assistance with Toileting?", "toileting_hazards", "toileting_management_plan")}
+            {renderYesNoField("grooming", "Does the participant require assistance Grooming?", "grooming_hazards", "grooming_management_plan")}
           </div>
+        </div>
 
-          {/* Repositioning */}
-          <div className="md:col-span-2">
-            <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
+        {/* Repositioning */}
+        <div>
+          <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
               Repositioning
             </h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Repositioning Bed */}
-              {renderYesNoField("repositioning_bed", "Does the participant require assistance with Repositioning in bed?", "repositioning_bed_hazards", "repositioning_bed_management_plan")}
 
-              {/* Repositioning Chair */}
-              {renderYesNoField("repositioning_chair", "Does the participant require assistance with Repositioning in chair?", "repositioning_chair_hazards", "repositioning_chair_management_plan")}
-            </div>
+          <div className="flex flex-col gap-4">
+            {renderYesNoField("repositioning_bed", "Does the participant require assistance with Repositioning in bed?", "repositioning_bed_hazards", "repositioning_bed_management_plan")}
+            {renderYesNoField("repositioning_chair", "Does the participant require assistance with Repositioning in chair?", "repositioning_chair_hazards", "repositioning_chair_management_plan")}
           </div>
+        </div>
 
-          {/* Specialized Care */}
-          <div className="md:col-span-2">
-            <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
+        {/* Specialized */}
+        <div>
+          <h5 className="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">
               Specialized Care
             </h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Mouthcare */}
-              {renderYesNoField("mouthcare", "Does the participant require assistance with Mouthcare?", "mouthcare_hazards", "mouthcare_management_plan")}
 
-              {/* Skin Care */}
-              {renderYesNoField("skin_care", "Does the participant require assistance with Skin care?", "skin_care_hazards", "skin_care_management_plan")}
-            </div>
+          <div className="flex flex-col gap-4">
+            {renderYesNoField("mouthcare", "Does the participant require assistance with Mouthcare?", "mouthcare_hazards", "mouthcare_management_plan")}
+            {renderYesNoField("skin_care", "Does the participant require assistance with Skin care?", "skin_care_hazards", "skin_care_management_plan")}
           </div>
         </div>
       </div>

@@ -238,6 +238,8 @@ export default function ParticipantRepresentativeForm({
               className="w-full border border-gray-300 rounded px-3 py-2"
             /> */}
           </div>
+          
+          <div className="hidden md:block"></div>
 
           {/* NDIS Plan Start Date */}
           <div

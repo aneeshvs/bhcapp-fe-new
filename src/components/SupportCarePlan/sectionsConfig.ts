@@ -50,26 +50,26 @@ export const sectionsConfig = [
   },
   {
     key: 'Emergency',
-    title: '7. EMERGENCY DISASTER PLAN',
+    title: '8. EMERGENCY DISASTER PLAN',
     Component: EmergencyForm
   },
   {
     key: 'EmergencyContact',
-    title: '8. EMERGENCY CONTACT',
+    title: '9. EMERGENCY CONTACT',
     Component: EmergencyContactsForm
   },
   {
     key: 'ImportantContact',
-    title: '9. IMPORTANT CONTACT',
+    title: '10. IMPORTANT CONTACT',
     Component: ImportantContactsForm
   },
   {
     key: 'LocalServiceContact',
-    title: '10. LOCAL SERVICE CONTACT',
+    title: '11. LOCAL SERVICE CONTACT',
     Component: LocalServicesContactsForm
   }, {
     key: 'EmergencyScenario',
-    title: '11. EMERGENCY SCENARIO',
+    title: '12. EMERGENCY SCENARIO',
     Component: PlanEmergencyScenariosForm
   }
 ]
