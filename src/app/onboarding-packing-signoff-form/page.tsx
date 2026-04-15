@@ -165,20 +165,32 @@ export default function SupportCarePlanPage() {
         const response = await index<any>("onboarding-packing-signoff/autofill-dates", {
           userid: sessionUserId
         }) as any;
+        
+        const basicDetailsResponse = await index<any>("get-client-basic-details", {
+          userid: sessionUserId, client_type: sessionClientType
+        }) as any;
+
+        const newData = { ...OnboardingFormData };
 
         if (response.success && response.autofill_dates) {
-          // Start with fresh initial data
-          const newData = { ...OnboardingFormData };
           applyAutofill(newData, response.autofill_dates);
-          setFormData(newData);
         }
+        
+        if (basicDetailsResponse.success && basicDetailsResponse.data?.participant_name) {
+          if (!newData.participant_name) {
+             newData.participant_name = basicDetailsResponse.data.participant_name;
+             setClientName(basicDetailsResponse.data.participant_name);
+          }
+        }
+        
+        setFormData(newData);
       } catch (e) {
         console.error("fetchAutofillOnly failed", e);
       }
     };
 
     fetchAutofillOnly();
-  }, [sessionUuid, sessionUserId]);
+  }, [sessionUuid, sessionUserId, sessionClientType]);
 
   // Helper to apply autofill values to a target data object
   const applyAutofill = (targetData: SupportFormaDataType, autofill: any) => {

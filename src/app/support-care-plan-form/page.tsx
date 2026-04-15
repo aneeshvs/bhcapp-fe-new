@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
-import { update, show } from "@/src/services/crud";
+import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import { CarePlanResponse } from "@/src/components/SupportCarePlan/ApiResponse";
 import SupportFormaData from "@/src/components/SupportCarePlan/SupportFormData";
@@ -215,7 +215,42 @@ export default function SupportCarePlanPage() {
     try {
       const effectiveUuid = sessionUuid;
       if (!effectiveUuid) {
-        console.log("No UUID - skipping initial data fetch");
+        console.log("No UUID - trying to fetch basic details for autofill");
+        if (!sessionUserId) return; // Add early return to avoid 400 bad request
+        try {
+          const res = await index<any>("get-client-basic-details", { userid: sessionUserId, client_type: sessionClientType });
+          if (res.success && res.data) {
+            const fullName = res.data.participant_name || '';
+            const names = fullName.split(' ');
+            const firstName = names[0] || '';
+            const lastName = names.slice(1).join(' ') || '';
+            
+            setFormData(prev => ({
+              ...prev,
+              participant_name: fullName,
+              consents_participant_first_name: firstName,
+              consents_participant_surname: lastName,
+              consents_participant_dob: res.data.dob || ''
+            }));
+            
+            // Auto-fill emergency contacts if empty? We can do it if no emergency contacts exist
+            if (res.data.representative_name) {
+              setEmergencyContacts(prev => {
+                if (prev.length === 1 && !prev[0].name) {
+                  return [{
+                    ...prev[0],
+                    name: res.data.representative_name,
+                    relationship: res.data.representative_relationship || '',
+                    phone: res.data.representative_contact || ''
+                  }];
+                }
+                return prev;
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load basic details:", err);
+        }
         return;
       }
 
@@ -341,15 +376,14 @@ export default function SupportCarePlanPage() {
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
-  }, [sessionUuid]);
+  }, [sessionUuid, sessionUserId, sessionClientType]);
 
   // Fetch data effect
   useEffect(() => {
-    const effectiveUuid = sessionUuid;
-    if (effectiveUuid) {
+    if (sessionUserId && sessionClientType) {
       fetchFormData();
     }
-  }, [sessionUuid, fetchFormData]);
+  }, [sessionUuid, sessionUserId, sessionClientType, fetchFormData]);
 
   // Memoized change handler
   const handleChange = useCallback(

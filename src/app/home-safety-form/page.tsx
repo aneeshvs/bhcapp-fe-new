@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
-import { update, show } from "@/src/services/crud";
+import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import { HomeSafetyChecklistFormData } from "@/src/components/HomeSafety/ApiResponse";
 import HomeSafety from "@/src/components/HomeSafety/FormData";
@@ -132,7 +132,22 @@ export default function SupportCarePlanPage() {
     try {
       const effectiveUuid = sessionUuid;
       if (!effectiveUuid) {
-        console.log("No UUID - skipping initial data fetch");
+        console.log("No UUID - trying to fetch basic details for autofill");
+        if (!sessionUserId) return; // Add early return to avoid 400 bad request
+        try {
+          const res = await index<any>("get-client-basic-details", { userid: sessionUserId, client_type: sessionClientType });
+          if (res.success && res.data) {
+            setFormData(prev => ({
+              ...prev,
+              participant_name: res.data.participant_name || '',
+              address: res.data.address || '',
+              phone: res.data.contact || '',
+              email: res.data.email || '',
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to load basic details:", err);
+        }
         return;
       }
 
@@ -161,15 +176,14 @@ export default function SupportCarePlanPage() {
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
-  }, [sessionUuid]);
+  }, [sessionUuid, sessionUserId, sessionClientType]);
 
   // Fetch data effect
   useEffect(() => {
-    const effectiveUuid = sessionUuid;
-    if (effectiveUuid) {
+    if (sessionUserId && sessionClientType) {
       fetchFormData();
     }
-  }, [sessionUuid, fetchFormData]);
+  }, [sessionUuid, sessionUserId, sessionClientType, fetchFormData]);
 
   // Memoized change handler
   const handleChange = useCallback(

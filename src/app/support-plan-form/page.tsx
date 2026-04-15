@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getFormSession } from "@/src/services/crud";
-import { update, show } from "@/src/services/crud";
+import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import Tracker from "@/src/components/Tracker";
 import { supportPlanSteps } from "@/src/components/SupportPlan/SupportPlanTrackerLIst";
@@ -189,7 +189,33 @@ export default function SupportPlanPage() {
         searchParams.get("form-uuid") ||
         searchParams.get("uuid");
       if (!effectiveUuid) {
-        console.log("No UUID - skipping initial data fetch");
+        console.log("No UUID - trying to fetch basic details for autofill");
+        if (!sessionUserId) return; // Add early return to avoid 400 bad request
+        try {
+          const res = await index<any>("get-client-basic-details", { userid: sessionUserId, client_type: sessionClientType });
+          if (res.success && res.data) {
+            const fullName = res.data.participant_name || '';
+            const names = fullName.split(' ');
+            const firstName = names[0] || '';
+            const lastName = names.slice(1).join(' ') || '';
+            
+            setFormData(prev => ({
+              ...prev,
+              participant_name: fullName,
+              first_name: firstName,
+              surname: lastName,
+              date_of_birth: res.data.dob || '',
+              phone: res.data.contact || '',
+              address: res.data.address || '',
+              email: res.data.email || ''
+            }));
+            if (fullName) {
+                setClientName(fullName);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load basic details:", err);
+        }
         return;
       }
 
@@ -249,15 +275,14 @@ export default function SupportPlanPage() {
     } catch (error) {
       console.error("Error fetching support plan data:", error);
     }
-  }, [sessionUuid, searchParams]);
+  }, [sessionUuid, searchParams, sessionUserId, sessionClientType]);
 
   // Fetch data effect
   useEffect(() => {
-    const effectiveUuid = sessionUuid || searchParams.get("uuid");
-    if (effectiveUuid) {
+    if (sessionUserId && sessionClientType) {
       fetchFormData();
     }
-  }, [sessionUuid, searchParams, fetchFormData]);
+  }, [sessionUuid, sessionUserId, sessionClientType, fetchFormData]);
 
   // Memoized change handler
   const handleChange = useCallback(

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { getFormSession } from "@/src/services/crud";
-import { update, show } from "@/src/services/crud";
+import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import Tracker from "@/src/components/Tracker";
 import { mapApiResponseToFormData } from "@/src/components/ServiceAgreement/MapApiResponseToFormData";
@@ -133,7 +133,29 @@ export default function ServiceAgreementPage() {
     try {
       const effectiveUuid = sessionUuid || searchParams.get("form-uuid") || searchParams.get("uuid");
       if (!effectiveUuid) {
-        console.log("No UUID - skipping initial data fetch");
+        console.log("No UUID - trying to fetch basic details for autofill");
+        if (!sessionUserId) return; // Add early return to avoid 400 bad request
+        try {
+          const res = await index<any>("get-client-basic-details", { userid: sessionUserId, client_type: sessionClientType });
+          if (res.success && res.data) {
+            setFormData(prev => ({
+              ...prev,
+              participant_name: res.data.participant_name || '',
+              ndis_number: res.data.ndis_number || '',
+              address: res.data.address || '',
+              contact: res.data.contact || '',
+              email: res.data.email || '',
+              dob: res.data.dob || '',
+              ndis_plan_start_date: res.data.ndis_plan_start_date || '',
+              ndis_plan_end_date: res.data.ndis_plan_end_date || '',
+              representative_name: res.data.representative_name || '',
+              representative_relationship: res.data.representative_relationship || '',
+              representative_contact: res.data.representative_contact || '',
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to load basic details:", err);
+        }
         return;
       }
 
@@ -159,15 +181,15 @@ export default function ServiceAgreementPage() {
     } catch (error) {
       console.error("Error fetching service agreement data:", error);
     }
-  }, [sessionUuid, searchParams]);
+  }, [sessionUuid, searchParams, sessionUserId, sessionClientType]);
 
   // Fetch data effect
   useEffect(() => {
-    const effectiveUuid = sessionUuid;
-    if (effectiveUuid) {
+    // If we have sessionUserId and sessionClientType, fetch data (either existing form or autofill)
+    if (sessionUserId && sessionClientType) {
       fetchFormData();
     }
-  }, [sessionUuid, fetchFormData]);
+  }, [sessionUuid, sessionUserId, sessionClientType, fetchFormData]);
 
   // Memoized change handler
   const handleChange = useCallback(
