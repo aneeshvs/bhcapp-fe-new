@@ -64,5 +64,11 @@ export function mapApiResponseToFormData(responseData: OnboardingResponse) {
     participant_signature:
       responseData.participant_declaration?.participant_signature || "",
     signed_date: responseData.participant_declaration?.signed_date || "",
+
+    verbal_consent_staff_name: responseData.verbal_consent?.verbal_consent_staff_name || "",
+    verbal_consent_staff_position: responseData.verbal_consent?.verbal_consent_staff_position || "",
+    verbal_consent_staff_signature: responseData.verbal_consent?.verbal_consent_staff_signature || "",
+    verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || "",
+    verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || "",
   };
 }

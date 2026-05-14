@@ -41,6 +41,15 @@ export interface OnboardingResponse {
     sda_residency_statement_date: string;
     disability_act_discussion?: DisabilityActDiscussionsResponse;
     participant_declaration?: ParticipantDeclaration;
+    verbal_consent?: VerbalConsent;
+}
+
+export interface VerbalConsent {
+    verbal_consent_staff_name?: string;
+    verbal_consent_staff_position?: string;
+    verbal_consent_staff_signature?: string;
+    verbal_consent_date?: string;
+    verbal_consent_notes?: string;
 }
 
 export interface DisabilityActDiscussionsResponse {

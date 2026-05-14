@@ -6,8 +6,16 @@ import SignaturePad from 'signature_pad';
 import DatePickerSaveMany from '../../DatePickerSaveMany';
 
 interface ParticipantSignature {
-  participant_signature?: string; // Can be binary data URL or base64 string
+  participant_signature?: string;
   date_signed?: string;
+  consent_name?: string;
+  consent_relationship?: string;
+  consent_signature?: string;
+  verbal_consent_staff_name?: string;
+  verbal_consent_staff_position?: string;
+  verbal_consent_staff_signature?: string;
+  verbal_consent_date?: string;
+  verbal_consent_notes?: string;
 }
 
 interface ParticipantSignaturesProps {
@@ -19,6 +27,7 @@ interface ParticipantSignaturesProps {
   ) => void;
   uuid?: string;
   hideSaveButton?: boolean;
+  isSignatureOnly?: boolean;
 }
 
 export default function ParticipantSignatures({
@@ -26,10 +35,16 @@ export default function ParticipantSignatures({
   handleChange,
   uuid,
   hideSaveButton = false,
+  isSignatureOnly = false,
 }: ParticipantSignaturesProps) {
   const signaturePad = useRef<SignaturePad | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const verbalSignaturePad = useRef<SignaturePad | null>(null);
+  const verbalCanvasRef = useRef<HTMLCanvasElement>(null);
+
   const [saveStatus, setSaveStatus] = useState(false);
+  const [verbalSaveStatus, setVerbalSaveStatus] = useState(false);
+
   const searchParams = useSearchParams();
   const urlUuid = searchParams.get('uuid');
   const effectiveUuid = uuid || urlUuid || undefined;
@@ -37,91 +52,90 @@ export default function ParticipantSignatures({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
-  // Initialize pad ONCE
+  // Initialize pads ONCE
   useEffect(() => {
-    const initializePad = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      if (signaturePad.current) return; // Prevent double init
+    const initializePads = () => {
+      const setupPad = (canvasRef: React.RefObject<HTMLCanvasElement>, padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string) => {
+        const canvas = canvasRef.current;
+        if (canvas && !padRef.current) {
+          canvas.width = canvas.offsetWidth;
+          canvas.height = canvas.offsetHeight;
+          const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
+          padRef.current = pad;
+          pad.addEventListener("endStroke", () => {
+            if (pad.isEmpty()) return;
+            handleChange({ target: { name: fieldName, value: pad.toDataURL() } });
+          });
+        }
+      };
 
-      // Explicitly set canvas size
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-
-      const pad = new SignaturePad(canvas, {
-        backgroundColor: 'rgba(255,255,255,0)',
-        penColor: 'rgb(0, 0, 0)',
-        throttle: 16,
-        minWidth: 0.5,
-        maxWidth: 2.5
-      });
-      signaturePad.current = pad;
-
-      pad.addEventListener("endStroke", () => {
-        if (pad.isEmpty()) return;
-        const data = pad.toDataURL();
-        handleChange({
-          target: { name: "participant_signature", value: data },
-        });
-      });
+      setupPad(canvasRef, signaturePad, "participant_signature");
+      setupPad(verbalCanvasRef, verbalSignaturePad, "verbal_consent_staff_signature");
     };
 
-    initializePad();
+    const timer = setTimeout(initializePads, 200);
 
-    // Optional: Resize handling on window resize
     const handleResize = () => {
-      const pad = signaturePad.current;
-      const canvas = canvasRef.current;
-
-      if (canvas && pad) {
-        const data = pad.toData();
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        pad.clear();
-        pad.fromData(data);
-      }
+      [canvasRef, verbalCanvasRef].forEach((cref, idx) => {
+        const canvas = cref.current;
+        const pad = idx === 0 ? signaturePad.current : verbalSignaturePad.current;
+        if (canvas && pad) {
+          const data = pad.toData();
+          canvas.width = canvas.offsetWidth;
+          canvas.height = canvas.offsetHeight;
+          pad.clear();
+          pad.fromData(data);
+        }
+      });
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []); // Run once on mount
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Sync data
   useEffect(() => {
-    const pad = signaturePad.current;
-    if (!pad) return;
+    const syncPad = (padRef: React.MutableRefObject<SignaturePad | null>, value: string | undefined) => {
+      const pad = padRef.current;
+      if (!pad) return;
 
-    if (
-      formData.participant_signature &&
-      formData.participant_signature.startsWith("data:image")
-    ) {
-      // Check if data is different from current pad content to avoid loop
       const currentData = pad.isEmpty() ? "" : pad.toDataURL();
-      if (formData.participant_signature !== currentData) {
-        pad.fromDataURL(formData.participant_signature);
+      if (value !== currentData) {
+        if (value && value.startsWith('data:image')) {
+          pad.fromDataURL(value);
+        } else if (!value) {
+          pad.clear();
+        }
       }
-    } else if (!formData.participant_signature) {
-      pad.clear();
-    }
-  }, [formData.participant_signature]);
+    };
 
-  const handleClear = () => {
-    if (!signaturePad.current) return;
-    signaturePad.current.clear();
-    handleChange({ target: { name: "participant_signature", value: "" } });
+    syncPad(signaturePad, formData.participant_signature);
+    syncPad(verbalSignaturePad, formData.verbal_consent_staff_signature);
+  }, [formData.participant_signature, formData.verbal_consent_staff_signature]);
+
+  const handleClear = (type: 'participant' | 'verbal') => {
+    const pad = type === 'participant' ? signaturePad.current : verbalSignaturePad.current;
+    if (!pad) return;
+    pad.clear();
+    const fieldName = type === 'participant' ? 'participant_signature' : 'verbal_consent_staff_signature';
+    handleChange({ target: { name: fieldName, value: "" } });
   };
-
-  const handleSave = () => {
-    if (!signaturePad.current) return;
-    const data = signaturePad.current.isEmpty()
-      ? ""
-      : signaturePad.current.toDataURL();
-    handleChange({ target: { name: "participant_signature", value: data } });
-
-    setSaveStatus(true);
-    setTimeout(() => {
-      setSaveStatus(false);
-    }, 2000);
+  const handleSave = (type: 'participant' | 'verbal') => {
+    const pad = type === 'participant' ? signaturePad.current : verbalSignaturePad.current;
+    if (!pad) return;
+    const data = pad.isEmpty() ? "" : pad.toDataURL();
+    const fieldName = type === 'participant' ? 'participant_signature' : 'verbal_consent_staff_signature';
+    handleChange({ target: { name: fieldName, value: data } });
+    if (type === 'participant') {
+      setSaveStatus(true);
+      setTimeout(() => setSaveStatus(false), 2000);
+    } else if (type === 'verbal') {
+      setVerbalSaveStatus(true);
+      setTimeout(() => setVerbalSaveStatus(false), 2000);
+    }
   };
 
   const handleViewLogs = (fieldName: string) => {
@@ -160,16 +174,10 @@ export default function ParticipantSignatures({
           </div>
           <DatePickerSaveMany
             name="date_signed"
+            disabled={isSignatureOnly}
             value={formData.date_signed || null}
             onChange={handleChange}
           />
-          {/* <input
-            type="date"
-            name="date_signed"
-            value={formData.date_signed || ''}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          /> */}
         </div>
 
         {/* Participant Signature */}
@@ -216,7 +224,7 @@ export default function ParticipantSignatures({
           <div className="flex gap-2 mt-2">
             <button
               type="button"
-              onClick={handleClear}
+              onClick={() => handleClear('participant')}
               className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition-colors"
             >
               Clear Signature
@@ -224,34 +232,95 @@ export default function ParticipantSignatures({
             {!hideSaveButton && (
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={() => handleSave('participant')}
                 className={`btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition ${saveStatus
                   ? "bg-green-600 hover:bg-green-700"
                   : "hover:bg-blue-700"
                   }`}
               >
-                {saveStatus ? (
-                  <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    Saved!
-                  </>
-                ) : (
-                  "Save Signature"
-                )}
+                {saveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+          </div>
+        </div>
+
+
+
+        {/* Verbal Participant Consent Section */}
+        <div className="md:col-span-2 mt-8 pt-8 border-t border-gray-200 bg-gray-50 -mx-4 px-4 pb-4">
+          <div className="border-l-4 border-blue-500 pl-4 mb-6">
+            <h5 className="text-xl font-bold text-gray-800 mb-2">Verbal Participant Consent</h5>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Verbal consent should only be used where it is not practicable to obtain written consent. 
+              I have discussed the proposed Service Agreement with the Participant or authorised representative, 
+              and I am satisfied that they understand the proposed Service Agreement and Schedule.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative" onMouseEnter={() => setHoveredField('verbal_consent_staff_name')} onMouseLeave={() => setHoveredField(null)}>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium text-gray-700">Staff Name</label>
+                {hoveredField === 'verbal_consent_staff_name' && (
+                  <button type="button" onClick={() => handleViewLogs('verbal_consent_staff_name')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
+                )}
+              </div>
+              <input type="text" name="verbal_consent_staff_name" disabled={isSignatureOnly} placeholder='Enter staff name' value={formData.verbal_consent_staff_name || ''} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed" />
+            </div>
+
+            <div className="relative" onMouseEnter={() => setHoveredField('verbal_consent_staff_position')} onMouseLeave={() => setHoveredField(null)}>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium text-gray-700">Staff Position</label>
+                {hoveredField === 'verbal_consent_staff_position' && (
+                  <button type="button" onClick={() => handleViewLogs('verbal_consent_staff_position')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
+                )}
+              </div>
+              <input type="text" name="verbal_consent_staff_position" disabled={isSignatureOnly} placeholder='Enter position' value={formData.verbal_consent_staff_position || ''} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed" />
+            </div>
+
+            <div className="md:col-span-2 relative mt-4" onMouseEnter={() => setHoveredField('verbal_consent_staff_signature')} onMouseLeave={() => setHoveredField(null)}>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium text-gray-700">Staff Signature</label>
+                {hoveredField === 'verbal_consent_staff_signature' && (
+                  <button type="button" onClick={() => handleViewLogs('verbal_consent_staff_signature')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
+                )}
+              </div>
+              <canvas ref={verbalCanvasRef} className="w-full h-40 border-2 border-gray-300 rounded mb-2 touch-none bg-white shadow-inner" />
+              {formData.verbal_consent_staff_signature?.startsWith('data:image') && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Saved Signature:</p>
+                  <img src={formData.verbal_consent_staff_signature} alt="staff signature" className="w-48 h-20 border rounded shadow bg-white object-contain" />
+                </div>
+              )}
+              <div className="flex gap-2 mt-4">
+                <button type="button" onClick={() => handleClear('verbal')} className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-medium text-sm transition">Clear</button>
+                {!hideSaveButton && (
+                  <button type="button" onClick={() => handleSave('verbal')} className={`btn-primary px-4 py-2 text-white rounded font-medium text-sm transition ${verbalSaveStatus ? "bg-green-600" : ""}`}>
+                    {verbalSaveStatus ? "Saved!" : "Save Signature"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="relative mt-4" onMouseEnter={() => setHoveredField('verbal_consent_date')} onMouseLeave={() => setHoveredField(null)}>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium text-gray-700">Date</label>
+                {hoveredField === 'verbal_consent_date' && (
+                  <button type="button" onClick={() => handleViewLogs('verbal_consent_date')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
+                )}
+              </div>
+              <DatePickerSaveMany name="verbal_consent_date" disabled={isSignatureOnly} value={formData.verbal_consent_date || null} onChange={handleChange} />
+            </div>
+
+            <div className="md:col-span-2 relative mt-4" onMouseEnter={() => setHoveredField('verbal_consent_notes')} onMouseLeave={() => setHoveredField(null)}>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-medium text-gray-700">Other Notes</label>
+                {hoveredField === 'verbal_consent_notes' && (
+                  <button type="button" onClick={() => handleViewLogs('verbal_consent_notes')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
+                )}
+              </div>
+              <textarea name="verbal_consent_notes" disabled={isSignatureOnly} placeholder='Enter any additional notes' value={formData.verbal_consent_notes || ''} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2 h-24 focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed" />
+            </div>
           </div>
         </div>
       </div>
@@ -261,7 +330,7 @@ export default function ParticipantSignatures({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         uuid={effectiveUuid ?? ""}
-        table="participant_signature"
+        table={selectedField?.startsWith('verbal_consent_') ? "participant_signature_verbal_consent" : "participant_signature"}
         field={selectedField}
         url="multiple-supports/logs"
       />

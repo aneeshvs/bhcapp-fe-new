@@ -23,6 +23,14 @@ export function mapApiResponseToFormData(responseData: ScheduleOfSupportsFormDat
         representative_name: responseData.agreement_signature?.representative_name || "",
         representative_date: responseData.agreement_signature?.representative_date || "",
 
+        verbal_consent_staff_name: responseData.verbal_consent?.verbal_consent_staff_name || "",
+        verbal_consent_staff_position: responseData.verbal_consent?.verbal_consent_staff_position || "",
+        verbal_consent_staff_signature: responseData.verbal_consent?.verbal_consent_staff_signature || "",
+        verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || "",
+        verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || "",
 
+        consent_name: responseData.agreement_signature?.consent_name || "",
+        consent_relationship: responseData.agreement_signature?.consent_relationship || "",
+        consent_signature: responseData.agreement_signature?.consent_signature || "",
     };
 }

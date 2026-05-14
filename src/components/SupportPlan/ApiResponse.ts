@@ -46,6 +46,7 @@ export interface SupportApiResponse {
   telecommunication_outage: SupportPlanTelecommunicationOutages;
   power_outage: SupportPlanPowerOutages;
   end_of_life_advanced_care_planning: SupportPlanEndOfLifeAdvancedCare;
+  verbal_consent: VerbalParticipantConsent;
 
 }
 export interface Approval {
@@ -713,6 +714,14 @@ export interface SupportPlanEndOfLifeAdvancedCare {
   support_to_complete_advanced_care_plan_details?: string | null;
   has_dnr?: number | null;
   dnr_details?: string | null;
+}
+
+export interface VerbalParticipantConsent {
+  verbal_consent_staff_name?: string | null;
+  verbal_consent_staff_position?: string | null;
+  verbal_consent_staff_signature?: string | null;
+  verbal_consent_date?: string | null;
+  verbal_consent_notes?: string | null;
 }
 
 

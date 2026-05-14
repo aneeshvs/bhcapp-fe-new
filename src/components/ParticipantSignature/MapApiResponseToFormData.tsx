@@ -6,5 +6,15 @@ export function mapApiResponseToFormData(responseData: ParticipantSignature) {
         date_signed: responseData?.date_signed,
         submit_final: responseData?.submit_final,
         form_status: responseData?.form_status,
+
+        verbal_consent_staff_name: responseData.verbal_consent?.verbal_consent_staff_name || "",
+        verbal_consent_staff_position: responseData.verbal_consent?.verbal_consent_staff_position || "",
+        verbal_consent_staff_signature: responseData.verbal_consent?.verbal_consent_staff_signature || "",
+        verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || "",
+        verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || "",
+
+        consent_name: responseData?.consent_name || "",
+        consent_relationship: responseData?.consent_relationship || "",
+        consent_signature: responseData?.consent_signature || "",
     };
 }

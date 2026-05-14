@@ -231,6 +231,4 @@ export const sectionsConfig = [
     title: '38. END OF LIFE ADVANCED CARE',
     Component: EndOfLifeAdvancedCareForm
   }
-
-
 ] as const;

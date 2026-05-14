@@ -48,5 +48,11 @@ const OnboardingFormData = {
   relationship_to_participant: "",
   participant_signature: "", // Can be binary data URL or base64 string
   signed_date: "",
+
+  verbal_consent_staff_name: "",
+  verbal_consent_staff_position: "",
+  verbal_consent_staff_signature: "",
+  verbal_consent_date: "",
+  verbal_consent_notes: "",
 };
 export default OnboardingFormData;

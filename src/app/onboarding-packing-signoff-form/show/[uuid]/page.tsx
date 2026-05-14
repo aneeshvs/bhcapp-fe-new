@@ -157,27 +157,12 @@ export default function ShowOnboardingPage() {
 
             const data = new FormData();
 
-            if (!isSignatureOnly) {
-                // ⭐ FULL UPDATE: Append ALL fields
-                Object.entries(formData).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined) {
-                        data.append(key, value.toString());
-                    }
-                });
-            } else {
-                // ⭐ SIGNATURE ONLY: Manually append signature fields
-                if (formData.participant_name)
-                    data.append("participant_name", formData.participant_name);
-                if (formData.relationship_to_participant)
-                    data.append(
-                        "relationship_to_participant",
-                        formData.relationship_to_participant
-                    );
-                if (formData.participant_signature)
-                    data.append("participant_signature", formData.participant_signature);
-                if (formData.signed_date)
-                    data.append("signed_date", formData.signed_date);
-            }
+            // ⭐ ALWAYS append ALL fields (Backend handles filtering based on signature_only)
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    data.append(key, value.toString());
+                }
+            });
 
             // Append Identifiers and Flags
             data.append("user_id", sessionUserId);
@@ -350,7 +335,8 @@ export default function ShowOnboardingPage() {
                                             formData={formData}
                                             handleChange={handleChange}
                                             uuid={uuid || undefined}
-                                            hideSaveButton={true}
+                                            hideSaveButton={false}
+                                            isSignatureOnly={isSignatureOnly}
                                         />
                                     </fieldset>
                                 </AccordianPlanSection>

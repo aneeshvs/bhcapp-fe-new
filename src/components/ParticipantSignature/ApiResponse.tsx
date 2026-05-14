@@ -9,4 +9,14 @@ export interface ParticipantSignature {
     creation_date: string;
     participant_signature?: string; // Can be binary data URL or base64 string
     date_signed?: string;
+    verbal_consent?: {
+        verbal_consent_staff_name?: string;
+        verbal_consent_staff_position?: string;
+        verbal_consent_staff_signature?: string;
+        verbal_consent_date?: string;
+        verbal_consent_notes?: string;
+    };
+    consent_name?: string;
+    consent_relationship?: string;
+    consent_signature?: string;
 }

@@ -391,6 +391,8 @@ export default function ShowScheduleSupportPage() {
                                         {...getComponentProps(key)}
                                         uuid={uuid || undefined}
                                         hideSaveButton={true}
+                                        // @ts-ignore
+                                        isSignatureOnly={isSignatureOnly}
                                     />
                                 </fieldset>
                             </AccordianPlanSection>

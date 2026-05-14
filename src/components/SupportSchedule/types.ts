@@ -54,6 +54,12 @@ export interface AgreementSignatures {
   representative_signature?: string; // base64 string
   representative_name?: string;
   representative_date?: string;
+  // Verbal Consent fields
+  verbal_consent_staff_name?: string;
+  verbal_consent_staff_position?: string;
+  verbal_consent_staff_signature?: string;
+  verbal_consent_date?: string;
+  verbal_consent_notes?: string;
 }
 
 export type ScheduleResponse = ScheduleSuccess | ScheduleError;

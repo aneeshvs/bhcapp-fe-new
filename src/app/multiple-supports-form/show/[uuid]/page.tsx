@@ -143,17 +143,14 @@ export default function ShowMultipleSupportsPage() {
         try {
             const data = new FormData();
 
-            if (!isSignatureOnly) {
-                // ✅ FULL UPDATE
-                Object.entries(formData).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined) {
-                        data.append(key, String(value));
-                    }
-                });
-            } else {
-                // ✅ SIGNATURE ONLY
-                if (formData.participant_signature) data.append("participant_signature", formData.participant_signature);
-                if (formData.date_signed) data.append("date_signed", formData.date_signed);
+            // Append all form fields dynamically
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    data.append(key, String(value));
+                }
+            });
+
+            if (isSignatureOnly) {
                 data.append("signature_only", "1");
             }
 
@@ -346,15 +343,15 @@ export default function ShowMultipleSupportsPage() {
                                     isOpen={openSections[key as SectionKey]}
                                     onToggle={() => handleTrackerClick(key as SectionKey)}
                                 >
-                                    <fieldset disabled={isReadOnly}>
-                                        <Component
-                                            formData={formData}
-                                            handleChange={handleChange}
-                                            uuid={uuid || undefined}
-                                            // @ts-ignore
-                                            hideSaveButton={true}
-                                        />
-                                    </fieldset>
+                                    <Component
+                                        formData={formData}
+                                        handleChange={handleChange}
+                                        uuid={uuid || undefined}
+                                        // @ts-ignore
+                                        hideSaveButton={true}
+                                        // @ts-ignore
+                                        isSignatureOnly={isSignatureOnly}
+                                    />
                                 </AccordianPlanSection>
                             </React.Fragment>
                         );

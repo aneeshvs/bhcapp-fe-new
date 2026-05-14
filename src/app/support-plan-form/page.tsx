@@ -529,20 +529,25 @@ export default function SupportPlanPage() {
     const isSigned =
       Boolean(formData.signature) &&
       formData.signature.startsWith("data:image");
-    return supportPlanSteps.map((step) =>
-      step.key === "Approval"
-        ? {
+    const isVerbalSigned =
+      Boolean(formData.verbal_consent_staff_signature) &&
+      formData.verbal_consent_staff_signature.startsWith("data:image");
+    return supportPlanSteps.map((step) => {
+      if (step.key === "Approval") {
+        const isSignedAtAll = isSigned || isVerbalSigned;
+        return {
           ...step,
-          badge: isSigned
+          badge: isSignedAtAll
             ? { text: "Signed", className: "bg-green-100 text-green-700" }
             : {
               text: "Not signed",
               className: "bg-amber-100 text-amber-700",
             },
-        }
-        : step
-    );
-  }, [formData.signature]);
+        };
+      }
+      return step;
+    });
+  }, [formData.signature, formData.verbal_consent_staff_signature]);
 
   return (
     <>

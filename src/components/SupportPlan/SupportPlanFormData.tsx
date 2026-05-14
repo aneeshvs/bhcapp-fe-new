@@ -577,6 +577,13 @@ const supportPlanFormData = {
     has_dnr: 0,
     dnr_details: '',
 
+    // verbal consent
+    verbal_consent_staff_name: '',
+    verbal_consent_staff_position: '',
+    verbal_consent_staff_signature: '',
+    verbal_consent_date: '',
+    verbal_consent_notes: '',
+
 
 }
 export default supportPlanFormData;

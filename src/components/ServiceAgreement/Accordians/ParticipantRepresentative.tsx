@@ -30,6 +30,7 @@ export default function ParticipantRepresentativeForm({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   const [chargebands, setChargebands] = useState<Chargeband[]>([]);
 
@@ -46,9 +47,16 @@ export default function ParticipantRepresentativeForm({
     fetchChargebands();
   }, []);
 
-  const filteredChargebands = chargebands.filter((item) =>
-    item.chargeband_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const selectedAreas = Array.isArray(formData.area_of_support) ? formData.area_of_support : [];
+
+  const filteredChargebands = chargebands
+    .filter((item) => {
+      const matchesSearch = item.chargeband_name.toLowerCase().includes(searchTerm.toLowerCase());
+      if (showSelectedOnly) {
+        return matchesSearch && selectedAreas.includes(item.chargeband_name);
+      }
+      return matchesSearch;
+    });
 
   const handleViewLogs = (fieldName: string) => {
     setSelectedField(fieldName);
@@ -400,13 +408,24 @@ export default function ParticipantRepresentativeForm({
             </div>
 
             {/* Search Bar for Chargebands */}
-            <input
-              type="text"
-              placeholder="Search charge bands..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border border-gray-800 rounded px-3 py-2 mb-2"
-            />
+            <div className="flex items-center gap-4 mb-2">
+              <input
+                type="text"
+                placeholder="Search charge bands..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 border border-gray-800 rounded px-3 py-2"
+              />
+              <label className="flex items-center text-sm text-gray-700 cursor-pointer select-none whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showSelectedOnly}
+                  onChange={(e) => setShowSelectedOnly(e.target.checked)}
+                  className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                Show selected only
+              </label>
+            </div>
 
             <div className="border border-gray-300 rounded px-3 py-2 max-h-48 overflow-y-auto">
               {filteredChargebands.length > 0 ? (

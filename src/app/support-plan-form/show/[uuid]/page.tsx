@@ -473,6 +473,8 @@ export default function ShowSupportPlanPage() {
                                         {...getComponentProps(key)}
                                         // @ts-ignore
                                         hideSaveButton={true}
+                                        // @ts-ignore
+                                        isSignatureOnly={isSignatureOnly}
                                     />
                                 </fieldset>
                             </AccordianPlanSection>

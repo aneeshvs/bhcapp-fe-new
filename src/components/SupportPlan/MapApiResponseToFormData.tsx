@@ -632,5 +632,12 @@ export function mapApiResponseToFormData(responseData: SupportApiResponse) {
     has_dnr: responseData.end_of_life_advanced_care_planning?.has_dnr ?? 0,
     dnr_details: responseData.end_of_life_advanced_care_planning?.dnr_details || '',
 
+    // verbal consent
+    verbal_consent_staff_name: responseData.verbal_consent?.verbal_consent_staff_name || '',
+    verbal_consent_staff_position: responseData.verbal_consent?.verbal_consent_staff_position || '',
+    verbal_consent_staff_signature: responseData.verbal_consent?.verbal_consent_staff_signature || '',
+    verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || '',
+    verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || '',
+
   };
 }
