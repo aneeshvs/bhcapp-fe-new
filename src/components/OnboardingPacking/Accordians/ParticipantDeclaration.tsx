@@ -56,7 +56,7 @@ export default function ParticipantDeclarations({
   // Initialize pads ONCE
   useEffect(() => {
     const initializePads = () => {
-      const setupPad = (canvasRef: React.RefObject<HTMLCanvasElement>, padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string) => {
+      const setupPad = (canvasRef: React.RefObject<HTMLCanvasElement | null>, padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string) => {
         const canvas = canvasRef.current;
         if (canvas && !padRef.current) {
           canvas.width = canvas.offsetWidth;
