@@ -16,7 +16,5 @@ export interface ParticipantSignature {
         verbal_consent_date?: string;
         verbal_consent_notes?: string;
     };
-    consent_name?: string;
-    consent_relationship?: string;
-    consent_signature?: string;
+   
 }

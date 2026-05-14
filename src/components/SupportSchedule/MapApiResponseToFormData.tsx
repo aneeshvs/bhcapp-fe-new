@@ -29,8 +29,6 @@ export function mapApiResponseToFormData(responseData: ScheduleOfSupportsFormDat
         verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || "",
         verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || "",
 
-        consent_name: responseData.agreement_signature?.consent_name || "",
-        consent_relationship: responseData.agreement_signature?.consent_relationship || "",
-        consent_signature: responseData.agreement_signature?.consent_signature || "",
+       
     };
 }

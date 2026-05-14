@@ -45,8 +45,6 @@ const SupportScheduleFormData = {
     verbal_consent_date: "",
     verbal_consent_notes: "",
 
-    consent_name: "",
-    consent_relationship: "",
-    consent_signature: "",
+   
 };
 export default SupportScheduleFormData;

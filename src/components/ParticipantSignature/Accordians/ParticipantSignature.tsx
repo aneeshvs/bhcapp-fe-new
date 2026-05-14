@@ -8,9 +8,7 @@ import DatePickerSaveMany from '../../DatePickerSaveMany';
 interface ParticipantSignature {
   participant_signature?: string;
   date_signed?: string;
-  consent_name?: string;
-  consent_relationship?: string;
-  consent_signature?: string;
+ 
   verbal_consent_staff_name?: string;
   verbal_consent_staff_position?: string;
   verbal_consent_staff_signature?: string;

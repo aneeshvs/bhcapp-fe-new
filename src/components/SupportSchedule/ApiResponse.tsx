@@ -76,7 +76,5 @@ interface AgreementSignatures {
   representative_signature?: string; // base64 string
   representative_name?: string;
   representative_date?: string;
-  consent_name?: string;
-  consent_relationship?: string;
-  consent_signature?: string;
+  
 }

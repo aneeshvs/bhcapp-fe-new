@@ -13,8 +13,5 @@ export function mapApiResponseToFormData(responseData: ParticipantSignature) {
         verbal_consent_date: responseData.verbal_consent?.verbal_consent_date || "",
         verbal_consent_notes: responseData.verbal_consent?.verbal_consent_notes || "",
 
-        consent_name: responseData?.consent_name || "",
-        consent_relationship: responseData?.consent_relationship || "",
-        consent_signature: responseData?.consent_signature || "",
     };
 }
