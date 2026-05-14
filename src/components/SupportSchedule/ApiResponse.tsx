@@ -19,8 +19,14 @@ export interface ScheduleOfSupportsFormData {
   transport: FundedSupportsFormData[];
   unfunded_support: UnfundedSupportsFormData[];
   agreement_signature: AgreementSignatures;
+  verbal_consent?: {
+    verbal_consent_staff_name?: string;
+    verbal_consent_staff_position?: string;
+    verbal_consent_staff_signature?: string;
+    verbal_consent_date?: string;
+    verbal_consent_notes?: string;
+  };
 }
-
 
 export interface FundedSupportsFormData {
   id?: number;
@@ -70,4 +76,7 @@ interface AgreementSignatures {
   representative_signature?: string; // base64 string
   representative_name?: string;
   representative_date?: string;
+  consent_name?: string;
+  consent_relationship?: string;
+  consent_signature?: string;
 }
