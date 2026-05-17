@@ -277,7 +277,7 @@ export default function SupportPlanApproval({
         </div>
       </div>
 
-      <FieldLogsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} uuid={effectiveUuid ?? ""} table="support_plan_verbal_consent" field={selectedField} url="logs/view/support" />
+      <FieldLogsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} uuid={effectiveUuid ?? ""} table={selectedField?.startsWith('verbal_consent_') ? "support_plan_verbal_consent" : "support_plan_approval"} field={selectedField} url="logs/view/support" />
     </div>
   );
 }
