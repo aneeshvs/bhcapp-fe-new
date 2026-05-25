@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import ListComponents from "@/src/components/list-components";
 import api from "@/src/utils/api";
 import Image from "next/image";
+import IconDownload from "@/src/components/icon/icon-download";
 
 const ParticipantsFullReport = () => {
     const [listData, setListData] = useState({
@@ -21,15 +22,33 @@ const ParticipantsFullReport = () => {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [roles, setRoles] = useState<any[]>([]);
+    const [selectedRole, setSelectedRole] = useState("");
 
-    const fetchData = useCallback(async (page = 1, searchQuery = "") => {
+    const fetchRoles = async () => {
+        try {
+            const response = await api.get("/get-care-team-roles");
+            if (response.data.success) {
+                setRoles(response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching roles:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoles();
+    }, []);
+
+    const fetchData = useCallback(async (page = 1, searchQuery = "", roleFilter = "") => {
         setLoading(true);
         try {
             const response = await api.get("/participants-full-report", {
                 params: {
                     page: page,
                     limit: listData.per_page,
-                    search: searchQuery
+                    search: searchQuery,
+                    role: roleFilter
                 }
             });
             if (response.data.success) {
@@ -47,12 +66,38 @@ const ParticipantsFullReport = () => {
     }, [listData.per_page]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchData(1, search, selectedRole);
+    }, [fetchData]); // Only depends on fetchData
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
-        fetchData(1, e.target.value);
+        fetchData(1, e.target.value, selectedRole);
+    };
+
+    const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedRole(e.target.value);
+        fetchData(1, search, e.target.value);
+    };
+
+    const handleExport = async () => {
+        try {
+            const response = await api.get("/export-participants-full-report", {
+                params: {
+                    search: search,
+                    role: selectedRole
+                },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'participants_full_report.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error exporting data:", error);
+        }
     };
 
     const formatDate = (dateString: any) => {
@@ -133,8 +178,28 @@ const ParticipantsFullReport = () => {
                    <Image src="/assets/images/BHC LOGO_SMALL.png" alt="Company Logo" width={150} height={60} priority />
                    <h1 className="text-2xl font-bold mt-2 text-heading">Participants Full Report</h1>
                 </div>
-                <div className="w-full md:w-1/3">
-                    <div className="relative">
+                <div className="w-full md:w-[70%] flex flex-col md:flex-row gap-4 justify-end">
+                    <button 
+                        onClick={handleExport}
+                        className="btn-primary flex items-center justify-center gap-2 rounded-md px-4 py-2 text-white font-medium whitespace-nowrap shrink-0 shadow-sm"
+                    >
+                        <IconDownload /> Export
+                    </button>
+                    <div className="relative w-full md:w-1/3">
+                        <select 
+                            className="form-select w-full"
+                            value={selectedRole}
+                            onChange={handleRoleChange}
+                        >
+                            <option value="">All Roles</option>
+                            {roles.map((r: any, index: number) => (
+                                <option key={index} value={r.role}>
+                                    {r.role}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="relative w-full md:w-1/3">
                         <input 
                             type="text" 
                             placeholder="Search by name..." 
@@ -158,7 +223,7 @@ const ParticipantsFullReport = () => {
                 <ListComponents 
                     listData={listData} 
                     groups={groups} 
-                    onPageChange={(p) => fetchData(p, search)} 
+                    onPageChange={(p) => fetchData(p, search, selectedRole)} 
                 />
             </div>
         </div>
