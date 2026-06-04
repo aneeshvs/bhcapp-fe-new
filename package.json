@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "@tabler/icons-react": "^3.41.1",
     "animate.css": "^4.1.1",
     "axios": "^1.10.0",
     "flatpickr": "^4.6.13",
