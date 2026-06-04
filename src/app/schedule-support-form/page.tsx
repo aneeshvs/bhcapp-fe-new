@@ -298,6 +298,23 @@ export default function SupportCarePlanPage() {
     [sectionRefs]
   );
 
+  const scrollToSignature = useCallback(() => {
+    if (!openSections["AgreementSignatures"]) {
+      handleTrackerClick("AgreementSignatures");
+      setTimeout(() => {
+        const sigElement = document.getElementById("participant-signature-pad");
+        if (sigElement) {
+          sigElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+    } else {
+      const sigElement = document.getElementById("participant-signature-pad");
+      if (sigElement) {
+        sigElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [openSections, handleTrackerClick]);
+
   // Function to format field names for display
   const formatFieldName = (fieldName: string): string => {
     return fieldName
@@ -519,7 +536,14 @@ export default function SupportCarePlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end items-center gap-4 mb-4">
+              <div 
+                className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
+                onClick={scrollToSignature}
+              >
+                <span className="text-xl mr-2">👉</span>
+                <span>Click here to participant signature</span>
+              </div>
               <button
                 type="button"
                 onClick={toggleExpandAll}

@@ -423,6 +423,7 @@ export default function ServiceAgreementConsent({
 
               {/* Participant Signature */}
               <div
+                id="participant-signature-pad"
                 className="relative md:col-span-2"
                 onMouseEnter={() => setHoveredField('participant_signature')}
                 onMouseLeave={() => setHoveredField(null)}
@@ -442,7 +443,7 @@ export default function ServiceAgreementConsent({
 
                 <canvas
                   ref={participantCanvasRef}
-                  className="w-full h-32 border rounded mb-2 touch-none"
+                  className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md"
                 />
 
                 {/* Show saved image if available */}

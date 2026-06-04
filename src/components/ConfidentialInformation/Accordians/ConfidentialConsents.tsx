@@ -272,6 +272,7 @@ export default function ConfidentialConsents({
 
         {/* Signature */}
         <div
+          id="participant-signature-pad"
           className="md:col-span-2 relative"
           onMouseEnter={() => setHoveredField("signature")}
           onMouseLeave={() => setHoveredField(null)}
@@ -291,7 +292,7 @@ export default function ConfidentialConsents({
 
           <canvas
             ref={canvasRef}
-            className="w-full h-32 border rounded mb-2 touch-none"
+            className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md"
           />
 
           {/* Show saved image if available */}

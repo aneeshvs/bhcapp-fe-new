@@ -166,14 +166,14 @@ export default function SupportPlanApproval({
           <DatePickerSaveMany name="date_of_approval" disabled={isSignatureOnly} value={formData.date_of_approval} onChange={handleChange} />
         </div>
 
-        <div className="md:col-span-2 relative" onMouseEnter={() => setHoveredField('signature')} onMouseLeave={() => setHoveredField(null)}>
+        <div id="participant-signature-pad" className="md:col-span-2 relative" onMouseEnter={() => setHoveredField('signature')} onMouseLeave={() => setHoveredField(null)}>
           <div className="flex justify-between items-center mb-1">
             <label className="block font-medium">Signature</label>
             {hoveredField === 'signature' && (
               <button type="button" onClick={() => handleViewLogs('signature')} className="text-xs btn-primary text-white px-2 py-1 rounded shadow-sm">View Logs</button>
             )}
           </div>
-          <canvas ref={canvasRef} className="w-full h-32 border rounded mb-2 touch-none" />
+          <canvas ref={canvasRef} className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md" />
           
           {formData.signature?.startsWith('data:image') && (
             <div className="mt-2">
