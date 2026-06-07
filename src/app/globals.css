@@ -337,3 +337,14 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
     color: #000 !important;
     font-weight: bold !important;
 }
+
+/* Fix visibility of sort icons on blue background */
+.participants-report-table thead th svg {
+    color: red !important;
+    opacity: 0.7 !important;
+}
+
+.participants-report-table thead th:hover svg {
+    opacity: 1 !important;
+    color: red !important;
+}

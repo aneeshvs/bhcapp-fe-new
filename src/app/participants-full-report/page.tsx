@@ -24,6 +24,7 @@ const ParticipantsFullReport = () => {
     const [search, setSearch] = useState("");
     const [roles, setRoles] = useState<any[]>([]);
     const [selectedRole, setSelectedRole] = useState("");
+    const [sortStatus, setSortStatus] = useState({ columnAccessor: 'name', direction: 'asc' });
 
     const fetchRoles = async () => {
         try {
@@ -40,7 +41,7 @@ const ParticipantsFullReport = () => {
         fetchRoles();
     }, []);
 
-    const fetchData = useCallback(async (page = 1, searchQuery = "", roleFilter = "") => {
+    const fetchData = useCallback(async (page = 1, searchQuery = "", roleFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction) => {
         setLoading(true);
         try {
             const response = await api.get("/participants-full-report", {
@@ -48,13 +49,32 @@ const ParticipantsFullReport = () => {
                     page: page,
                     limit: listData.per_page,
                     search: searchQuery,
-                    role: roleFilter
+                    role: roleFilter,
+                    sort_by: sortBy,
+                    sort_dir: sortDir
                 }
             });
             if (response.data.success) {
                 const pagedData = response.data.data;
+                
+                // Optional client-side sorting for the current page if backend doesn't sort
+                let sortedData = [...pagedData.data];
+                if (sortBy) {
+                    sortedData.sort((a, b) => {
+                        const valA = a[sortBy];
+                        const valB = b[sortBy];
+                        if (valA === null || valA === undefined) return sortDir === 'asc' ? 1 : -1;
+                        if (valB === null || valB === undefined) return sortDir === 'asc' ? -1 : 1;
+                        if (typeof valA === 'string' && typeof valB === 'string') {
+                            return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        }
+                        return sortDir === 'asc' ? (valA < valB ? -1 : 1) : (valA > valB ? -1 : 1);
+                    });
+                }
+
                 setListData({
                     ...pagedData,
+                    data: sortedData,
                     page: pagedData.current_page
                 });
             }
@@ -66,17 +86,22 @@ const ParticipantsFullReport = () => {
     }, [listData.per_page]);
 
     useEffect(() => {
-        fetchData(1, search, selectedRole);
+        fetchData(1, search, selectedRole, sortStatus.columnAccessor, sortStatus.direction);
     }, [fetchData]); // Only depends on fetchData
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
-        fetchData(1, e.target.value, selectedRole);
+        fetchData(1, e.target.value, selectedRole, sortStatus.columnAccessor, sortStatus.direction);
     };
 
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedRole(e.target.value);
-        fetchData(1, search, e.target.value);
+        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction);
+    };
+
+    const handleSortStatusChange = (status: any) => {
+        setSortStatus(status);
+        fetchData(listData.current_page, search, selectedRole, status.columnAccessor, status.direction);
     };
 
     const handleExport = async () => {
@@ -120,6 +145,7 @@ const ParticipantsFullReport = () => {
                 { 
                     accessor: 'name', 
                     title: 'Client Name', 
+                    sortable: true,
                     render: (row: any) => (
                         <div className="font-semibold text-primary">
                             {row.name} {row.lastname}
@@ -132,29 +158,29 @@ const ParticipantsFullReport = () => {
             id: 'sa01',
             title: 'SA-01 Service Agreement',
             columns: [
-                { accessor: 'term_start_date', title: 'Service start date', render: (row: any) => formatDate(row.term_start_date) },
-                { accessor: 'ndis_plan_start_date', title: 'NDIS Start Date', render: (row: any) => formatDate(row.ndis_plan_start_date) },
-                { accessor: 'ndis_plan_end_date', title: 'NDIS End Date', render: (row: any) => formatDate(row.ndis_plan_end_date) },
-                { accessor: 'sa_signed_date', title: 'service agreement signed date', render: (row: any) => formatDate(row.sa_signed_date) },
-                { accessor: 'sa_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.sa_completion_percentage || 0}%</span> },
+                { accessor: 'term_start_date', title: 'Service start date', sortable: true, render: (row: any) => formatDate(row.term_start_date) },
+                { accessor: 'ndis_plan_start_date', title: 'NDIS Start Date', sortable: true, render: (row: any) => formatDate(row.ndis_plan_start_date) },
+                { accessor: 'ndis_plan_end_date', title: 'NDIS End Date', sortable: true, render: (row: any) => formatDate(row.ndis_plan_end_date) },
+                { accessor: 'sa_signed_date', title: 'service agreement signed date', sortable: true, render: (row: any) => formatDate(row.sa_signed_date) },
+                { accessor: 'sa_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.sa_completion_percentage || 0}%</span> },
             ]
         },
         {
             id: 'scp01',
             title: 'SCP-01 Support Care Plan',
             columns: [
-                { accessor: 'scp_start_date', title: 'support care plan start date', render: (row: any) => formatDate(row.scp_start_date) },
-                { accessor: 'scp_review_date', title: 'support care plan review date', render: (row: any) => formatDate(row.scp_review_date) },
-                { accessor: 'scp_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.scp_completion_percentage || 0}%</span> },
+                { accessor: 'scp_start_date', title: 'support care plan start date', sortable: true, render: (row: any) => formatDate(row.scp_start_date) },
+                { accessor: 'scp_review_date', title: 'support care plan review date', sortable: true, render: (row: any) => formatDate(row.scp_review_date) },
+                { accessor: 'scp_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.scp_completion_percentage || 0}%</span> },
             ]
         },
         {
             id: 'f5a',
             title: 'F5a Individual Risk Assessment',
             columns: [
-                { accessor: 'ira_assessment_date', title: 'Assessment Date', render: (row: any) => formatDate(row.ira_assessment_date) },
-                { accessor: 'ira_review_date', title: 'Planned Review Date', render: (row: any) => formatDate(row.ira_review_date) },
-                { accessor: 'ira_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.ira_completion_percentage || 0}%</span> },
+                { accessor: 'ira_assessment_date', title: 'Assessment Date', sortable: true, render: (row: any) => formatDate(row.ira_assessment_date) },
+                { accessor: 'ira_review_date', title: 'Planned Review Date', sortable: true, render: (row: any) => formatDate(row.ira_review_date) },
+                { accessor: 'ira_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.ira_completion_percentage || 0}%</span> },
             ]
         },
         {
@@ -164,9 +190,10 @@ const ParticipantsFullReport = () => {
                 { 
                     accessor: 'hsca_review_date', 
                     title: 'Review Date', 
+                    sortable: true,
                     render: (row: any) => formatDate(row.hsca_review_date)
                 },
-                { accessor: 'hsca_completion_percentage', title: 'completion percentage', render: (row: any) => <span className="badge bg-primary">{row.hsca_completion_percentage || 0}%</span> },
+                { accessor: 'hsca_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.hsca_completion_percentage || 0}%</span> },
             ]
         }
     ];
@@ -223,7 +250,9 @@ const ParticipantsFullReport = () => {
                 <ListComponents 
                     listData={listData} 
                     groups={groups} 
-                    onPageChange={(p) => fetchData(p, search, selectedRole)} 
+                    onPageChange={(p) => fetchData(p, search, selectedRole, sortStatus.columnAccessor, sortStatus.direction)} 
+                    sortStatus={sortStatus}
+                    onSortStatusChange={handleSortStatusChange}
                 />
             </div>
         </div>
