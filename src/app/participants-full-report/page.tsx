@@ -22,34 +22,37 @@ const ParticipantsFullReport = () => {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [roles, setRoles] = useState<any[]>([]);
-    const [selectedRole, setSelectedRole] = useState("");
+    const [coordinators, setCoordinators] = useState<any[]>([]);
+    const [selectedStaffId, setSelectedStaffId] = useState("");
     const [sortStatus, setSortStatus] = useState({ columnAccessor: 'name', direction: 'asc' });
 
-    const fetchRoles = async () => {
+    const PAGE_SIZES = [25, 50, 100, 1000]; // 1000 acts as 'All'
+    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
+
+    const fetchCoordinators = async () => {
         try {
-            const response = await api.get("/get-care-team-roles");
+            const response = await api.get("/get-bhc-coordinators");
             if (response.data.success) {
-                setRoles(response.data.data);
+                setCoordinators(response.data.data);
             }
         } catch (error) {
-            console.error("Error fetching roles:", error);
+            console.error("Error fetching BHC Coordinators:", error);
         }
     };
 
     useEffect(() => {
-        fetchRoles();
+        fetchCoordinators();
     }, []);
 
-    const fetchData = useCallback(async (page = 1, searchQuery = "", roleFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction) => {
+    const fetchData = useCallback(async (page = 1, searchQuery = "", staffIdFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction, limit = pageSize) => {
         setLoading(true);
         try {
             const response = await api.get("/participants-full-report", {
                 params: {
                     page: page,
-                    limit: listData.per_page,
+                    limit: limit,
                     search: searchQuery,
-                    role: roleFilter,
+                    staffid: staffIdFilter,
                     sort_by: sortBy,
                     sort_dir: sortDir
                 }
@@ -86,22 +89,27 @@ const ParticipantsFullReport = () => {
     }, [listData.per_page]);
 
     useEffect(() => {
-        fetchData(1, search, selectedRole, sortStatus.columnAccessor, sortStatus.direction);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize);
     }, [fetchData]); // Only depends on fetchData
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
-        fetchData(1, e.target.value, selectedRole, sortStatus.columnAccessor, sortStatus.direction);
+        fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize);
     };
 
-    const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedRole(e.target.value);
-        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction);
+    const handleCoordinatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedStaffId(e.target.value);
+        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize);
     };
 
     const handleSortStatusChange = (status: any) => {
         setSortStatus(status);
-        fetchData(listData.current_page, search, selectedRole, status.columnAccessor, status.direction);
+        fetchData(listData.current_page, search, selectedStaffId, status.columnAccessor, status.direction, pageSize);
+    };
+
+    const handleRecordsPerPageChange = (size: number) => {
+        setPageSize(size);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, size);
     };
 
     const handleExport = async () => {
@@ -109,7 +117,7 @@ const ParticipantsFullReport = () => {
             const response = await api.get("/export-participants-full-report", {
                 params: {
                     search: search,
-                    role: selectedRole
+                    staffid: selectedStaffId
                 },
                 responseType: 'blob'
             });
@@ -215,13 +223,13 @@ const ParticipantsFullReport = () => {
                     <div className="relative w-full md:w-1/3">
                         <select 
                             className="form-select w-full"
-                            value={selectedRole}
-                            onChange={handleRoleChange}
+                            value={selectedStaffId}
+                            onChange={handleCoordinatorChange}
                         >
-                            <option value="">All Roles</option>
-                            {roles.map((r: any, index: number) => (
-                                <option key={index} value={r.role}>
-                                    {r.role}
+                            <option value="">All BHC Coordinators</option>
+                            {coordinators.map((c: any, index: number) => (
+                                <option key={index} value={c.staffid}>
+                                    {c.name}
                                 </option>
                             ))}
                         </select>
@@ -244,13 +252,29 @@ const ParticipantsFullReport = () => {
             </div>
 
             <div className="panel border-0 shadow-3xl">
-                <div className="mb-5 text-sm font-bold text-gray-500">
-                    Total Participants: <span className="text-primary">{listData.total}</span>
+                <div className="mb-5 flex flex-wrap justify-between items-center gap-4">
+                    <div className="text-sm font-bold text-gray-500">
+                        Total Participants: <span className="text-primary">{listData.total}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-500 whitespace-nowrap">Rows per page:</span>
+                        <select 
+                            className="form-select form-select-sm w-24 py-1 px-2 rounded-md"
+                            value={pageSize}
+                            onChange={(e) => handleRecordsPerPageChange(Number(e.target.value))}
+                        >
+                            {PAGE_SIZES.map(size => (
+                                <option key={size} value={size}>
+                                    {size === 1000 ? 'All' : size}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
                 <ListComponents 
                     listData={listData} 
                     groups={groups} 
-                    onPageChange={(p) => fetchData(p, search, selectedRole, sortStatus.columnAccessor, sortStatus.direction)} 
+                    onPageChange={(p) => fetchData(p, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize)} 
                     sortStatus={sortStatus}
                     onSortStatusChange={handleSortStatusChange}
                 />

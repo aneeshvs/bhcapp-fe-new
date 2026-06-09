@@ -29,11 +29,13 @@ interface ChildProps {
     groups?: any[];
     sortStatus?: any;
     onSortStatusChange?: any;
+    recordsPerPageOptions?: number[];
+    onRecordsPerPageChange?: (newPerPage: number) => void;
   }
 /* eslint-enable */
 
 
-const ListComponents = ({ listData, columnData, groups, onPageChange, sortStatus, onSortStatusChange}: ChildProps) => {
+const ListComponents = ({ listData, columnData, groups, onPageChange, sortStatus, onSortStatusChange, recordsPerPageOptions, onRecordsPerPageChange }: ChildProps) => {
     return (
         <div className="datatables pagination-padding">
             <DataTable
@@ -50,9 +52,6 @@ const ListComponents = ({ listData, columnData, groups, onPageChange, sortStatus
                 onPageChange={onPageChange}
                 sortStatus={sortStatus}
                 onSortStatusChange={onSortStatusChange}
-                //onPageChange={(p) => setPage(p)}
-                // recordsPerPageOptions={PAGE_SIZES}
-                // onRecordsPerPageChange={setPageSize}
                 paginationText={({ from, to, totalRecords }) =>
                     `Showing ${from} to ${to} of ${totalRecords} entries` // Fixed parameter names
                 }
