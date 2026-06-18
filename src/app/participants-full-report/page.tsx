@@ -25,6 +25,7 @@ const ParticipantsFullReport = () => {
     const [coordinators, setCoordinators] = useState<any[]>([]);
     const [selectedStaffId, setSelectedStaffId] = useState("");
     const [sortStatus, setSortStatus] = useState({ columnAccessor: 'name', direction: 'asc' });
+    const [showExpiredOnly, setShowExpiredOnly] = useState(false);
 
     const PAGE_SIZES = [25, 50, 100, 1000]; // 1000 acts as 'All'
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
@@ -44,7 +45,7 @@ const ParticipantsFullReport = () => {
         fetchCoordinators();
     }, []);
 
-    const fetchData = useCallback(async (page = 1, searchQuery = "", staffIdFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction, limit = pageSize) => {
+    const fetchData = useCallback(async (page = 1, searchQuery = "", staffIdFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction, limit = pageSize, expiredOnly = showExpiredOnly) => {
         setLoading(true);
         try {
             const response = await api.get("/participants-full-report", {
@@ -54,7 +55,8 @@ const ParticipantsFullReport = () => {
                     search: searchQuery,
                     staffid: staffIdFilter,
                     sort_by: sortBy,
-                    sort_dir: sortDir
+                    sort_dir: sortDir,
+                    show_expired_only: expiredOnly
                 }
             });
             if (response.data.success) {
@@ -89,27 +91,32 @@ const ParticipantsFullReport = () => {
     }, [listData.per_page]);
 
     useEffect(() => {
-        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
     }, [fetchData]); // Only depends on fetchData
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
-        fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize);
+        fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
     };
 
     const handleCoordinatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedStaffId(e.target.value);
-        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize);
+        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
     };
 
     const handleSortStatusChange = (status: any) => {
         setSortStatus(status);
-        fetchData(listData.current_page, search, selectedStaffId, status.columnAccessor, status.direction, pageSize);
+        fetchData(listData.current_page, search, selectedStaffId, status.columnAccessor, status.direction, pageSize, showExpiredOnly);
     };
 
     const handleRecordsPerPageChange = (size: number) => {
         setPageSize(size);
-        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, size);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, size, showExpiredOnly);
+    };
+
+    const handleShowExpiredOnlyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowExpiredOnly(e.target.checked);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, e.target.checked);
     };
 
     const handleExport = async () => {
@@ -117,7 +124,8 @@ const ParticipantsFullReport = () => {
             const response = await api.get("/export-participants-full-report", {
                 params: {
                     search: search,
-                    staffid: selectedStaffId
+                    staffid: selectedStaffId,
+                    show_expired_only: showExpiredOnly
                 },
                 responseType: 'blob'
             });
@@ -145,6 +153,22 @@ const ParticipantsFullReport = () => {
         return `${day}/${month}/${year}`;
     };
 
+    const renderDate = (dateString: any, checkExpiry: boolean = false) => {
+        const formatted = formatDate(dateString);
+        if (formatted === 'NIL') return formatted;
+        
+        if (checkExpiry) {
+            const date = new Date(dateString);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (date <= today) {
+                return <span className="text-red-500 font-semibold">{formatted}</span>;
+            }
+        }
+        return formatted;
+    };
+
     const groups = [
         {
             id: 'participant',
@@ -166,10 +190,10 @@ const ParticipantsFullReport = () => {
             id: 'sa01',
             title: 'SA-01 Service Agreement',
             columns: [
-                { accessor: 'term_start_date', title: 'Service start date', sortable: true, render: (row: any) => formatDate(row.term_start_date) },
-                { accessor: 'ndis_plan_start_date', title: 'NDIS Start Date', sortable: true, render: (row: any) => formatDate(row.ndis_plan_start_date) },
-                { accessor: 'ndis_plan_end_date', title: 'NDIS End Date', sortable: true, render: (row: any) => formatDate(row.ndis_plan_end_date) },
-                { accessor: 'sa_signed_date', title: 'service agreement signed date', sortable: true, render: (row: any) => formatDate(row.sa_signed_date) },
+                { accessor: 'term_start_date', title: 'Service start date', sortable: true, render: (row: any) => renderDate(row.term_start_date) },
+                { accessor: 'ndis_plan_start_date', title: 'NDIS Start Date', sortable: true, render: (row: any) => renderDate(row.ndis_plan_start_date) },
+                { accessor: 'ndis_plan_end_date', title: 'NDIS End Date', sortable: true, render: (row: any) => renderDate(row.ndis_plan_end_date, true) },
+                { accessor: 'sa_signed_date', title: 'service agreement signed date', sortable: true, render: (row: any) => renderDate(row.sa_signed_date) },
                 { accessor: 'sa_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.sa_completion_percentage || 0}%</span> },
             ]
         },
@@ -177,8 +201,8 @@ const ParticipantsFullReport = () => {
             id: 'scp01',
             title: 'SCP-01 Support Care Plan',
             columns: [
-                { accessor: 'scp_start_date', title: 'support care plan start date', sortable: true, render: (row: any) => formatDate(row.scp_start_date) },
-                { accessor: 'scp_review_date', title: 'support care plan review date', sortable: true, render: (row: any) => formatDate(row.scp_review_date) },
+                { accessor: 'scp_start_date', title: 'support care plan start date', sortable: true, render: (row: any) => renderDate(row.scp_start_date) },
+                { accessor: 'scp_review_date', title: 'support care plan review date', sortable: true, render: (row: any) => renderDate(row.scp_review_date, true) },
                 { accessor: 'scp_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.scp_completion_percentage || 0}%</span> },
             ]
         },
@@ -186,8 +210,8 @@ const ParticipantsFullReport = () => {
             id: 'f5a',
             title: 'F5a Individual Risk Assessment',
             columns: [
-                { accessor: 'ira_assessment_date', title: 'Assessment Date', sortable: true, render: (row: any) => formatDate(row.ira_assessment_date) },
-                { accessor: 'ira_review_date', title: 'Planned Review Date', sortable: true, render: (row: any) => formatDate(row.ira_review_date) },
+                { accessor: 'ira_assessment_date', title: 'Assessment Date', sortable: true, render: (row: any) => renderDate(row.ira_assessment_date) },
+                { accessor: 'ira_review_date', title: 'Planned Review Date', sortable: true, render: (row: any) => renderDate(row.ira_review_date, true) },
                 { accessor: 'ira_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.ira_completion_percentage || 0}%</span> },
             ]
         },
@@ -199,7 +223,7 @@ const ParticipantsFullReport = () => {
                     accessor: 'hsca_review_date', 
                     title: 'Review Date', 
                     sortable: true,
-                    render: (row: any) => formatDate(row.hsca_review_date)
+                    render: (row: any) => renderDate(row.hsca_review_date, true)
                 },
                 { accessor: 'hsca_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.hsca_completion_percentage || 0}%</span> },
             ]
@@ -253,8 +277,19 @@ const ParticipantsFullReport = () => {
 
             <div className="panel border-0 shadow-3xl">
                 <div className="mb-5 flex flex-wrap justify-between items-center gap-4">
-                    <div className="text-sm font-bold text-gray-500">
-                        Total Participants: <span className="text-primary">{listData.total}</span>
+                    <div className="flex items-center gap-4">
+                        <div className="text-sm font-bold text-gray-500">
+                            Total Participants: <span className="text-primary">{listData.total}</span>
+                        </div>
+                        <label className="flex items-center cursor-pointer mb-0">
+                            <input 
+                                type="checkbox" 
+                                className="form-checkbox" 
+                                checked={showExpiredOnly} 
+                                onChange={handleShowExpiredOnlyChange}
+                            />
+                            <span className="ml-2 text-sm font-semibold text-gray-700">Show Expiry Date Only</span>
+                        </label>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-500 whitespace-nowrap">Rows per page:</span>
@@ -274,7 +309,7 @@ const ParticipantsFullReport = () => {
                 <ListComponents 
                     listData={listData} 
                     groups={groups} 
-                    onPageChange={(p) => fetchData(p, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize)} 
+                    onPageChange={(p) => fetchData(p, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly)} 
                     sortStatus={sortStatus}
                     onSortStatusChange={handleSortStatusChange}
                 />
