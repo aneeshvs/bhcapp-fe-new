@@ -223,7 +223,20 @@ const ParticipantsFullReport = () => {
                     accessor: 'hsca_review_date', 
                     title: 'Review Date', 
                     sortable: true,
-                    render: (row: any) => renderDate(row.hsca_review_date, true)
+                    render: (row: any) => {
+                        const formatted = formatDate(row.hsca_review_date);
+                        if (formatted === 'NIL') return formatted;
+                        
+                        const date = new Date(row.hsca_review_date);
+                        date.setFullYear(date.getFullYear() + 1); // Expiry is 1 year after review
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (date <= today) {
+                            return <span className="text-red-500 font-semibold">{formatted}</span>;
+                        }
+                        return formatted;
+                    }
                 },
                 { accessor: 'hsca_completion_percentage', title: 'completion percentage', sortable: true, render: (row: any) => <span className="badge bg-primary">{row.hsca_completion_percentage || 0}%</span> },
             ]
