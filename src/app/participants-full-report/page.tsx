@@ -26,6 +26,7 @@ const ParticipantsFullReport = () => {
     const [selectedStaffId, setSelectedStaffId] = useState("");
     const [sortStatus, setSortStatus] = useState({ columnAccessor: 'name', direction: 'asc' });
     const [showExpiredOnly, setShowExpiredOnly] = useState(false);
+    const [completionFilter, setCompletionFilter] = useState("");
 
     const PAGE_SIZES = [25, 50, 100, 1000]; // 1000 acts as 'All'
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
@@ -45,7 +46,7 @@ const ParticipantsFullReport = () => {
         fetchCoordinators();
     }, []);
 
-    const fetchData = useCallback(async (page = 1, searchQuery = "", staffIdFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction, limit = pageSize, expiredOnly = showExpiredOnly) => {
+    const fetchData = useCallback(async (page = 1, searchQuery = "", staffIdFilter = "", sortBy = sortStatus.columnAccessor, sortDir = sortStatus.direction, limit = pageSize, expiredOnly = showExpiredOnly, compFilter = completionFilter) => {
         setLoading(true);
         try {
             const response = await api.get("/participants-full-report", {
@@ -56,7 +57,8 @@ const ParticipantsFullReport = () => {
                     staffid: staffIdFilter,
                     sort_by: sortBy,
                     sort_dir: sortDir,
-                    show_expired_only: expiredOnly
+                    show_expired_only: expiredOnly,
+                    completion_filter: compFilter
                 }
             });
             if (response.data.success) {
@@ -91,32 +93,37 @@ const ParticipantsFullReport = () => {
     }, [listData.per_page]);
 
     useEffect(() => {
-        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter);
     }, [fetchData]); // Only depends on fetchData
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
-        fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
+        fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter);
     };
 
     const handleCoordinatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedStaffId(e.target.value);
-        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly);
+        fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter);
     };
 
     const handleSortStatusChange = (status: any) => {
         setSortStatus(status);
-        fetchData(listData.current_page, search, selectedStaffId, status.columnAccessor, status.direction, pageSize, showExpiredOnly);
+        fetchData(listData.current_page, search, selectedStaffId, status.columnAccessor, status.direction, pageSize, showExpiredOnly, completionFilter);
     };
 
     const handleRecordsPerPageChange = (size: number) => {
         setPageSize(size);
-        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, size, showExpiredOnly);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, size, showExpiredOnly, completionFilter);
     };
 
     const handleShowExpiredOnlyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setShowExpiredOnly(e.target.checked);
-        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, e.target.checked);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, e.target.checked, completionFilter);
+    };
+
+    const handleCompletionFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setCompletionFilter(e.target.value);
+        fetchData(1, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, e.target.value);
     };
 
     const handleExport = async () => {
@@ -125,7 +132,8 @@ const ParticipantsFullReport = () => {
                 params: {
                     search: search,
                     staffid: selectedStaffId,
-                    show_expired_only: showExpiredOnly
+                    show_expired_only: showExpiredOnly,
+                    completion_filter: completionFilter
                 },
                 responseType: 'blob'
             });
@@ -155,9 +163,12 @@ const ParticipantsFullReport = () => {
 
     const renderDate = (dateString: any, checkExpiry: boolean = false) => {
         const formatted = formatDate(dateString);
-        if (formatted === 'NIL') return formatted;
         
         if (checkExpiry) {
+            if (formatted === 'NIL') {
+                return <span className="text-red-500 font-semibold">{formatted}</span>;
+            }
+            
             const date = new Date(dateString);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -224,11 +235,21 @@ const ParticipantsFullReport = () => {
                     title: 'Review Date', 
                     sortable: true,
                     render: (row: any) => {
-                        const formatted = formatDate(row.hsca_review_date);
-                        if (formatted === 'NIL') return formatted;
+                        if (!row.hsca_review_date || row.hsca_review_date === 'NIL' || row.hsca_review_date === '0000-00-00') {
+                            return <span className="text-red-500 font-semibold">NIL</span>;
+                        }
                         
                         const date = new Date(row.hsca_review_date);
-                        date.setFullYear(date.getFullYear() + 1); // Expiry is 1 year after review
+                        if (isNaN(date.getTime())) return 'NIL';
+                        
+                        date.setFullYear(date.getFullYear() + 1); // Display and Expiry is 1 year after review
+                        
+                        // Format the new date
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        const formatted = `${day}/${month}/${year}`;
+
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         
@@ -301,8 +322,22 @@ const ParticipantsFullReport = () => {
                                 checked={showExpiredOnly} 
                                 onChange={handleShowExpiredOnlyChange}
                             />
-                            <span className="ml-2 text-sm font-semibold text-gray-700">Show Expiry Date Only</span>
+                            <span className="ml-2 text-sm font-semibold text-gray-700">Show Expiry Date and NIL values of date</span>
                         </label>
+                        <div className="flex flex-col ml-4">
+                            <span className="text-xs font-semibold text-gray-500 mb-1">Filter options above 30%</span>
+                            <select 
+                                className="form-select form-select-sm w-48 py-1 px-2 rounded-md border-gray-300 text-sm font-semibold text-gray-700"
+                                value={completionFilter}
+                                onChange={handleCompletionFilterChange}
+                            >
+                                <option value="">Select Form</option>
+                                <option value="sa">SA-01 Service Agreement</option>
+                                <option value="scp">SCP-01 Support Care Plan</option>
+                                <option value="ira">F5a Risk Assessment</option>
+                                <option value="hsca">F5 Home Safety</option>
+                            </select>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-500 whitespace-nowrap">Rows per page:</span>
@@ -322,7 +357,7 @@ const ParticipantsFullReport = () => {
                 <ListComponents 
                     listData={listData} 
                     groups={groups} 
-                    onPageChange={(p) => fetchData(p, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly)} 
+                    onPageChange={(p) => fetchData(p, search, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter)} 
                     sortStatus={sortStatus}
                     onSortStatusChange={handleSortStatusChange}
                 />
