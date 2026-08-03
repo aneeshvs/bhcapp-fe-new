@@ -423,7 +423,7 @@ export default function SilSupportPlanPage() {
                 onChange={(e) => handleChange(e)}
                 className="mr-2"
               />
-              <label className="font-medium text-gray-700">Final Submit (Tick to generate PDF)</label>
+              <label className="font-medium text-gray-700">Final Submit (Tick to confirm all information is correct)</label>
             </div>
 
             <div className="flex justify-center gap-4 mt-8">
