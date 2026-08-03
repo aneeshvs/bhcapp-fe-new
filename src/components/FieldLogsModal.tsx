@@ -84,7 +84,7 @@ export default function FieldLogsModal({
   if (!isOpen) return null;
 
   // Show invalid parameters message
-  if (!table || !field) {
+  if (!field) {
     return (
       <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
         <div className="bg-white p-6 rounded-lg shadow-xl border border-gray-200 max-w-lg w-full">
@@ -107,8 +107,13 @@ export default function FieldLogsModal({
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-800">
             Activity Logs for{' '}
-            <span className="font-bold">{field.replace(/_/g, ' ')}</span> in{' '}
-            <span className="font-bold">{table.replace(/_/g, ' ')}</span>
+            <span className="font-bold">{field.replace(/_/g, ' ')}</span>
+            {table && (
+              <>
+                {' '}in{' '}
+                <span className="font-bold">{table.replace(/_/g, ' ')}</span>
+              </>
+            )}
           </h1>
           <button
             onClick={onClose}
