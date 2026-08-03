@@ -225,7 +225,7 @@ export default function HousingSilSupportPage() {
           data.append("uuid", effectiveUuid);
         }
 
-        const apiResponse = await update("housing-sil-support/update", data);
+        const apiResponse = await update<HousingSilSupportResponse>("housing-sil-support/update", data);
 
         if (apiResponse.success) {
           window.alert("Form submitted successfully.");

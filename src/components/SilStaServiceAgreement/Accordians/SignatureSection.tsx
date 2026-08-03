@@ -76,7 +76,7 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
         if (signature && signature.startsWith('data:image')) {
           if (pad.isEmpty() || pad.toDataURL() !== signature) {
             pad.clear();
-            pad.fromDataURL(signature, { ratio: 1, width: pad.canvas.width, height: pad.canvas.height });
+            pad.fromDataURL(signature, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
           }
         } else if (!signature) {
           pad.clear();

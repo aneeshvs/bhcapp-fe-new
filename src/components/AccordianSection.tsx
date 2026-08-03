@@ -7,6 +7,7 @@ interface AccordianPlanSectionProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  className?: string;
 }
 
 export default function AccordianPlanSection({
@@ -14,10 +15,11 @@ export default function AccordianPlanSection({
   title,
   isOpen,
   onToggle,
-  children
+  children,
+  className
 }: AccordianPlanSectionProps) {
   return (
-    <div ref={sectionRef}>
+    <div ref={sectionRef} className={className}>
       <AccordionItem title={title} isOpen={isOpen} onToggle={onToggle}>
         {children}
       </AccordionItem>

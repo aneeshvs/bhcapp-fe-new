@@ -297,7 +297,7 @@ export default function SilSupportPlanPage() {
       const effectiveUuid = sessionUuid || searchParams.get("form-uuid") || searchParams.get("uuid");
       if (effectiveUuid) data.append("uuid", effectiveUuid);
 
-      const response = await update("sil-support-plan", data);
+      const response = await update<any>("sil-support-plan", data);
       if (response.success && response.data?.silSupportPlan?.uuid) {
         window.alert("Form submitted successfully.");
         const newUuid = response.data.silSupportPlan.uuid;

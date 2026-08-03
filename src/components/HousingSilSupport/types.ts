@@ -13,6 +13,7 @@ export interface HousingSilSupportData {
   participant_name?: string;
   date?: string;
   support_person?: string;
+  participant_signature?: string;
 
   submit_final?: number;
 }

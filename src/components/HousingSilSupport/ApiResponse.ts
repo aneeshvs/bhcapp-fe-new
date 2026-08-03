@@ -1,7 +1,8 @@
 import { HousingSilSupportData } from "./types";
 
-export interface HousingSilSupportResponse {
-  success: boolean;
-  message?: string;
-  data: HousingSilSupportData;
+export interface HousingSilSupportResponse extends HousingSilSupportData {
+  housingSilSupport?: {
+    uuid?: string;
+  };
 }
+

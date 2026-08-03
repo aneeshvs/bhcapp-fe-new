@@ -236,7 +236,7 @@ const ScheduleOfSupportSection: React.FC<{
                   hideLabel={true}
                   fieldName="board_and_lodging_contributions"
                   value={formData.board_and_lodging_contributions || ""}
-                  onChange={handleChange}
+                  onChange={handleChange || (() => {})}
                   uuid={formData.uuid}
                   apiEndpoint="/sil-sta-service-agreement/logs"
                   wrapperClassName="w-full relative"
@@ -255,7 +255,7 @@ const ScheduleOfSupportSection: React.FC<{
                   hideLabel={true}
                   fieldName="payment_terms"
                   value={formData.payment_terms || ""}
-                  onChange={handleChange}
+                  onChange={handleChange || (() => {})}
                   uuid={formData.uuid}
                   apiEndpoint="/sil-sta-service-agreement/logs"
                   wrapperClassName="w-full relative"

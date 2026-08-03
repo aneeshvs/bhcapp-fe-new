@@ -16,6 +16,8 @@ export interface SilStaServiceAgreementData {
     user_id: string;
     client_type: string;
     form_status?: string;
+    completion_percentage?: number;
+    signature_only?: number | boolean;
     submit_final?: number;
 
     ndis_plan_start_date: string;

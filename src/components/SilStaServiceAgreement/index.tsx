@@ -271,10 +271,9 @@ export default function SilStaServiceAgreementForm({
     setPdfGenerating(true);
     try {
       await handleSave(); // save before PDF generation
-      const response = await generateSilStaServiceAgreementPdf(formData.uuid, formData.user_id);
+      const response = await generateSilStaServiceAgreementPdf(formData.uuid);
       
-      if (response.success && response.pdf_url) {
-        window.open(response.pdf_url, "_blank");
+      if (response.success) {
         window.alert("PDF generated successfully!");
       } else {
         window.alert("Failed to generate PDF.");

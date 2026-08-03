@@ -148,8 +148,8 @@ export default function FieldLogsModal({
           ) : (
             <FieldActivityLog 
               logs={logs} 
-              table={table} 
-              field={field}
+              table={table || ''} 
+              field={field || ''}
               customValueFormatter={customValueFormatter}
             />
           )}
