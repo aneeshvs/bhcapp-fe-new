@@ -16,46 +16,56 @@ const SingleSignaturePad: React.FC<{
   const padRef = useRef<SignaturePad | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const initOrResizeCanvas = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    canvas.width = canvas.offsetWidth || 400;
-    canvas.height = canvas.offsetHeight || 128;
+      const rect = canvas.getBoundingClientRect();
+      const width = canvas.offsetWidth || rect.width || 300;
+      const height = canvas.offsetHeight || rect.height || 128;
 
-    if (padRef.current) return;
+      if (width === 0 || height === 0) return;
 
-    const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
-    padRef.current = pad;
+      if (!padRef.current) {
+        canvas.width = width;
+        canvas.height = height;
+        const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
+        padRef.current = pad;
 
-    pad.addEventListener("endStroke", () => {
-      if (!pad.isEmpty()) {
-        onChange(pad.toDataURL());
-      }
-    });
-
-    const timer = setTimeout(() => {
-      if (canvas && pad && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-        const data = pad.toData();
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight || 128;
-        pad.clear();
-        pad.fromData(data);
-      }
-    }, 200);
-
-    const handleResize = () => {
-      if (canvas && padRef.current && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-        const data = padRef.current.toData();
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight || 128;
-        padRef.current.clear();
-        padRef.current.fromData(data);
+        pad.addEventListener("endStroke", () => {
+          if (!pad.isEmpty()) {
+            onChange(pad.toDataURL());
+          }
+        });
+      } else {
+        if (canvas.width !== width || canvas.height !== height) {
+          const pad = padRef.current;
+          const data = pad.toData();
+          canvas.width = width;
+          canvas.height = height;
+          pad.clear();
+          pad.fromData(data);
+        }
       }
     };
 
+    initOrResizeCanvas();
+    const timer = setTimeout(initOrResizeCanvas, 200);
+
+    const resizeObserver = new ResizeObserver(() => {
+      initOrResizeCanvas();
+    });
+
+    if (canvasRef.current) {
+      resizeObserver.observe(canvasRef.current);
+    }
+
+    const handleResize = () => initOrResizeCanvas();
     window.addEventListener("resize", handleResize);
+
     return () => {
       clearTimeout(timer);
+      resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
     };
   }, []);
@@ -83,7 +93,7 @@ const SingleSignaturePad: React.FC<{
   const handleSave = () => {
     if (padRef.current && !padRef.current.isEmpty()) {
       onChange(padRef.current.toDataURL());
-      window.alert("Signature temporarily saved to form! Click 'Submit' to save it permanently.");
+      window.alert("Signature saved to form!");
     }
   };
 
@@ -93,8 +103,9 @@ const SingleSignaturePad: React.FC<{
       <canvas
         ref={canvasRef}
         className={`w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded-lg mb-2 touch-none shadow-md ${
-          disabled ? "pointer-events-none opacity-75" : "cursor-pointer"
+          disabled ? "pointer-events-none opacity-75" : "cursor-default"
         }`}
+        style={{ cursor: disabled ? "default" : "default" }}
       />
       {value?.startsWith("data:image") && (
         <div className="mt-2 mb-3">
@@ -1507,7 +1518,7 @@ export default function SilSupportPlanForm({
             </label>
           </div>
 
-          {/* Conditional: Participant vs Representative */}
+          {/* Conditional: Participant vs Representative Details */}
           {(reviewSignature.signer_type || "participant") === "participant" ? (
             <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
               <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Participant Details</h4>
@@ -1543,13 +1554,6 @@ export default function SilSupportPlanForm({
                   />
                 </div>
               </div>
-
-              <SingleSignaturePad
-                label="Participant Signature"
-                elementId="participant-signature-pad"
-                value={reviewSignature.participant_signature || ""}
-                onChange={(val) => handleReviewSignatureChange("participant_signature", val)}
-              />
             </div>
           ) : (
             <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
@@ -1602,15 +1606,24 @@ export default function SilSupportPlanForm({
                   />
                 </div>
               </div>
-
-              <SingleSignaturePad
-                label="Representative Signature"
-                elementId="representative-signature-pad"
-                value={reviewSignature.representative_signature || ""}
-                onChange={(val) => handleReviewSignatureChange("representative_signature", val)}
-              />
             </div>
           )}
+
+          <div className="bg-white p-5 border rounded-lg shadow-sm">
+            <SingleSignaturePad
+              label={(reviewSignature.signer_type || "participant") === "participant" ? "Participant Signature" : "Representative Signature"}
+              elementId={(reviewSignature.signer_type || "participant") === "participant" ? "participant-signature-pad" : "representative-signature-pad"}
+              value={reviewSignature.signer_type === "representative" ? (reviewSignature.representative_signature || reviewSignature.participant_signature || "") : (reviewSignature.participant_signature || "")}
+              onChange={(val) => {
+                if (reviewSignature.signer_type === "representative") {
+                  handleReviewSignatureChange("representative_signature", val);
+                  handleReviewSignatureChange("participant_signature", val);
+                } else {
+                  handleReviewSignatureChange("participant_signature", val);
+                }
+              }}
+            />
+          </div>
 
           {/* Guardian / Nominee Section */}
           <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">

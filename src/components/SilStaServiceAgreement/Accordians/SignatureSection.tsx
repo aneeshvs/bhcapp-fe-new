@@ -13,58 +13,64 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
   const witnessPadRef = useRef<SignaturePad | null>(null);
 
   useEffect(() => {
-    const initPad = (canvasRef: React.RefObject<HTMLCanvasElement | null>, padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string) => {
-      const canvas = canvasRef.current;
+    const initOrResizeCanvas = (
+      canvas: HTMLCanvasElement | null,
+      padRef: React.MutableRefObject<SignaturePad | null>,
+      fieldName: string
+    ) => {
       if (!canvas) return;
 
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      const rect = canvas.getBoundingClientRect();
+      const width = canvas.offsetWidth || rect.width || 300;
+      const height = canvas.offsetHeight || rect.height || 128;
 
-      if (padRef.current) return; // Prevent double initialization
+      if (width === 0 || height === 0) return;
 
-      const pad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)' });
-      padRef.current = pad;
+      if (!padRef.current) {
+        canvas.width = width;
+        canvas.height = height;
+        const pad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)' });
+        padRef.current = pad;
 
-      pad.addEventListener("endStroke", () => {
-        if (!pad.isEmpty()) {
-          handleChange({ target: { name: fieldName, value: pad.toDataURL() } });
-        }
-      });
-    };
-
-    // Initialize all pads
-    initPad(providerCanvasRef, providerPadRef, "provider_signature");
-    initPad(clientCanvasRef, clientPadRef, "client_signature");
-    initPad(witnessCanvasRef, witnessPadRef, "witness_signature");
-
-    const timer = setTimeout(() => {
-        // give the layout a moment to render before resizing the canvas correctly
-        handleResize();
-    }, 200);
-
-    // Handle window resize logic for all canvas elements to prevent stretching
-    const handleResize = () => {
-      [
-        { canvasRef: providerCanvasRef, padRef: providerPadRef },
-        { canvasRef: clientCanvasRef, padRef: clientPadRef },
-        { canvasRef: witnessCanvasRef, padRef: witnessPadRef }
-      ].forEach(({ canvasRef, padRef }) => {
-        const canvas = canvasRef.current;
-        const pad = padRef.current;
-        if (canvas && pad) {
+        pad.addEventListener("endStroke", () => {
+          if (!pad.isEmpty()) {
+            handleChange({ target: { name: fieldName, value: pad.toDataURL() } });
+          }
+        });
+      } else {
+        if (canvas.width !== width || canvas.height !== height) {
+          const pad = padRef.current;
           const data = pad.toData();
-          canvas.width = canvas.offsetWidth;
-          canvas.height = canvas.offsetHeight;
+          canvas.width = width;
+          canvas.height = height;
           pad.clear();
           pad.fromData(data);
         }
-      });
+      }
     };
 
-    window.addEventListener('resize', handleResize);
+    const handleAllResizes = () => {
+      initOrResizeCanvas(providerCanvasRef.current, providerPadRef, "provider_signature");
+      initOrResizeCanvas(clientCanvasRef.current, clientPadRef, "client_signature");
+      initOrResizeCanvas(witnessCanvasRef.current, witnessPadRef, "witness_signature");
+    };
+
+    handleAllResizes();
+    const timer = setTimeout(handleAllResizes, 200);
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleAllResizes();
+    });
+
+    [providerCanvasRef.current, clientCanvasRef.current, witnessCanvasRef.current].forEach(canvas => {
+      if (canvas) resizeObserver.observe(canvas);
+    });
+
+    window.addEventListener('resize', handleAllResizes);
     return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleAllResizes);
     };
   }, []);
 
@@ -99,7 +105,7 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
   const handleSave = (fieldName: string, padRef: React.MutableRefObject<SignaturePad | null>) => {
     if (padRef.current && !padRef.current.isEmpty()) {
       handleChange({ target: { name: fieldName, value: padRef.current.toDataURL() } });
-      window.alert("Signature temporarily saved to form! Click 'Save Progress' to save it permanently.");
+      window.alert("Signature saved to form!");
     }
   };
 
@@ -139,7 +145,8 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
               <label className="block font-medium mb-1">Provider Signature</label>
               <canvas
                 ref={providerCanvasRef}
-                className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md"
+                className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-default"
+                style={{ cursor: 'default' }}
               />
               
               {formData.provider_signature?.startsWith('data:image') && (
@@ -148,7 +155,7 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                   <img
                     src={formData.provider_signature}
                     alt="provider signature"
-                    className="w-48 h-20 border rounded shadow"
+                    className="w-48 h-20 border rounded shadow bg-white object-contain"
                   />
                 </div>
               )}
@@ -157,14 +164,14 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 <button
                   type="button"
                   onClick={() => handleClear("provider_signature", providerPadRef)}
-                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSave("provider_signature", providerPadRef)}
-                  className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition"
+                  className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
                 >
                   Save Signature
                 </button>
@@ -205,7 +212,7 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
           </div>
 
           {(formData.client_signer_type || "participant") === "participant" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormFieldWrapper
                 label="Participant Name"
                 fieldName="client_signature_name"
@@ -223,44 +230,9 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 uuid={uuid}
                 apiEndpoint="/sil-sta-service-agreement/logs"
               />
-              <div className="md:col-span-2 relative">
-                <label className="block font-medium mb-1">Participant Signature</label>
-                <canvas
-                  ref={clientCanvasRef}
-                  className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-pointer"
-                />
-                
-                {formData.client_signature?.startsWith('data:image') && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
-                    <img
-                      src={formData.client_signature}
-                      alt="participant signature"
-                      className="w-48 h-20 border rounded shadow bg-white object-contain"
-                    />
-                  </div>
-                )}
-                
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleClear("client_signature", clientPadRef)}
-                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave("client_signature", clientPadRef)}
-                    className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
-                  >
-                    Save Signature
-                  </button>
-                </div>
-              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <FormFieldWrapper
                 label="Representative Name"
                 fieldName="client_signature_name"
@@ -286,43 +258,47 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 uuid={uuid}
                 apiEndpoint="/sil-sta-service-agreement/logs"
               />
-              <div className="md:col-span-3 relative">
-                <label className="block font-medium mb-1">Representative Signature</label>
-                <canvas
-                  ref={clientCanvasRef}
-                  className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-pointer"
-                />
-                
-                {formData.client_signature?.startsWith('data:image') && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
-                    <img
-                      src={formData.client_signature}
-                      alt="representative signature"
-                      className="w-48 h-20 border rounded shadow bg-white object-contain"
-                    />
-                  </div>
-                )}
-                
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleClear("client_signature", clientPadRef)}
-                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave("client_signature", clientPadRef)}
-                    className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
-                  >
-                    Save Signature
-                  </button>
-                </div>
-              </div>
             </div>
           )}
+
+          <div className="relative">
+            <label className="block font-medium mb-1">
+              {(formData.client_signer_type || "participant") === "participant" ? "Participant Signature" : "Representative Signature"}
+            </label>
+            <canvas
+              ref={clientCanvasRef}
+              className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-default"
+              style={{ cursor: 'default' }}
+            />
+            
+            {formData.client_signature?.startsWith('data:image') && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
+                <img
+                  src={formData.client_signature}
+                  alt="client signature"
+                  className="w-48 h-20 border rounded shadow bg-white object-contain"
+                />
+              </div>
+            )}
+            
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => handleClear("client_signature", clientPadRef)}
+                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave("client_signature", clientPadRef)}
+                className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
+              >
+                Save Signature
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Witness Signature */}
@@ -350,7 +326,8 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
               <label className="block font-medium mb-1">Witness Signature</label>
               <canvas
                 ref={witnessCanvasRef}
-                className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md"
+                className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-default"
+                style={{ cursor: 'default' }}
               />
               
               {formData.witness_signature?.startsWith('data:image') && (
@@ -359,7 +336,7 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                   <img
                     src={formData.witness_signature}
                     alt="witness signature"
-                    className="w-48 h-20 border rounded shadow"
+                    className="w-48 h-20 border rounded shadow bg-white object-contain"
                   />
                 </div>
               )}
@@ -368,14 +345,14 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 <button
                   type="button"
                   onClick={() => handleClear("witness_signature", witnessPadRef)}
-                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSave("witness_signature", witnessPadRef)}
-                  className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition"
+                  className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
                 >
                   Save Signature
                 </button>
@@ -389,3 +366,4 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
 };
 
 export default SignatureSection;
+
