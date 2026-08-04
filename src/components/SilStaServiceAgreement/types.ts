@@ -45,7 +45,9 @@ export interface SilStaServiceAgreementData {
     provider_signature: string;
     provider_signature_date: string;
 
+    client_signer_type?: string;
     client_signature_name: string;
+    representative_relation?: string;
     client_signature: string;
     client_signature_date: string;
 

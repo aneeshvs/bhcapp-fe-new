@@ -140,7 +140,7 @@ export default function ShowHousingSilSupportPage() {
         }
 
         Object.entries(formData).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
+          if (value !== null && value !== undefined && key !== 'submit_final') {
             data.append(key, String(value));
           }
         });
@@ -149,8 +149,6 @@ export default function ShowHousingSilSupportPage() {
         data.append("client_type", sessionClientType);
         if (uuid) data.append("uuid", uuid as string);
         if (isSignatureOnly) data.append("signature_only", "1");
-        
-        data.append("submit_final", "1");
 
         const apiResponse = await update("housing-sil-support/update", data);
 
@@ -289,6 +287,37 @@ export default function ShowHousingSilSupportPage() {
             </AccordianPlanSection>
           </React.Fragment>
         ))}
+
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+          >
+            {loading ? "Submitting..." : "Submit"}
+          </button>
+        </div>
+
+        <div className="flex items-center mt-6">
+          <input
+            type="checkbox"
+            id="submit_final"
+            name="submit_final"
+            checked={formData.submit_final === 1 || formData.form_status === 'completed'}
+            onChange={e =>
+              handleChange({
+                target: {
+                  name: 'submit_final',
+                  value: e.target.checked ? 1 : 0,
+                },
+              })
+            }
+            className="mr-2"
+          />
+          <label className="font-medium text-gray-700">
+            Final Submit (Tick to confirm all information is correct)
+          </label>
+        </div>
 
         {formSubmissionError && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded">

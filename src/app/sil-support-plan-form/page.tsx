@@ -52,7 +52,7 @@ export default function SilSupportPlanPage() {
 
         try {
           const { client_name, uuid } = await getFormSession("sil-support-plan", formUuid, sessionUserId, sessionClientType);
-          if (client_name) setClientName(client_name);
+          if (client_name && client_name !== "Unknown") setClientName(client_name);
           if (uuid) setSessionUuid(uuid);
         } catch (e) {
           console.error("getFormSession failed", e);
@@ -83,8 +83,21 @@ export default function SilSupportPlanPage() {
       const response = await show<any>("sil-support-plan-show", effectiveUuid);
       if (response?.data) {
         setFormData(response.data);
-        if (response.data.client_name) {
+        if (response.data.client_name && response.data.client_name !== "Unknown") {
           setClientName(response.data.client_name);
+        } else {
+          const uId = response.data.user_id || sessionUserId;
+          const cType = response.data.client_type || sessionClientType;
+          if (uId) {
+            try {
+              const sessionRes = await getFormSession("sil-support-plan", effectiveUuid, String(uId), String(cType));
+              if (sessionRes?.client_name && sessionRes.client_name !== "Unknown") {
+                setClientName(sessionRes.client_name);
+              }
+            } catch (err) {
+              console.error("Fallback getFormSession failed", err);
+            }
+          }
         }
         if (response.data.completion_percentage !== undefined) {
           setCompletionPercentage(response.data.completion_percentage);
@@ -168,6 +181,9 @@ export default function SilSupportPlanPage() {
       });
       data.append("user_id", sessionUserId);
       data.append("client_type", sessionClientType);
+      if (clientName && clientName !== "Unknown") {
+        data.append("client_name", clientName);
+      }
       
       decisionMakers.forEach((dm, i) => {
         data.append(`decision_makers[${i}][decision_maker_type]`, dm.decision_maker_type || "");

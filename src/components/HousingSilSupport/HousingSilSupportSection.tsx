@@ -104,7 +104,7 @@ const HousingSilSupportSection: React.FC<Props> = ({
                   checked={formData.housing_separate === "Yes"}
                   onChange={(e) => handleCheckbox("housing_separate", e.target.checked)}
                 />
-                <span>My housing is separate from my SIL provider</span>
+                <span>My housing arrangement is separate from my SIL support provider.</span>
               </label>
               {hoveredField === "housing_separate" && (
                 <button
@@ -131,7 +131,7 @@ const HousingSilSupportSection: React.FC<Props> = ({
                   checked={formData.change_sil_without_losing_home === "Yes"}
                   onChange={(e) => handleCheckbox("change_sil_without_losing_home", e.target.checked)}
                 />
-                <span>I can change SIL providers without losing my home</span>
+                <span>I understand that my choice of SIL provider is independent of my housing arrangement.</span>
               </label>
               {hoveredField === "change_sil_without_losing_home" && (
                 <button
@@ -158,7 +158,7 @@ const HousingSilSupportSection: React.FC<Props> = ({
                   checked={formData.tenancy_separate === "Yes"}
                   onChange={(e) => handleCheckbox("tenancy_separate", e.target.checked)}
                 />
-                <span>My tenancy is separate from my supports</span>
+                <span>My tenancy agreement is separate from the supports I receive.</span>
               </label>
               {hoveredField === "tenancy_separate" && (
                 <button
@@ -185,7 +185,7 @@ const HousingSilSupportSection: React.FC<Props> = ({
                   checked={formData.explained_to_me === "Yes"}
                   onChange={(e) => handleCheckbox("explained_to_me", e.target.checked)}
                 />
-                <span>I have had this explained to me</span>
+                <span>These arrangements have been clearly explained to me, and I understand my rights and choices.</span>
               </label>
               {hoveredField === "explained_to_me" && (
                 <button

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { update, show, verifyFormOtp } from "@/src/services/crud";
+import { update, show, verifyFormOtp, getFormSession } from "@/src/services/crud";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
 import Image from "next/image";
 import phpApi from "@/src/utils/PhpApi";
@@ -18,6 +18,19 @@ export default function ShowSilSupportPlanPage() {
   const [enteredPassword, setEnteredPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [clientName, setClientName] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { client_name } = await getFormSession("sil-support-plan", uuid as string, sessionUserId, sessionClientType);
+        if (client_name && client_name !== "Unknown") {
+          setClientName(client_name);
+        }
+      } catch (e) {
+        console.error("getFormSession in show page failed", e);
+      }
+    })();
+  }, [uuid, sessionUserId, sessionClientType]);
   
   const [isSignatureOnly, setIsSignatureOnly] = useState(true);
 
@@ -40,7 +53,7 @@ export default function ShowSilSupportPlanPage() {
   const [reviewSignature, setReviewSignature] = useState<any>({});
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
 
-  const isAdmin = typeof window !== "undefined" && (searchParams.get("admin") === "1" || !!localStorage.getItem("token"));
+  const isAdmin = typeof window !== "undefined" && searchParams.get("admin") === "1";
   const isReadOnly = isSignatureOnly && !isAdmin;
 
   const fetchSignatureMode = useCallback(async () => {
@@ -64,8 +77,21 @@ export default function ShowSilSupportPlanPage() {
       const response = await show<any>("sil-support-plan-show", uuid as string);
       if (response?.data) {
         setFormData(response.data);
-        if (response.data.client_name) {
+        if (response.data.client_name && response.data.client_name !== "Unknown") {
           setClientName(response.data.client_name);
+        } else {
+          const uId = response.data.user_id || sessionUserId;
+          const cType = response.data.client_type || sessionClientType;
+          if (uId) {
+            try {
+              const sessionRes = await getFormSession("sil-support-plan", uuid as string, String(uId), String(cType));
+              if (sessionRes?.client_name && sessionRes.client_name !== "Unknown") {
+                setClientName(sessionRes.client_name);
+              }
+            } catch (err) {
+              console.error("Fallback getFormSession failed", err);
+            }
+          }
         }
         if (response.data.completion_percentage !== undefined) {
           setCompletionPercentage(response.data.completion_percentage);
@@ -306,6 +332,9 @@ export default function ShowSilSupportPlanPage() {
       }
 
       if (uuid) data.append("uuid", uuid);
+      if (isSignatureOnly) {
+        data.append("signature_only", "1");
+      }
 
       const response = await update("sil-support-plan", data);
       if (response.success) {
@@ -329,32 +358,35 @@ export default function ShowSilSupportPlanPage() {
 
   const completionBarStyle = { width: `${completionPercentage}%` };
 
-  if (!authenticated) {
+  if (!authenticated && !isAdmin) {
     return (
-      <div className="flex justify-center mt-20">
-        <div className="p-8 max-w-md w-full mx-auto bg-white rounded-md shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold mb-6 text-gray-900">
-            Enter Password to Continue
-          </h2>
-          <form onSubmit={handlePasswordSubmit}>
-            <input
-              type="password"
-              value={enteredPassword}
-              onChange={(e) => setEnteredPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4"
-              style={{ backgroundColor: '#fff9c4' }}
-            />
-            {passwordError && (
-              <p className="text-red-500 text-sm mb-4">
-                {passwordError}
-              </p>
-            )}
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 max-w-md w-full text-center">
+          <div className="flex justify-center mb-6">
+            <Image src="/assets/images/BHC LOGO_SMALL.png" alt="Company Logo" width={140} height={60} className="h-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Access Protected</h2>
+          <p className="text-sm text-gray-600 mb-6">Please enter the security password to view or sign this document.</p>
+          
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                value={enteredPassword}
+                onChange={(e) => setEnteredPassword(e.target.value)}
+                placeholder="Enter password"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-center focus:border-blue-500 focus:outline-none"
+              />
+              {passwordError && (
+                <p className="text-xs text-red-500 mt-2 font-medium">{passwordError}</p>
+              )}
+            </div>
             <button
               type="submit"
               disabled={loading}
               className="bg-[#1976d2] text-white font-medium py-2 px-6 rounded transition disabled:opacity-50"
             >
-              {loading ? "Submitting..." : "Submit"}
+              {loading ? "Verifying..." : "Verify"}
             </button>
           </form>
         </div>
@@ -367,7 +399,7 @@ export default function ShowSilSupportPlanPage() {
       <div className="flex justify-end gap-4 items-start">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
           <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
-            {clientName || "N/A"}
+            {clientName && clientName !== "Unknown" ? clientName : "N/A"}
           </h1>
         </div>
       </div>
@@ -401,7 +433,7 @@ export default function ShowSilSupportPlanPage() {
       {isSignatureOnly && !isAdmin && (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 max-w-6xl mx-auto rounded">
           <p className="text-blue-700 font-medium">
-            This form is currently in "Signature Only" mode. All content fields are read-only for review.
+            This form is currently in "Signature Only" mode. All content fields are read-only for review. Please complete your signature below.
           </p>
         </div>
       )}
@@ -461,11 +493,9 @@ export default function ShowSilSupportPlanPage() {
         </div>
 
         <div className="flex justify-center gap-4 mt-8">
-          {!isReadOnly && (
-            <button type="submit" disabled={loading} className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50">
-              {loading ? "Submitting..." : "Submit"}
-            </button>
-          )}
+          <button type="submit" disabled={loading} className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50">
+            {loading ? "Submitting..." : "Submit"}
+          </button>
         </div>
       </form>
     </div>

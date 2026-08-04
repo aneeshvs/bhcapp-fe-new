@@ -173,63 +173,156 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
           </div>
         </div>
 
-        {/* Client Signature */}
-        <div className="mb-8 pb-6 border-b border-gray-200">
+        {/* Client / Representative Signature */}
+        <div className="mb-8 pb-6 border-b border-gray-200" id="client-signature-pad">
           <p className="font-semibold text-sm mb-4">Executed as an agreement by the client, or by the client’s guardian/representative:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormFieldWrapper
-              label="Client/Representative Name"
-              fieldName="client_signature_name"
-              value={formData.client_signature_name}
-              onChange={handleChange}
-              uuid={uuid}
-              apiEndpoint="/sil-sta-service-agreement/logs"
-            />
-            <FormFieldWrapper
-              label="Date"
-              fieldName="client_signature_date"
-              type="date"
-              value={formData.client_signature_date}
-              onChange={handleChange}
-              uuid={uuid}
-              apiEndpoint="/sil-sta-service-agreement/logs"
-            />
-            <div className="md:col-span-2 relative">
-              <label className="block font-medium mb-1">Client Signature</label>
-              <canvas
-                ref={clientCanvasRef}
-                className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md"
+          
+          {/* Signer Type Radio Choice */}
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 items-start sm:items-center bg-blue-50 p-4 border border-blue-200 rounded-lg mb-6">
+            <span className="font-semibold text-gray-800 text-sm">Signing As:</span>
+            <label className="inline-flex items-center cursor-pointer bg-white px-3 py-1.5 rounded border border-gray-300 shadow-sm hover:border-blue-500 transition text-sm">
+              <input
+                type="radio"
+                name="client_signer_type"
+                value="participant"
+                checked={(formData.client_signer_type || "participant") === "participant"}
+                onChange={() => handleChange({ target: { name: "client_signer_type", value: "participant" } })}
+                className="form-radio text-blue-600 h-4 w-4"
               />
-              
-              {formData.client_signature?.startsWith('data:image') && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
-                  <img
-                    src={formData.client_signature}
-                    alt="client signature"
-                    className="w-48 h-20 border rounded shadow"
-                  />
+              <span className="ml-2 font-medium text-gray-700">Participant</span>
+            </label>
+            <label className="inline-flex items-center cursor-pointer bg-white px-3 py-1.5 rounded border border-gray-300 shadow-sm hover:border-blue-500 transition text-sm">
+              <input
+                type="radio"
+                name="client_signer_type"
+                value="representative"
+                checked={formData.client_signer_type === "representative"}
+                onChange={() => handleChange({ target: { name: "client_signer_type", value: "representative" } })}
+                className="form-radio text-blue-600 h-4 w-4"
+              />
+              <span className="ml-2 font-medium text-gray-700">Representative</span>
+            </label>
+          </div>
+
+          {(formData.client_signer_type || "participant") === "participant" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormFieldWrapper
+                label="Participant Name"
+                fieldName="client_signature_name"
+                value={formData.client_signature_name || ""}
+                onChange={handleChange}
+                uuid={uuid}
+                apiEndpoint="/sil-sta-service-agreement/logs"
+              />
+              <FormFieldWrapper
+                label="Date"
+                fieldName="client_signature_date"
+                type="date"
+                value={formData.client_signature_date || ""}
+                onChange={handleChange}
+                uuid={uuid}
+                apiEndpoint="/sil-sta-service-agreement/logs"
+              />
+              <div className="md:col-span-2 relative">
+                <label className="block font-medium mb-1">Participant Signature</label>
+                <canvas
+                  ref={clientCanvasRef}
+                  className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-pointer"
+                />
+                
+                {formData.client_signature?.startsWith('data:image') && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
+                    <img
+                      src={formData.client_signature}
+                      alt="participant signature"
+                      className="w-48 h-20 border rounded shadow bg-white object-contain"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleClear("client_signature", clientPadRef)}
+                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSave("client_signature", clientPadRef)}
+                    className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
+                  >
+                    Save Signature
+                  </button>
                 </div>
-              )}
-              
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => handleClear("client_signature", clientPadRef)}
-                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSave("client_signature", clientPadRef)}
-                  className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition"
-                >
-                  Save Signature
-                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormFieldWrapper
+                label="Representative Name"
+                fieldName="client_signature_name"
+                value={formData.client_signature_name || ""}
+                onChange={handleChange}
+                uuid={uuid}
+                apiEndpoint="/sil-sta-service-agreement/logs"
+              />
+              <FormFieldWrapper
+                label="Relation to the participant"
+                fieldName="representative_relation"
+                value={formData.representative_relation || ""}
+                onChange={handleChange}
+                uuid={uuid}
+                apiEndpoint="/sil-sta-service-agreement/logs"
+              />
+              <FormFieldWrapper
+                label="Date"
+                fieldName="client_signature_date"
+                type="date"
+                value={formData.client_signature_date || ""}
+                onChange={handleChange}
+                uuid={uuid}
+                apiEndpoint="/sil-sta-service-agreement/logs"
+              />
+              <div className="md:col-span-3 relative">
+                <label className="block font-medium mb-1">Representative Signature</label>
+                <canvas
+                  ref={clientCanvasRef}
+                  className="w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded mb-2 touch-none shadow-md cursor-pointer"
+                />
+                
+                {formData.client_signature?.startsWith('data:image') && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 mb-1">Saved Signature:</p>
+                    <img
+                      src={formData.client_signature}
+                      alt="representative signature"
+                      className="w-48 h-20 border rounded shadow bg-white object-contain"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleClear("client_signature", clientPadRef)}
+                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm font-medium"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSave("client_signature", clientPadRef)}
+                    className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white transition text-sm font-medium"
+                  >
+                    Save Signature
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Witness Signature */}

@@ -18,5 +18,7 @@ export const mapApiResponseToFormData = (
     participant_name: data.participant_name || "",
     date: data.date || "",
     support_person: data.support_person || "",
+    participant_signature: data.participant_signature || "",
+    submit_final: data.submit_final ?? (data.form_status === 'completed' ? 1 : 0),
   };
 };

@@ -1,8 +1,132 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, createRef, RefObject } from "react";
+import React, { useState, useEffect, useMemo, createRef, RefObject, useCallback, useRef } from "react";
+import SignaturePad from "signature_pad";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import AccordianPlanSection from "@/src/components/AccordianSection";
+
+const SingleSignaturePad: React.FC<{
+  label: string;
+  value?: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  elementId?: string;
+}> = ({ label, value, onChange, disabled, elementId }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const padRef = useRef<SignaturePad | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.width = canvas.offsetWidth || 400;
+    canvas.height = canvas.offsetHeight || 128;
+
+    if (padRef.current) return;
+
+    const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
+    padRef.current = pad;
+
+    pad.addEventListener("endStroke", () => {
+      if (!pad.isEmpty()) {
+        onChange(pad.toDataURL());
+      }
+    });
+
+    const timer = setTimeout(() => {
+      if (canvas && pad && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+        const data = pad.toData();
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight || 128;
+        pad.clear();
+        pad.fromData(data);
+      }
+    }, 200);
+
+    const handleResize = () => {
+      if (canvas && padRef.current && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+        const data = padRef.current.toData();
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight || 128;
+        padRef.current.clear();
+        padRef.current.fromData(data);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const pad = padRef.current;
+    if (!pad) return;
+    if (value && value.startsWith("data:image")) {
+      if (pad.isEmpty() || pad.toDataURL() !== value) {
+        pad.clear();
+        pad.fromDataURL(value, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
+      }
+    } else if (!value) {
+      pad.clear();
+    }
+  }, [value]);
+
+  const handleClear = () => {
+    if (padRef.current) {
+      padRef.current.clear();
+    }
+    onChange("");
+  };
+
+  const handleSave = () => {
+    if (padRef.current && !padRef.current.isEmpty()) {
+      onChange(padRef.current.toDataURL());
+      window.alert("Signature temporarily saved to form! Click 'Submit' to save it permanently.");
+    }
+  };
+
+  return (
+    <div className="md:col-span-2 relative my-3" id={elementId}>
+      <label className="block font-semibold text-sm mb-2 text-gray-800">{label}</label>
+      <canvas
+        ref={canvasRef}
+        className={`w-full h-32 border-4 border-yellow-400 bg-yellow-50 rounded-lg mb-2 touch-none shadow-md ${
+          disabled ? "pointer-events-none opacity-75" : "cursor-pointer"
+        }`}
+      />
+      {value?.startsWith("data:image") && (
+        <div className="mt-2 mb-3">
+          <p className="text-xs font-semibold text-gray-600 mb-1">Saved Signature Preview:</p>
+          <img
+            src={value}
+            alt={label}
+            className="w-48 h-20 border rounded shadow bg-white object-contain"
+          />
+        </div>
+      )}
+      {!disabled && (
+        <div className="flex gap-3 mt-2">
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs font-semibold rounded-lg transition"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="btn-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white text-xs font-semibold transition"
+          >
+            Save Signature
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 import Tracker from "@/src/components/Tracker";
 import { destroy } from "@/src/services/crud";
 
@@ -228,7 +352,7 @@ export default function SilSupportPlanForm({
   };
 
   const handleReviewSignatureChange = (field: string, value: string) => {
-    setReviewSignature({ ...reviewSignature, [field]: value });
+    setReviewSignature((prev: any) => ({ ...prev, [field]: value }));
   };
 
   useEffect(() => {
@@ -344,9 +468,29 @@ export default function SilSupportPlanForm({
     { key: "reviewSignatures", label: "SIGNATURES" },
   ];
 
+  const scrollToSignature = useCallback(() => {
+    setOpenSections((prev) => ({
+      ...prev,
+      reviewSignatures: true,
+    }));
+    setTimeout(() => {
+      const sigElement = document.getElementById("participant-signature-pad") || document.getElementById("review-signatures-section");
+      if (sigElement) {
+        sigElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 300);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end items-center gap-4 mb-4">
+        <div 
+          className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
+          onClick={scrollToSignature}
+        >
+          <span className="text-xl mr-2">👉</span>
+          <span>Click here to participant signature</span>
+        </div>
         <button
           type="button"
           onClick={toggleExpandAll}
@@ -569,7 +713,7 @@ export default function SilSupportPlanForm({
                 </div>
                 <input
                   type="text"
-                  value={dm.decision_maker_type}
+                  value={dm.decision_maker_type || ""}
                   onChange={(e) => handleDecisionMakerChange(index, "decision_maker_type", e.target.value)}
                   disabled={isReadOnly}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border disabled:bg-gray-100"
@@ -585,7 +729,7 @@ export default function SilSupportPlanForm({
                 </div>
                 <input
                   type="text"
-                  value={dm.name_and_contact_details}
+                  value={dm.name_and_contact_details || ""}
                   onChange={(e) => handleDecisionMakerChange(index, "name_and_contact_details", e.target.value)}
                   disabled={isReadOnly}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border disabled:bg-gray-100"
@@ -1335,34 +1479,226 @@ export default function SilSupportPlanForm({
         isOpen={openSections["reviewSignatures"]}
         onToggle={() => handleSectionToggle("reviewSignatures")}
       >
-        <div className="space-y-4">
-          {[
-            { key: "client", label: "Client:", type: "text" },
-            { key: "guardian_nominee", label: "Guardian/nominee:", type: "text" },
-            { key: "key_team_member", label: "Key Team Member:", type: "text" },
-            { key: "date", label: "Date:", type: "date" },
-          ].map(({ key, label, type }) => (
-            <div key={key} className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 border rounded shadow-sm relative" onMouseEnter={() => setHoveredField(`rev_sig_${key}`)} onMouseLeave={() => setHoveredField(null)}>
-              <div className="w-full md:w-1/3 flex justify-between items-center">
-                <label className="block text-sm font-medium text-gray-700">{label}</label>
-                {hoveredField === `rev_sig_${key}` && (
-                  <button type="button" onClick={() => handleViewLogs(`rev_sig_${key}`)} className="text-xs btn-primary text-white px-2 py-1 rounded md:hidden">View Logs</button>
-                )}
+        <div className="space-y-6" id="review-signatures-section">
+          {/* Signer Type Radio Choice */}
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 items-start sm:items-center bg-gray-50 p-4 border rounded shadow-sm">
+            <span className="font-semibold text-gray-800">Signing As:</span>
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="signer_type"
+                value="participant"
+                checked={(reviewSignature.signer_type || "participant") === "participant"}
+                onChange={() => handleReviewSignatureChange("signer_type", "participant")}
+                className="form-radio text-blue-600 h-4 w-4"
+              />
+              <span className="ml-2 font-medium text-gray-700">Participant</span>
+            </label>
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="signer_type"
+                value="representative"
+                checked={reviewSignature.signer_type === "representative"}
+                onChange={() => handleReviewSignatureChange("signer_type", "representative")}
+                className="form-radio text-blue-600 h-4 w-4"
+              />
+              <span className="ml-2 font-medium text-gray-700">Representative</span>
+            </label>
+          </div>
+
+          {/* Conditional: Participant vs Representative */}
+          {(reviewSignature.signer_type || "participant") === "participant" ? (
+            <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
+              <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Participant Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_participant_name")} onMouseLeave={() => setHoveredField(null)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Participant Name</label>
+                    {hoveredField === "rev_sig_participant_name" && (
+                      <button type="button" onClick={() => handleViewLogs("rev_sig_participant_name")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={reviewSignature.participant_name ?? reviewSignature.client ?? ""}
+                    onChange={(e) => handleReviewSignatureChange("participant_name", e.target.value)}
+                    placeholder="Enter participant name"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+
+                <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_participant_date")} onMouseLeave={() => setHoveredField(null)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                    {hoveredField === "rev_sig_participant_date" && (
+                      <button type="button" onClick={() => handleViewLogs("rev_sig_participant_date")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    value={reviewSignature.participant_date ?? reviewSignature.date ?? ""}
+                    onChange={(e) => handleReviewSignatureChange("participant_date", e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
               </div>
-              <div className="w-full md:w-2/3 relative">
-                {hoveredField === `rev_sig_${key}` && (
-                  <button type="button" onClick={() => handleViewLogs(`rev_sig_${key}`)} className="hidden md:block absolute -top-8 right-0 text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
-                )}
+
+              <SingleSignaturePad
+                label="Participant Signature"
+                elementId="participant-signature-pad"
+                value={reviewSignature.participant_signature || ""}
+                onChange={(val) => handleReviewSignatureChange("participant_signature", val)}
+              />
+            </div>
+          ) : (
+            <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
+              <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Representative Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_representative_name")} onMouseLeave={() => setHoveredField(null)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Representative Name</label>
+                    {hoveredField === "rev_sig_representative_name" && (
+                      <button type="button" onClick={() => handleViewLogs("rev_sig_representative_name")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={reviewSignature.representative_name || ""}
+                    onChange={(e) => handleReviewSignatureChange("representative_name", e.target.value)}
+                    placeholder="Enter representative name"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+
+                <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_representative_relation")} onMouseLeave={() => setHoveredField(null)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Relation to the participant</label>
+                    {hoveredField === "rev_sig_representative_relation" && (
+                      <button type="button" onClick={() => handleViewLogs("rev_sig_representative_relation")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={reviewSignature.representative_relation || ""}
+                    onChange={(e) => handleReviewSignatureChange("representative_relation", e.target.value)}
+                    placeholder="e.g. Parent, Advocate"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+
+                <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_representative_date")} onMouseLeave={() => setHoveredField(null)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                    {hoveredField === "rev_sig_representative_date" && (
+                      <button type="button" onClick={() => handleViewLogs("rev_sig_representative_date")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    value={reviewSignature.representative_date ?? reviewSignature.date ?? ""}
+                    onChange={(e) => handleReviewSignatureChange("representative_date", e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+              </div>
+
+              <SingleSignaturePad
+                label="Representative Signature"
+                elementId="representative-signature-pad"
+                value={reviewSignature.representative_signature || ""}
+                onChange={(val) => handleReviewSignatureChange("representative_signature", val)}
+              />
+            </div>
+          )}
+
+          {/* Guardian / Nominee Section */}
+          <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
+            <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Guardian / Nominee</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_guardian_nominee_name")} onMouseLeave={() => setHoveredField(null)}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Guardian/Nominee Name</label>
+                  {hoveredField === "rev_sig_guardian_nominee_name" && (
+                    <button type="button" onClick={() => handleViewLogs("rev_sig_guardian_nominee_name")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                  )}
+                </div>
                 <input
-                  type={type}
-                  value={reviewSignature[key] || ""}
-                  onChange={(e) => handleReviewSignatureChange(key, e.target.value)}
-                  disabled={isReadOnly}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border disabled:bg-gray-100"
+                  type="text"
+                  value={reviewSignature.guardian_nominee_name ?? reviewSignature.guardian_nominee ?? ""}
+                  onChange={(e) => handleReviewSignatureChange("guardian_nominee_name", e.target.value)}
+                  placeholder="Enter guardian/nominee name"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                />
+              </div>
+
+              <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_guardian_nominee_date")} onMouseLeave={() => setHoveredField(null)}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Date</label>
+                  {hoveredField === "rev_sig_guardian_nominee_date" && (
+                    <button type="button" onClick={() => handleViewLogs("rev_sig_guardian_nominee_date")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                  )}
+                </div>
+                <input
+                  type="date"
+                  value={reviewSignature.guardian_nominee_date ?? reviewSignature.date ?? ""}
+                  onChange={(e) => handleReviewSignatureChange("guardian_nominee_date", e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
               </div>
             </div>
-          ))}
+
+            <SingleSignaturePad
+              label="Guardian / Nominee Signature"
+              elementId="guardian-signature-pad"
+              value={reviewSignature.guardian_nominee_signature || ""}
+              onChange={(val) => handleReviewSignatureChange("guardian_nominee_signature", val)}
+            />
+          </div>
+
+          {/* Key Team Member Section */}
+          <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
+            <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Key Team Member</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_key_team_member_name")} onMouseLeave={() => setHoveredField(null)}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Key Team Member Name</label>
+                  {hoveredField === "rev_sig_key_team_member_name" && (
+                    <button type="button" onClick={() => handleViewLogs("rev_sig_key_team_member_name")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={reviewSignature.key_team_member_name ?? reviewSignature.key_team_member ?? ""}
+                  onChange={(e) => handleReviewSignatureChange("key_team_member_name", e.target.value)}
+                  placeholder="Enter key team member name"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                />
+              </div>
+
+              <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_key_team_member_date")} onMouseLeave={() => setHoveredField(null)}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Date</label>
+                  {hoveredField === "rev_sig_key_team_member_date" && (
+                    <button type="button" onClick={() => handleViewLogs("rev_sig_key_team_member_date")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                  )}
+                </div>
+                <input
+                  type="date"
+                  value={reviewSignature.key_team_member_date ?? reviewSignature.date ?? ""}
+                  onChange={(e) => handleReviewSignatureChange("key_team_member_date", e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                />
+              </div>
+            </div>
+
+            <SingleSignaturePad
+              label="Key Team Member Signature"
+              elementId="key-team-signature-pad"
+              value={reviewSignature.key_team_member_signature || ""}
+              onChange={(val) => handleReviewSignatureChange("key_team_member_signature", val)}
+            />
+          </div>
         </div>
       </AccordianPlanSection>
 
