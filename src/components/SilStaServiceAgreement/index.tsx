@@ -11,7 +11,7 @@ import { SilStaServiceAgreementData, SilStaScheduleOfSupport } from "@/src/compo
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import Tracker from "@/src/components/Tracker";
 import StaticTermsContent from "@/src/components/SilStaServiceAgreement/StaticTermsContent";
-import { getFormSession, show } from "@/src/services/crud";
+import { getFormSession, index, show } from "@/src/services/crud";
 
 const emptySchedule: SilStaScheduleOfSupport = {
   support_services: "",
@@ -59,18 +59,18 @@ const defaultFormData: SilStaServiceAgreementData = {
 };
 
 interface SilStaServiceAgreementFormProps {
-  uuid: string;
-  userid: string;
-  client_type: string;
+  uuid?: string;
+  userid?: string;
+  client_type?: string;
   isClientView?: boolean;
   clientName?: string;
   isSignatureOnly?: boolean;
 }
 
 export default function SilStaServiceAgreementForm({
-  uuid,
-  userid,
-  client_type,
+  uuid = "",
+  userid = "",
+  client_type = "",
   isClientView = false,
   clientName = "",
   isSignatureOnly = false,
@@ -138,13 +138,37 @@ export default function SilStaServiceAgreementForm({
           console.error("getFormSession failed", sessionError);
         }
 
+        // Fetch basic details for autofill if userid is available
+        let basicDetails: any = null;
+        if (userid) {
+          try {
+            const basicRes = await index<any>("get-client-basic-details", { userid, client_type });
+            if (basicRes.success && basicRes.data) {
+              basicDetails = basicRes.data;
+            }
+          } catch (err) {
+            console.error("Failed to load basic details:", err);
+          }
+        }
+
         if (effectiveUuid) {
           const response = await show<SilStaServiceAgreementData>("sil-sta-service-agreement", effectiveUuid);
           if (response.success && response.data) {
             setFormData((prev) => ({
               ...prev,
               ...response.data,
-              client_name: response.data.client_name || formClientName,
+              client_name: response.data.client_name || formClientName || basicDetails?.participant_name || prev.client_name,
+              client_address: response.data.client_address || basicDetails?.address || prev.client_address,
+              client_email: response.data.client_email || basicDetails?.email || prev.client_email,
+              client_phone: response.data.client_phone || basicDetails?.contact || prev.client_phone,
+              client_ndis_number: response.data.client_ndis_number || basicDetails?.ndis_number || prev.client_ndis_number,
+              client_funding_type: response.data.client_funding_type || basicDetails?.type_of_funding || prev.client_funding_type,
+              ndis_plan_start_date: response.data.ndis_plan_start_date || basicDetails?.ndis_plan_start_date || prev.ndis_plan_start_date,
+              ndis_plan_end_date: response.data.ndis_plan_end_date || basicDetails?.ndis_plan_end_date || prev.ndis_plan_end_date,
+              rep_name: response.data.rep_name || basicDetails?.representative_name || prev.rep_name,
+              rep_legal_authority: response.data.rep_legal_authority || basicDetails?.representative_relationship || prev.rep_legal_authority,
+              rep_phone: response.data.rep_phone || basicDetails?.representative_contact || prev.rep_phone,
+              rep_email: response.data.rep_email || basicDetails?.representative_email || prev.rep_email,
               schedule_of_supports: response.data.schedule_of_supports?.length > 0 
                   ? response.data.schedule_of_supports 
                   : [{ ...emptySchedule }]
@@ -156,13 +180,22 @@ export default function SilStaServiceAgreementForm({
           }
         }
         
-        // If no effectiveUuid or fetch failed, but we got clientName from session
-        if (formClientName) {
-           setFormData((prev) => ({
-              ...prev,
-              client_name: formClientName
-           }));
-        }
+        // If no effectiveUuid or fetch failed, fill from basicDetails / formClientName
+        setFormData((prev) => ({
+          ...prev,
+          client_name: formClientName || basicDetails?.participant_name || prev.client_name || '',
+          client_address: basicDetails?.address || prev.client_address || '',
+          client_email: basicDetails?.email || prev.client_email || '',
+          client_phone: basicDetails?.contact || prev.client_phone || '',
+          client_ndis_number: basicDetails?.ndis_number || prev.client_ndis_number || '',
+          client_funding_type: basicDetails?.type_of_funding || prev.client_funding_type || '',
+          ndis_plan_start_date: basicDetails?.ndis_plan_start_date || prev.ndis_plan_start_date || '',
+          ndis_plan_end_date: basicDetails?.ndis_plan_end_date || prev.ndis_plan_end_date || '',
+          rep_name: basicDetails?.representative_name || prev.rep_name || '',
+          rep_legal_authority: basicDetails?.representative_relationship || prev.rep_legal_authority || '',
+          rep_phone: basicDetails?.representative_contact || prev.rep_phone || '',
+          rep_email: basicDetails?.representative_email || prev.rep_email || '',
+        }));
       } catch (error) {
         console.error("Error loading agreement:", error);
       }

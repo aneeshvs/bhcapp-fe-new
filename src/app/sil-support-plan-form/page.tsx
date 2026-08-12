@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getFormSession, update, show } from "@/src/services/crud";
+import { getFormSession, index, update, show } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
@@ -78,13 +78,62 @@ export default function SilSupportPlanPage() {
   const fetchFormData = async () => {
     try {
       const effectiveUuid = sessionUuid || searchParams.get("form-uuid") || searchParams.get("uuid");
-      if (!effectiveUuid) return;
+      
+      let basicDetails: any = null;
+      if (sessionUserId) {
+        try {
+          const res = await index<any>("get-client-basic-details", { userid: sessionUserId, client_type: sessionClientType });
+          if (res.success && res.data) {
+            basicDetails = res.data;
+          }
+        } catch (err) {
+          console.error("Failed to load basic details:", err);
+        }
+      }
+
+      if (!effectiveUuid) {
+        if (basicDetails) {
+          setFormData((prev: any) => ({
+            ...prev,
+            client_name: basicDetails.participant_name || prev.client_name || '',
+            date_of_birth: basicDetails.dob || prev.date_of_birth || '',
+            ndis_number: basicDetails.ndis_number || prev.ndis_number || '',
+            address: basicDetails.address || prev.address || '',
+            sil_provider: prev.sil_provider || "Best of Homecare"
+          }));
+          if (basicDetails.participant_name) {
+            setClientName(basicDetails.participant_name);
+          }
+          if (basicDetails.representative_name) {
+            setDecisionMakers((prev: any[]) => {
+              if (prev.length === 0 || (prev.length === 1 && !prev[0].name_and_contact_details)) {
+                return [{
+                  decision_maker_type: basicDetails.representative_relationship || 'Emergency Contact',
+                  name_and_contact_details: `${basicDetails.representative_name}${basicDetails.representative_contact ? ' - ' + basicDetails.representative_contact : ''}`
+                }];
+              }
+              return prev;
+            });
+          }
+        }
+        return;
+      }
 
       const response = await show<any>("sil-support-plan-show", effectiveUuid);
       if (response?.data) {
-        setFormData(response.data);
+        setFormData((prev: any) => ({
+          ...prev,
+          ...response.data,
+          client_name: response.data.client_name || basicDetails?.participant_name || prev.client_name || '',
+          date_of_birth: response.data.date_of_birth || basicDetails?.dob || prev.date_of_birth || '',
+          ndis_number: response.data.ndis_number || basicDetails?.ndis_number || prev.ndis_number || '',
+          address: response.data.address || basicDetails?.address || prev.address || '',
+          sil_provider: response.data.sil_provider || prev.sil_provider || "Best of Homecare",
+        }));
         if (response.data.client_name && response.data.client_name !== "Unknown") {
           setClientName(response.data.client_name);
+        } else if (basicDetails?.participant_name) {
+          setClientName(basicDetails.participant_name);
         } else {
           const uId = response.data.user_id || sessionUserId;
           const cType = response.data.client_type || sessionClientType;
@@ -102,8 +151,13 @@ export default function SilSupportPlanPage() {
         if (response.data.completion_percentage !== undefined) {
           setCompletionPercentage(response.data.completion_percentage);
         }
-        if (response.data.decision_makers) {
+        if (response.data.decision_makers && response.data.decision_makers.length > 0) {
           setDecisionMakers(response.data.decision_makers);
+        } else if (basicDetails?.representative_name) {
+          setDecisionMakers([{
+            decision_maker_type: basicDetails.representative_relationship || 'Emergency Contact',
+            name_and_contact_details: `${basicDetails.representative_name}${basicDetails.representative_contact ? ' - ' + basicDetails.representative_contact : ''}`
+          }]);
         }
         if (response.data.client_goal) {
           setClientGoal(response.data.client_goal);

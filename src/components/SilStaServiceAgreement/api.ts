@@ -1,27 +1,13 @@
-import axios from "axios";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend.bhcapp.com.au/api";
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
-};
+import api from "@/src/utils/api";
 
 export const saveSilStaServiceAgreement = async (data: any) => {
   try {
     const isClientView = !!data.isClientView;
-    const endpoint = isClientView ? "/client/sil-sta-service-agreement/update" : "/sil-sta-service-agreement/save";
-    const method = "POST";
+    const endpoint = isClientView
+      ? "/client/sil-sta-service-agreement/update"
+      : "/sil-sta-service-agreement/save";
 
-    const response = await axios({
-      method,
-      url: `${API_BASE_URL}${endpoint}`,
-      data,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.post(endpoint, data);
     return response.data;
   } catch (error) {
     console.error("Error saving SIL/STA Service Agreement:", error);
@@ -31,9 +17,8 @@ export const saveSilStaServiceAgreement = async (data: any) => {
 
 export const fetchSilStaServiceAgreement = async (uuid: string, userId: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/sil-sta-service-agreement/show`, {
+    const response = await api.get("/sil-sta-service-agreement/show", {
       params: { uuid, user_id: userId },
-      headers: getAuthHeaders(),
     });
     return response.data;
   } catch (error) {
@@ -44,9 +29,8 @@ export const fetchSilStaServiceAgreement = async (uuid: string, userId: string) 
 
 export const fetchSilStaServiceAgreementUuid = async (userId: string, clientType: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/get-sil-sta-service-agreement-uuid`, {
+    const response = await api.get("/get-sil-sta-service-agreement-uuid", {
       params: { userid: userId, client_type: clientType },
-      headers: getAuthHeaders(),
     });
     return response.data;
   } catch (error) {
@@ -57,16 +41,11 @@ export const fetchSilStaServiceAgreementUuid = async (userId: string, clientType
 
 export const generateSilStaServiceAgreementPdf = async (uuid: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sil-sta-service-agreement/export-pdf/${uuid}`, {
-      method: "GET",
-      headers: getAuthHeaders(),
+    const response = await api.get(`/sil-sta-service-agreement/export-pdf/${uuid}`, {
+      responseType: "blob",
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const blob = await response.blob();
+    const blob = new Blob([response.data], { type: "application/pdf" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

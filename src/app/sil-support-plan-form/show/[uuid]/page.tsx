@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { update, show, verifyFormOtp, getFormSession } from "@/src/services/crud";
+import { update, show, verifyFormOtp, getFormSession, index } from "@/src/services/crud";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
 import Image from "next/image";
 import phpApi from "@/src/utils/PhpApi";
@@ -76,28 +76,55 @@ export default function ShowSilSupportPlanPage() {
     try {
       const response = await show<any>("sil-support-plan-show", uuid as string);
       if (response?.data) {
-        setFormData(response.data);
+        const uId = response.data.user_id || sessionUserId;
+        const cType = response.data.client_type || sessionClientType;
+
+        let basicDetails: any = null;
+        if (uId) {
+          try {
+            const res = await index<any>("get-client-basic-details", { userid: uId, client_type: cType });
+            if (res.success && res.data) {
+              basicDetails = res.data;
+            }
+          } catch (err) {
+            console.error("Failed to load basic details in show page:", err);
+          }
+        }
+
+        setFormData((prev: any) => ({
+          ...prev,
+          ...response.data,
+          client_name: response.data.client_name || basicDetails?.participant_name || prev.client_name || '',
+          date_of_birth: response.data.date_of_birth || basicDetails?.dob || prev.date_of_birth || '',
+          ndis_number: response.data.ndis_number || basicDetails?.ndis_number || prev.ndis_number || '',
+          address: response.data.address || basicDetails?.address || prev.address || '',
+          sil_provider: response.data.sil_provider || prev.sil_provider || "Best of Homecare",
+        }));
+
         if (response.data.client_name && response.data.client_name !== "Unknown") {
           setClientName(response.data.client_name);
-        } else {
-          const uId = response.data.user_id || sessionUserId;
-          const cType = response.data.client_type || sessionClientType;
-          if (uId) {
-            try {
-              const sessionRes = await getFormSession("sil-support-plan", uuid as string, String(uId), String(cType));
-              if (sessionRes?.client_name && sessionRes.client_name !== "Unknown") {
-                setClientName(sessionRes.client_name);
-              }
-            } catch (err) {
-              console.error("Fallback getFormSession failed", err);
+        } else if (basicDetails?.participant_name) {
+          setClientName(basicDetails.participant_name);
+        } else if (uId) {
+          try {
+            const sessionRes = await getFormSession("sil-support-plan", uuid as string, String(uId), String(cType));
+            if (sessionRes?.client_name && sessionRes.client_name !== "Unknown") {
+              setClientName(sessionRes.client_name);
             }
+          } catch (err) {
+            console.error("Fallback getFormSession failed", err);
           }
         }
         if (response.data.completion_percentage !== undefined) {
           setCompletionPercentage(response.data.completion_percentage);
         }
-        if (response.data.decision_makers) {
+        if (response.data.decision_makers && response.data.decision_makers.length > 0) {
           setDecisionMakers(response.data.decision_makers);
+        } else if (basicDetails?.representative_name) {
+          setDecisionMakers([{
+            decision_maker_type: basicDetails.representative_relationship || 'Emergency Contact',
+            name_and_contact_details: `${basicDetails.representative_name}${basicDetails.representative_contact ? ' - ' + basicDetails.representative_contact : ''}`
+          }]);
         }
         if (response.data.client_goal) {
           setClientGoal(response.data.client_goal);
@@ -148,7 +175,7 @@ export default function ShowSilSupportPlanPage() {
     } catch (error) {
       console.error("Fetch error", error);
     }
-  }, [uuid]);
+  }, [uuid, sessionUserId, sessionClientType]);
 
   useEffect(() => {
     fetchSignatureMode();
