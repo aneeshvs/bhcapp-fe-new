@@ -1,18 +1,16 @@
-export interface HousingSilSupportData {
+export interface SilResidencyHandbookData {
   uuid?: string;
-  user_id?: string;
+  user_id?: string | number;
   client_type?: string;
-  form_status?: string;
-  completion_percentage?: number;
-  
-  housing_separate?: string;
-  change_sil_without_losing_home?: string;
-  tenancy_separate?: string;
-  explained_to_me?: string;
-  
+  support_provider?: string;
+  tenancy_contact?: string;
+  after_hours_support?: string;
+  local_advocacy_contact?: string;
+  acknowledgement?: string;
+  signing_as?: string; // 'Participant' | 'Representative'
   participant_name?: string;
+  relation_to_participant?: string;
   date?: string;
-  support_person?: string;
   participant_signature?: string;
 
   signer_type?: string;
@@ -29,4 +27,5 @@ export interface HousingSilSupportData {
   key_team_member_signature?: string;
 
   submit_final?: number;
+  completion_percentage?: number;
 }

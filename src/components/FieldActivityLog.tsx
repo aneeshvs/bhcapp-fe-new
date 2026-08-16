@@ -187,24 +187,39 @@ const FieldActivityLog: React.FC<LogProps> = ({ logs, field, customValueFormatte
               ))}
             </div>
           ) : (
-            log.attributes && log.attributes[field] !== undefined && (
-              <div className="mt-2">
-                <div className="border-l-4 border-indigo-300 pl-4 space-y-1 text-sm">
-                  <div>
-                    <strong>New value:</strong>{' '}
-                    {formatValue(log.attributes[field], field)}
+            (() => {
+              const getVal = (target: any) => {
+                if (!target) return undefined;
+                if (Array.isArray(target)) {
+                  const item = target.find((i: any) => i && i.field === field);
+                  return item ? item.value : undefined;
+                }
+                return target[field];
+              };
+
+              const newVal = getVal(log.attributes);
+              const oldVal = getVal(log.old);
+
+              if (newVal === undefined && oldVal === undefined) return null;
+
+              return (
+                <div className="mt-2">
+                  <div className="border-l-4 border-indigo-300 pl-4 space-y-1 text-sm">
+                    {newVal !== undefined && (
+                      <div>
+                        <strong>New value:</strong> {formatValue(newVal, field)}
+                      </div>
+                    )}
+                    {oldVal !== undefined && (
+                      <div>
+                        <strong>Previous value:</strong>{" "}
+                        <span className="text-gray-500">{formatOldValue(oldVal)}</span>
+                      </div>
+                    )}
                   </div>
-                  {log.old && log.old[field] !== undefined && (
-                    <div>
-                      <strong>Previous value:</strong>{' '}
-                      <span className="text-gray-500">
-                        {formatOldValue(log.old[field])}
-                      </span>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )
+              );
+            })()
           )}
         </div>
       ))}

@@ -2,21 +2,21 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
+import Image from "next/image";
 import { getFormSession } from "@/src/services/crud";
 import { update, show, index } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import Tracker from "@/src/components/Tracker";
-import { mapApiResponseToFormData } from "@/src/components/HousingSilSupport/MapApiResponseToFormData";
-import { sectionsConfig } from "@/src/components/HousingSilSupport/sectionsConfig";
+import { mapApiResponseToFormData } from "@/src/components/SilResidencyHandbook/MapApiResponseToFormData";
+import { sectionsConfig } from "@/src/components/SilResidencyHandbook/sectionsConfig";
 import AccordianPlanSection from "@/src/components/AccordianSection";
-import { HousingSilSupportResponse } from "@/src/components/HousingSilSupport/ApiResponse";
-import AgreementFormaData from "@/src/components/HousingSilSupport/AgreementFormData";
-
-import Image from "next/image";
+import { SilResidencyHandbookResponse } from "@/src/components/SilResidencyHandbook/ApiResponse";
+import AgreementFormData from "@/src/components/SilResidencyHandbook/AgreementFormData";
+import SilResidencyHandbookSection from "@/src/components/SilResidencyHandbook/SilResidencyHandbookSection";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 
 const SECTION_NAMES = [
-  "HousingSilSupport",
+  "SilResidencyHandbook",
   "ReviewSignatures"
 ] as const;
 
@@ -38,7 +38,7 @@ const createSectionRefs = () => {
   }, {} as Record<SectionKey, React.RefObject<HTMLDivElement | null>>);
 };
 
-export default function HousingSilSupportPage() {
+export default function SilResidencyHandbookPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -50,7 +50,7 @@ export default function HousingSilSupportPage() {
   const [loading, setLoading] = useState(false);
   const [flag, setFlag] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
-  const [formData, setFormData] = useState(AgreementFormaData);
+  const [formData, setFormData] = useState(AgreementFormData);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -72,6 +72,12 @@ export default function HousingSilSupportPage() {
     );
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
+
   const scrollToSignature = () => {
     setOpenSections((prev) => ({ ...prev, ReviewSignatures: true }));
     setTimeout(() => {
@@ -90,7 +96,7 @@ export default function HousingSilSupportPage() {
     (async () => {
       try {
         const token = localStorage.getItem("token");
-        const form = "housing-sil-support";
+        const form = "sil-residency-handbook";
         const formUuid = searchParams.get("form-uuid") || searchParams.get("uuid");
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
@@ -145,17 +151,23 @@ export default function HousingSilSupportPage() {
         return;
       }
 
-      const response = await show<HousingSilSupportResponse>("housing-sil-support", effectiveUuid);
-
-      if (response.data?.completion_percentage !== undefined) {
-        setCompletionPercentage(response.data.completion_percentage);
-      }
+      const response = await show<any>("sil-residency-handbook", effectiveUuid);
 
       if (!response?.data) {
         return;
       }
 
-      setFormData(mapApiResponseToFormData(response.data));
+      const handbookData = (response.data as any)?.silResidencyHandbook || response.data;
+
+      if (handbookData?.completion_percentage !== undefined) {
+        setCompletionPercentage(handbookData.completion_percentage);
+      }
+
+      if (handbookData?.uuid) {
+        setSessionUuid(handbookData.uuid);
+      }
+
+      setFormData(mapApiResponseToFormData(handbookData));
     } catch (error) {
       console.error("Error fetching form data:", error);
     }
@@ -240,19 +252,27 @@ export default function HousingSilSupportPage() {
           data.append("uuid", effectiveUuid);
         }
 
-        const apiResponse = await update<HousingSilSupportResponse>("housing-sil-support/update", data);
+        const apiResponse = await update<any>("sil-residency-handbook/update", data);
 
         if (apiResponse.success) {
           window.alert("Form submitted successfully.");
           setValidationErrors({});
           setFormSubmissionError("");
-          
-          if (!effectiveUuid && apiResponse.data?.housingSilSupport?.uuid) {
-            const newUuid = apiResponse.data.housingSilSupport.uuid;
+
+          const resData = apiResponse.data || {};
+          const record = resData.silResidencyHandbook || resData;
+          const returnedCompletion = (apiResponse as any).completion_percentage ?? resData.completion_percentage ?? record?.completion_percentage;
+          const newUuid = record?.uuid || resData.uuid;
+
+          if (returnedCompletion !== undefined) {
+            setCompletionPercentage(returnedCompletion);
+          }
+
+          if (newUuid && (!effectiveUuid || sessionUuid !== newUuid)) {
             setSessionUuid(newUuid);
             router.push(`?form-uuid=${newUuid}&userid=${sessionUserId}&client_type=${sessionClientType}`, { scroll: false });
           }
-          
+
           await fetchFormData();
         } else {
           setFormSubmissionError(apiResponse.message || "An error occurred");
@@ -275,17 +295,11 @@ export default function HousingSilSupportPage() {
     [formData, sessionUserId, sessionClientType, sessionUuid, fetchFormData, searchParams, router]
   );
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.reload();
-  };
-
   const completionBarStyle = { width: `${completionPercentage}%` };
 
   const trackerSteps = useMemo(() => {
     return [
-      { key: "HousingSilSupport", label: "Housing & SIL Supports" },
+      { key: "SilResidencyHandbook", label: "Residency Handbook" },
       { key: "ReviewSignatures", label: "Review & Signatures" },
     ];
   }, []);
@@ -303,6 +317,7 @@ export default function HousingSilSupportPage() {
       />
       {flag ? (
         <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
+          {/* Header bar: Logout & Client info */}
           <div className="flex justify-end gap-4 items-start">
             <button
               type="button"
@@ -317,6 +332,8 @@ export default function HousingSilSupportPage() {
               </h1>
             </div>
           </div>
+
+          {/* Logo */}
           <div className="flex justify-center mb-6">
             <Image
               src="/assets/images/BHC LOGO_SMALL.png"
@@ -327,27 +344,23 @@ export default function HousingSilSupportPage() {
             />
           </div>
 
+          {/* Progress bar */}
           <div className="text-center mb-4 min-h-[56px]">
-            {sessionUuid ? (
-              <>
-                <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-                  <div
-                    className="btn-primary h-4 rounded-full transition-width duration-300"
-                    style={completionBarStyle}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Form completion: {completionPercentage}%
-                </p>
-              </>
-            ) : (
-              <div className="w-full bg-gray-200 rounded-full h-4 mb-2"></div>
-            )}
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+              <div
+                className="btn-primary h-4 rounded-full transition-width duration-300"
+                style={completionBarStyle}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Form completion: {completionPercentage}%
+            </p>
           </div>
 
+          {/* Title */}
           <div className="flex justify-center mb-6">
             <h1 className="text-2xl md:text-3xl font-bold mt-2 text-gray-800 text-center">
-              Your Housing and Your SIL Supports
+              Best of Homecare SIL Residency Handbook
             </h1>
           </div>
 
@@ -356,6 +369,7 @@ export default function HousingSilSupportPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
+            {/* Top Action controls inside box */}
             <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1.5 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition text-sm"
@@ -372,10 +386,18 @@ export default function HousingSilSupportPage() {
                 {isExpandedAll ? "Collapse All" : "Expand All"}
               </button>
             </div>
+
+            {/* Tracker */}
             <Tracker
               steps={trackerSteps}
               onStepClick={(key) => handleTrackerClick(key as SectionKey)}
             />
+
+            {formSubmissionError && (
+              <div className="p-4 mb-4 bg-red-100 border border-red-300 text-red-700 rounded text-sm">
+                {formSubmissionError}
+              </div>
+            )}
 
             {sectionsConfig.map(({ key, title, Component }) => (
               <React.Fragment key={key}>
@@ -394,21 +416,18 @@ export default function HousingSilSupportPage() {
               </React.Fragment>
             ))}
 
-            {formSubmissionError && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded">
-                {formSubmissionError}
-              </div>
-            )}
-
+            {/* Submit button */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+                className="btn-primary text-white font-medium py-2.5 px-8 rounded-lg transition disabled:opacity-50 shadow"
               >
                 {loading ? "Submitting..." : "Submit"}
               </button>
             </div>
+
+            {/* Final Submit checkbox */}
             <div className="flex items-center mt-6">
               <input
                 type="checkbox"
@@ -423,17 +442,17 @@ export default function HousingSilSupportPage() {
                     },
                   })
                 }
-                className="mr-2"
+                className="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300"
               />
-              <label className="font-medium text-gray-700">
+              <label htmlFor="submit_final" className="font-medium text-gray-700 text-sm cursor-pointer">
                 Final Submit (Tick to confirm all information is correct)
               </label>
             </div>
           </form>
         </div>
       ) : (
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-gray-500">Checking session...</p>
+        <div className="flex justify-center items-center min-h-[200px]">
+          <span>Loading...</span>
         </div>
       )}
     </>

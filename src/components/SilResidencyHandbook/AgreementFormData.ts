@@ -1,13 +1,15 @@
-import { HousingSilSupportData } from "./types";
+import { SilResidencyHandbookData } from "./types";
 
-const AgreementFormaData: HousingSilSupportData = {
-  housing_separate: "",
-  change_sil_without_losing_home: "",
-  tenancy_separate: "",
-  explained_to_me: "",
+const AgreementFormData: SilResidencyHandbookData = {
+  support_provider: "Best of Homecare",
+  tenancy_contact: "",
+  after_hours_support: "",
+  local_advocacy_contact: "",
+  acknowledgement: "No",
+  signing_as: "Participant",
   participant_name: "",
+  relation_to_participant: "",
   date: "",
-  support_person: "",
   participant_signature: "",
   signer_type: "participant",
   participant_date: "",
@@ -24,4 +26,4 @@ const AgreementFormaData: HousingSilSupportData = {
   submit_final: 0,
 };
 
-export default AgreementFormaData;
+export default AgreementFormData;

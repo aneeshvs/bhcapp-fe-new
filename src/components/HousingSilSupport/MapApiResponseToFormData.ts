@@ -19,6 +19,18 @@ export const mapApiResponseToFormData = (
     date: data.date || "",
     support_person: data.support_person || "",
     participant_signature: data.participant_signature || "",
+    signer_type: data.signer_type || "participant",
+    participant_date: data.participant_date || "",
+    representative_name: data.representative_name || "",
+    representative_relation: data.representative_relation || "",
+    representative_date: data.representative_date || "",
+    representative_signature: data.representative_signature || "",
+    guardian_nominee_name: data.guardian_nominee_name || "",
+    guardian_nominee_date: data.guardian_nominee_date || "",
+    guardian_nominee_signature: data.guardian_nominee_signature || "",
+    key_team_member_name: data.key_team_member_name || "",
+    key_team_member_date: data.key_team_member_date || "",
+    key_team_member_signature: data.key_team_member_signature || "",
     submit_final: data.submit_final ?? (data.form_status === 'completed' ? 1 : 0),
   };
 };

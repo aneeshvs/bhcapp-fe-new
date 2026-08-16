@@ -2,19 +2,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
+import Image from "next/image";
 import { verifyFormOtp, VerifyOtpResponse, update, show } from "@/src/services/crud";
 import Tracker from "@/src/components/Tracker";
-import { mapApiResponseToFormData } from "@/src/components/HousingSilSupport/MapApiResponseToFormData";
-import { sectionsConfig } from "@/src/components/HousingSilSupport/sectionsConfig";
+import { mapApiResponseToFormData } from "@/src/components/SilResidencyHandbook/MapApiResponseToFormData";
+import { sectionsConfig } from "@/src/components/SilResidencyHandbook/sectionsConfig";
 import AccordianPlanSection from "@/src/components/AccordianSection";
-import { HousingSilSupportResponse } from "@/src/components/HousingSilSupport/ApiResponse";
-import AgreementFormaData from "@/src/components/HousingSilSupport/AgreementFormData";
-
-import Image from "next/image";
+import { SilResidencyHandbookResponse } from "@/src/components/SilResidencyHandbook/ApiResponse";
+import AgreementFormData from "@/src/components/SilResidencyHandbook/AgreementFormData";
+import SilResidencyHandbookSection from "@/src/components/SilResidencyHandbook/SilResidencyHandbookSection";
 import phpApi from "@/src/utils/PhpApi";
+import api from "@/src/utils/api";
 
 const SECTION_NAMES = [
-  "HousingSilSupport",
+  "SilResidencyHandbook",
   "ReviewSignatures"
 ] as const;
 
@@ -34,7 +35,7 @@ const createSectionRefs = () => {
   }, {} as Record<SectionKey, React.RefObject<HTMLDivElement | null>>);
 };
 
-export default function ShowHousingSilSupportPage() {
+export default function ShowSilResidencyHandbookPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const searchParams = useSearchParams();
   const sessionUserId = searchParams.get("userid") || "";
@@ -43,14 +44,15 @@ export default function ShowHousingSilSupportPage() {
   
   const [isSignatureOnly, setIsSignatureOnly] = useState(mode === "signature_only");
   const [loading, setLoading] = useState(false);
-  const isReadOnly = isSignatureOnly;
+  const isReadOnly = false;
 
   const [authenticated, setAuthenticated] = useState(false);
   const [enteredPassword, setEnteredPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [clientName, setClientName] = useState("");
+  const [completionPercentage, setCompletionPercentage] = useState<number>(0);
 
-  const [formData, setFormData] = useState(AgreementFormaData);
+  const [formData, setFormData] = useState(AgreementFormData);
   const [formSubmissionError, setFormSubmissionError] = useState("");
 
   const sectionRefs = useMemo(() => createSectionRefs(), []);
@@ -88,7 +90,7 @@ export default function ShowHousingSilSupportPage() {
       const modeResponse = await phpApi.get('/php/check-signature-mode.php', {
         params: {
           uuid,
-          form_name: 'housing-sil-support'
+          form_name: 'sil_residency_handbook'
         }
       });
       if (modeResponse.data.success) {
@@ -101,9 +103,13 @@ export default function ShowHousingSilSupportPage() {
 
   const fetchFormData = useCallback(async () => {
     try {
-      const response = await show<HousingSilSupportResponse>("housing-sil-support", uuid as string);
+      const response = await show<any>("sil-residency-handbook", uuid as string);
       if (!response?.data) return;
-      setFormData(mapApiResponseToFormData(response.data));
+      const handbookData = (response.data as any)?.silResidencyHandbook || response.data;
+      if (handbookData?.completion_percentage !== undefined) {
+        setCompletionPercentage(handbookData.completion_percentage);
+      }
+      setFormData(mapApiResponseToFormData(handbookData));
     } catch (error) {
       console.error("Error fetching form data:", error);
     }
@@ -137,10 +143,12 @@ export default function ShowHousingSilSupportPage() {
         if (prev[key]) {
           return { ...prev, [key]: true };
         }
+
         const newState = SECTION_NAMES.reduce(
           (acc, sectionKey) => ({ ...acc, [sectionKey]: true }),
           {} as Record<SectionKey, boolean>
         );
+
         return { ...newState, [key]: true };
       });
 
@@ -154,7 +162,31 @@ export default function ShowHousingSilSupportPage() {
     [sectionRefs]
   );
 
-  const handleSubmit = useCallback(
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+
+    try {
+      const response = await verifyFormOtp(
+        uuid as string,
+        enteredPassword
+      );
+
+      if (response.success) {
+        setAuthenticated(true);
+        if (response.client_name) {
+          setClientName(response.client_name);
+        }
+      } else {
+        setPasswordError(response.message || "Invalid Password");
+      }
+    } catch (error) {
+      console.error("OTP Verification Error:", error);
+      setPasswordError("Verification failed. Please try again.");
+    }
+  };
+
+  const handleClientSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       setLoading(true);
@@ -162,106 +194,95 @@ export default function ShowHousingSilSupportPage() {
 
       try {
         const data = new FormData();
-        if (formData.submit_final === 1) {
-          data.append('submit_final', '1');
-        }
-
         Object.entries(formData).forEach(([key, value]) => {
-          if (value !== null && value !== undefined && key !== 'submit_final') {
+          if (value !== null && value !== undefined) {
             data.append(key, String(value));
           }
         });
-
-        data.append("user_id", sessionUserId);
-        data.append("client_type", sessionClientType);
+        data.append("user_id", sessionUserId || String(formData.user_id || ""));
+        data.append("client_type", sessionClientType || String(formData.client_type || "1"));
         if (uuid) data.append("uuid", uuid as string);
         if (isSignatureOnly) data.append("signature_only", "1");
+        data.append("submit_final", "1");
 
-        const apiResponse = await update("housing-sil-support/update", data);
+        const apiResponse = await api.post(
+          "/client/sil-residency-handbook/update",
+          data,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
 
-        if (apiResponse.success) {
-          window.alert("submitted successfully.");
+        if (apiResponse.data?.success) {
+          window.alert("Form submitted successfully!");
+          const resData = apiResponse.data.data || {};
+          const record = resData.silResidencyHandbook || resData;
+          const returnedCompletion = apiResponse.data.completion_percentage ?? resData.completion_percentage ?? record?.completion_percentage;
+          if (returnedCompletion !== undefined) {
+            setCompletionPercentage(returnedCompletion);
+          }
           await fetchFormData();
         } else {
-          setFormSubmissionError(apiResponse.message || "An error occurred");
-          window.alert(`Submission failed: ${apiResponse.message}`);
+          setFormSubmissionError(apiResponse.data?.message || "Failed to save form.");
         }
       } catch (err: unknown) {
-        console.error("Submission error:", err);
-        setFormSubmissionError("An error occurred while submitting the form.");
+        const error = err as AxiosError<{ message?: string }>;
+        console.error("Client submission error:", error);
+        setFormSubmissionError(error.response?.data?.message || "An error occurred while submitting.");
       } finally {
         setLoading(false);
       }
     },
-    [formData, sessionUserId, sessionClientType, uuid, isSignatureOnly, fetchFormData]
+    [formData, uuid, sessionUserId, sessionClientType, isSignatureOnly, fetchFormData]
   );
 
-  const validatePassword = async (password: string): Promise<VerifyOtpResponse | null> => {
-    try {
-      const response = await verifyFormOtp(uuid as string, password);
-      if (response.success) {
-        if (response.client_name) setClientName(response.client_name);
-        return response;
-      } else {
-        setPasswordError("Incorrect password");
-        return null;
-      }
-    } catch (error) {
-      console.error("Error validating password:", error);
-      setPasswordError("Error validating password. Please try again.");
-      return null;
-    }
-  };
+  const completionBarStyle = { width: `${completionPercentage}%` };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError("");
-    setLoading(true);
-
-    if (!enteredPassword) {
-      setPasswordError("Please enter a password");
-      return;
-    }
-
-    const data = await validatePassword(enteredPassword);
-    if (data) {
-      setAuthenticated(true);
-    }
-    setLoading(false);
-  };
+  const trackerSteps = useMemo(() => {
+    return [
+      { key: "SilResidencyHandbook", label: "SIL Residency Handbook" },
+      { key: "ReviewSignatures", label: "Review & Signatures" },
+    ];
+  }, []);
 
   if (!authenticated) {
     return (
-      <div className="p-10 max-w-md mx-auto mt-20 bg-white rounded shadow">
-        <h2 className="text-xl font-semibold mb-4">Enter Password to Continue</h2>
-        <form onSubmit={handlePasswordSubmit}>
-          <input
-            type="password"
-            value={enteredPassword}
-            onChange={(e) => setEnteredPassword(e.target.value)}
-            placeholder="Enter password"
-            className="border px-4 py-2 rounded mb-2 w-full"
-          />
-          {passwordError && <p className="text-red-500 text-sm mb-2">{passwordError}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
-          >
-            {loading ? "Submitting..." : "Submit"}
-          </button>
-        </form>
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white max-w-md w-full p-6 rounded-lg shadow-md space-y-4">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-slate-800">Authentication Required</h2>
+            <p className="text-sm text-slate-600 mt-1">Please enter your password / OTP to view this SIL Residency Handbook.</p>
+          </div>
+          {passwordError && (
+            <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded text-xs">
+              {passwordError}
+            </div>
+          )}
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Password / OTP</label>
+              <input
+                type="password"
+                value={enteredPassword}
+                onChange={(e) => setEnteredPassword(e.target.value)}
+                required
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter password"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-sm transition"
+            >
+              Verify & View Form
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
-  const trackerSteps = [
-    { key: "HousingSilSupport", label: "Housing & SIL Supports" },
-    { key: "ReviewSignatures", label: "Review & Signatures" },
-  ];
-
   return (
     <div className="px-4 sm:px-8 md:px-12 lg:px-24 mt-6 mb-12">
+      {/* Client Info Top Right Box */}
       <div className="flex justify-end gap-4 items-start">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center w-48">
           <h1 className="text-2xl md:text-3xl font-bold text-blue-800">
@@ -269,6 +290,8 @@ export default function ShowHousingSilSupportPage() {
           </h1>
         </div>
       </div>
+
+      {/* Logo */}
       <div className="flex justify-center mb-6">
         <Image
           src="/assets/images/BHC LOGO_SMALL.png"
@@ -279,17 +302,32 @@ export default function ShowHousingSilSupportPage() {
         />
       </div>
 
+      {/* Progress bar */}
+      <div className="text-center mb-4 min-h-[56px]">
+        <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+          <div
+            className="btn-primary h-4 rounded-full transition-width duration-300"
+            style={completionBarStyle}
+          ></div>
+        </div>
+        <p className="text-sm text-gray-600">
+          Form completion: {completionPercentage}%
+        </p>
+      </div>
+
+      {/* Title */}
       <div className="flex justify-center mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mt-2 text-gray-800 text-center">
-          Review: Your Housing and Your SIL Supports
+          Best of Homecare SIL Residency Handbook
         </h1>
       </div>
 
       <form
         method="POST"
-        onSubmit={handleSubmit}
+        onSubmit={handleClientSubmit}
         className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
       >
+        {/* Top Action controls inside box */}
         <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
           <div 
             className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1.5 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition text-sm"
@@ -306,10 +344,18 @@ export default function ShowHousingSilSupportPage() {
             {isExpandedAll ? "Collapse All" : "Expand All"}
           </button>
         </div>
+
+        {/* Tracker */}
         <Tracker
           steps={trackerSteps}
           onStepClick={(key) => handleTrackerClick(key as SectionKey)}
         />
+
+        {formSubmissionError && (
+          <div className="p-4 mb-4 bg-red-100 border border-red-300 text-red-700 rounded text-sm">
+            {formSubmissionError}
+          </div>
+        )}
 
         {sectionsConfig.map(({ key, title, Component }) => (
           <React.Fragment key={key}>
@@ -319,57 +365,26 @@ export default function ShowHousingSilSupportPage() {
               isOpen={openSections[key as SectionKey]}
               onToggle={() => handleTrackerClick(key as SectionKey)}
             >
-              <fieldset disabled={isReadOnly && key !== "HousingSilSupport"} className={isReadOnly && key !== "HousingSilSupport" ? "opacity-75 pointer-events-none" : ""}>
-                <Component
-                  formData={formData}
-                  handleChange={handleChange}
-                  uuid={uuid as string}
-                  // @ts-ignore
-                  hideSaveButton={true}
-                  // @ts-ignore
-                  isSignatureOnly={isSignatureOnly}
-                />
-              </fieldset>
+              <Component
+                formData={formData}
+                handleChange={handleChange}
+                uuid={uuid as string}
+                readOnly={isReadOnly}
+              />
             </AccordianPlanSection>
           </React.Fragment>
         ))}
 
+        {/* Submit button */}
         <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+            className="btn-primary text-white font-medium py-2.5 px-8 rounded-lg transition disabled:opacity-50 shadow"
           >
-            {loading ? "Submitting..." : "Submit"}
+            {loading ? "Submitting..." : "Submit Signature & Form"}
           </button>
         </div>
-
-        <div className="flex items-center mt-6">
-          <input
-            type="checkbox"
-            id="submit_final"
-            name="submit_final"
-            checked={formData.submit_final === 1 || formData.form_status === 'completed'}
-            onChange={e =>
-              handleChange({
-                target: {
-                  name: 'submit_final',
-                  value: e.target.checked ? 1 : 0,
-                },
-              })
-            }
-            className="mr-2"
-          />
-          <label className="font-medium text-gray-700">
-            Final Submit (Tick to confirm all information is correct)
-          </label>
-        </div>
-
-        {formSubmissionError && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded">
-            {formSubmissionError}
-          </div>
-        )}
       </form>
     </div>
   );
