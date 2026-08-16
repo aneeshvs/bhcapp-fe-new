@@ -54,7 +54,13 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
             <input
               type="checkbox"
               name="acknowledgement"
-              checked={data.acknowledgement === "Yes"}
+              checked={
+                data.acknowledgement === "Yes" ||
+                data.acknowledgement === "1" ||
+                (data.acknowledgement as any) === 1 ||
+                data.acknowledgement === "true" ||
+                (data.acknowledgement as any) === true
+              }
               onChange={(e) =>
                 !readOnly && onChange("acknowledgement", e.target.checked ? "Yes" : "No")
               }

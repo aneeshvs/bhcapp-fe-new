@@ -43,6 +43,7 @@ const ReviewSignaturesHandbookWrapper: React.FC<Props> = ({
         onChange={handleReviewChange}
         readOnly={readOnly}
         onViewLogs={handleViewLogs}
+        showAcknowledgement={true}
       />
       <FieldLogsModal
         isOpen={isModalOpen}
