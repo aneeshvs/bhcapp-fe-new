@@ -338,9 +338,9 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
         />
       </div>
 
-      {/* Key Team Member Section */}
+      {/* SIL Coordinator Section */}
       <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
-        <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Key Team Member</h4>
+        <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">SIL Coordinator</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div
             className="relative"
@@ -348,7 +348,7 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
             onMouseLeave={() => setHoveredField(null)}
           >
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">Key Team Member Name</label>
+              <label className="block text-sm font-medium text-gray-700">SIL Coordinator Name</label>
               {hoveredField === "rev_sig_key_team_member_name" && onViewLogs && (
                 <button
                   type="button"
@@ -364,7 +364,7 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
               value={data.key_team_member_name ?? data.key_team_member ?? ""}
               onChange={(e) => onChange("key_team_member_name", e.target.value)}
               disabled={readOnly}
-              placeholder="Enter key team member name"
+              placeholder="Enter SIL coordinator name"
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border disabled:bg-gray-100"
             />
           </div>
@@ -397,7 +397,7 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
         </div>
 
         <SingleSignaturePad
-          label="Key Team Member Signature"
+          label="SIL Coordinator Signature"
           elementId="key-team-signature-pad"
           value={data.key_team_member_signature || ""}
           disabled={readOnly}

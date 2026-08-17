@@ -472,7 +472,6 @@ export default function SilSupportPlanForm({
     { key: "healthMedical", label: "HEALTH & MEDICAL" },
     { key: "riskManagement", label: "RISK MANAGEMENT" },
     { key: "communication", label: "COMMUNICATION" },
-    { key: "housingArrangements", label: "HOUSING ARRANGEMENTS" },
     { key: "choiceControl", label: "CHOICE & CONTROL" },
     { key: "teamMemberRequirements", label: "TEAM REQUIREMENTS" },
     { key: "emergencyInformation", label: "EMERGENCY INFO" },
@@ -593,51 +592,6 @@ export default function SilSupportPlanForm({
             />
           </div>
 
-          <div className="relative" onMouseEnter={() => setHoveredField("sil_home_type")} onMouseLeave={() => setHoveredField(null)}>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">SIL Home Type</label>
-              {hoveredField === "sil_home_type" && (
-                <button type="button" onClick={() => handleViewLogs("sil_home_type")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-6 mt-1 p-2.5 border rounded-md bg-white border-gray-300">
-              {["Privately rented", "Head lease", "Other"].map((option) => {
-                const isChecked = formData.sil_home_type
-                  ? formData.sil_home_type.split(", ").includes(option) || formData.sil_home_type === option
-                  : false;
-                return (
-                  <label key={option} className="inline-flex items-center space-x-2 text-sm font-medium text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="sil_home_type"
-                      value={option}
-                      checked={isChecked}
-                      onChange={(e) => {
-                        const currentValues = formData.sil_home_type
-                          ? formData.sil_home_type.split(", ").map((s: string) => s.trim()).filter(Boolean)
-                          : [];
-                        let newValues: string[];
-                        if (e.target.checked) {
-                          newValues = [...currentValues, option];
-                        } else {
-                          newValues = currentValues.filter((v: string) => v !== option);
-                        }
-                        handleChange({
-                          target: {
-                            name: "sil_home_type",
-                            value: newValues.join(", "),
-                          },
-                        } as any);
-                      }}
-                      disabled={isReadOnly}
-                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50"
-                    />
-                    <span>{option}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
 
           <div className="relative" onMouseEnter={() => setHoveredField("sil_provider")} onMouseLeave={() => setHoveredField(null)}>
             <div className="flex justify-between items-center mb-1">
@@ -1297,82 +1251,10 @@ export default function SilSupportPlanForm({
         </div>
       </AccordianPlanSection>
 
-      {/* 13. Housing Arrangements */}
-      <AccordianPlanSection
-        sectionRef={sectionRefs["housingArrangements"]}
-        title="13. Housing Arrangements"
-        isOpen={openSections["housingArrangements"]}
-        onToggle={() => handleSectionToggle("housingArrangements")}
-      >
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 border rounded shadow-sm relative" onMouseEnter={() => setHoveredField("house_arr_type_of_agreement")} onMouseLeave={() => setHoveredField(null)}>
-            <div className="w-full md:w-1/3 flex justify-between items-center">
-              <label className="block text-sm font-medium text-gray-700">Type of agreement</label>
-              {hoveredField === "house_arr_type_of_agreement" && (
-                <button type="button" onClick={() => handleViewLogs("house_arr_type_of_agreement")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
-              )}
-            </div>
-            <div className="w-full md:w-2/3 flex gap-6">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="type_of_agreement"
-                  value="Tenancy"
-                  checked={housingArrangement.type_of_agreement === "Tenancy"}
-                  onChange={(e) => handleHousingArrangementChange("type_of_agreement", e.target.value)}
-                  disabled={isReadOnly}
-                  className="form-radio text-blue-600"
-                />
-                <span className="ml-2 text-sm text-gray-700">Tenancy</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="type_of_agreement"
-                  value="Occupancy"
-                  checked={housingArrangement.type_of_agreement === "Occupancy"}
-                  onChange={(e) => handleHousingArrangementChange("type_of_agreement", e.target.value)}
-                  disabled={isReadOnly}
-                  className="form-radio text-blue-600"
-                />
-                <span className="ml-2 text-sm text-gray-700">Occupancy</span>
-              </label>
-            </div>
-          </div>
-
-          {[
-            { key: "rent_contribution", label: "Rent contribution:" },
-            { key: "utilities_arrangement", label: "Utilities arrangement" },
-            { key: "household_rules", label: "Household rules" },
-          ].map(({ key, label }) => (
-            <div key={key} className="flex flex-col md:flex-row gap-4 items-start bg-white p-4 border rounded shadow-sm relative" onMouseEnter={() => setHoveredField(`house_arr_${key}`)} onMouseLeave={() => setHoveredField(null)}>
-              <div className="w-full md:w-1/3 flex justify-between items-center">
-                <label className="block text-sm font-medium text-gray-700">{label}</label>
-                {hoveredField === `house_arr_${key}` && (
-                  <button type="button" onClick={() => handleViewLogs(`house_arr_${key}`)} className="text-xs btn-primary text-white px-2 py-1 rounded md:hidden">View Logs</button>
-                )}
-              </div>
-              <div className="w-full md:w-2/3 relative">
-                {hoveredField === `house_arr_${key}` && (
-                  <button type="button" onClick={() => handleViewLogs(`house_arr_${key}`)} className="hidden md:block absolute -top-8 right-0 text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
-                )}
-                <textarea
-                  value={housingArrangement[key] || ""}
-                  onChange={(e) => handleHousingArrangementChange(key, e.target.value)}
-                  disabled={isReadOnly}
-                  rows={2}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border disabled:bg-gray-100"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </AccordianPlanSection>
-
-      {/* 14. Choice & Control */}
+      {/* 13. Choice & Control */}
       <AccordianPlanSection
         sectionRef={sectionRefs["choiceControl"]}
-        title="14. Choice & Control"
+        title="13. Choice & Control"
         isOpen={openSections["choiceControl"]}
         onToggle={() => handleSectionToggle("choiceControl")}
       >
@@ -1407,10 +1289,10 @@ export default function SilSupportPlanForm({
         </div>
       </AccordianPlanSection>
 
-      {/* 15. Team Member Requirements */}
+      {/* 14. Team Member Requirements */}
       <AccordianPlanSection
         sectionRef={sectionRefs["teamMemberRequirements"]}
-        title="15. Team Member Requirements"
+        title="14. Team Member Requirements"
         isOpen={openSections["teamMemberRequirements"]}
         onToggle={() => handleSectionToggle("teamMemberRequirements")}
       >
@@ -1445,10 +1327,10 @@ export default function SilSupportPlanForm({
         </div>
       </AccordianPlanSection>
 
-      {/* 16. Emergency Information */}
+      {/* 15. Emergency Information */}
       <AccordianPlanSection
         sectionRef={sectionRefs["emergencyInformation"]}
-        title="16. Emergency Information"
+        title="15. Emergency Information"
         isOpen={openSections["emergencyInformation"]}
         onToggle={() => handleSectionToggle("emergencyInformation")}
       >
@@ -1483,10 +1365,10 @@ export default function SilSupportPlanForm({
         </div>
       </AccordianPlanSection>
 
-      {/* 17. Review & Signatures */}
+      {/* 16. Review & Signatures */}
       <AccordianPlanSection
         sectionRef={sectionRefs["reviewSignatures"]}
-        title="17. Review & Signatures"
+        title="16. Review & Signatures"
         isOpen={openSections["reviewSignatures"]}
         onToggle={() => handleSectionToggle("reviewSignatures")}
       >
@@ -1669,13 +1551,13 @@ export default function SilSupportPlanForm({
             />
           </div>
 
-          {/* Key Team Member Section */}
+          {/* SIL Coordinator Section */}
           <div className="bg-white p-5 border rounded-lg shadow-sm space-y-4">
-            <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Key Team Member</h4>
+            <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">SIL Coordinator</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="relative" onMouseEnter={() => setHoveredField("rev_sig_key_team_member_name")} onMouseLeave={() => setHoveredField(null)}>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Key Team Member Name</label>
+                  <label className="block text-sm font-medium text-gray-700">SIL Coordinator Name</label>
                   {hoveredField === "rev_sig_key_team_member_name" && (
                     <button type="button" onClick={() => handleViewLogs("rev_sig_key_team_member_name")} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
                   )}
@@ -1684,7 +1566,7 @@ export default function SilSupportPlanForm({
                   type="text"
                   value={reviewSignature.key_team_member_name ?? reviewSignature.key_team_member ?? ""}
                   onChange={(e) => handleReviewSignatureChange("key_team_member_name", e.target.value)}
-                  placeholder="Enter key team member name"
+                  placeholder="Enter SIL coordinator name"
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
               </div>
@@ -1706,7 +1588,7 @@ export default function SilSupportPlanForm({
             </div>
 
             <SingleSignaturePad
-              label="Key Team Member Signature"
+              label="SIL Coordinator Signature"
               elementId="key-team-signature-pad"
               value={reviewSignature.key_team_member_signature || ""}
               onChange={(val) => handleReviewSignatureChange("key_team_member_signature", val)}

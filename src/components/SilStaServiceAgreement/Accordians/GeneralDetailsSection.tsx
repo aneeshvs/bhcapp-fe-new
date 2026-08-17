@@ -69,7 +69,7 @@ const GeneralDetailsSection: React.FC<SectionProps> = ({ formData, handleChange,
         </p>
         
         <h3 className="text-[#808080] text-lg font-bold mb-1">Best of Homecare Services</h3>
-        <p className="text-gray-700 font-medium mb-4">(ABN 29 655 347 881)</p>
+        <p className="text-gray-700 font-medium mb-4">(ABN 63 691 624 877)</p>
         
         <table className="w-full border-collapse border border-gray-300 max-w-2xl">
           <tbody>
