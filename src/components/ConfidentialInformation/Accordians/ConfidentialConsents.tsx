@@ -96,7 +96,8 @@ export default function ConfidentialConsents({
       // Check if data is different from current pad content to avoid loop
       const currentData = pad.isEmpty() ? "" : pad.toDataURL();
       if (formData.signature !== currentData) {
-        pad.fromDataURL(formData.signature);
+        pad.clear();
+        pad.fromDataURL(formData.signature, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
       }
     } else if (!formData.signature) {
       pad.clear();

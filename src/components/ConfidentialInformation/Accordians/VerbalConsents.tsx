@@ -99,7 +99,8 @@ export default function VerbalConsents({
       // Check if data is different from current pad content to avoid loop
       const currentData = pad.isEmpty() ? "" : pad.toDataURL();
       if (formData.verbal_signature !== currentData) {
-        pad.fromDataURL(formData.verbal_signature);
+        pad.clear();
+        pad.fromDataURL(formData.verbal_signature, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
       }
     } else if (!formData.verbal_signature) {
       pad.clear();

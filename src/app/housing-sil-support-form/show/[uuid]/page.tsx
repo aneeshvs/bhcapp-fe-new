@@ -319,7 +319,7 @@ export default function ShowHousingSilSupportPage() {
               isOpen={openSections[key as SectionKey]}
               onToggle={() => handleTrackerClick(key as SectionKey)}
             >
-              <fieldset disabled={isReadOnly && key !== "HousingSilSupport"} className={isReadOnly && key !== "HousingSilSupport" ? "opacity-75 pointer-events-none" : ""}>
+              <fieldset disabled={isReadOnly && key !== "ReviewSignatures"} className={isReadOnly && key !== "ReviewSignatures" ? "opacity-75 pointer-events-none" : ""}>
                 <Component
                   formData={formData}
                   handleChange={handleChange}

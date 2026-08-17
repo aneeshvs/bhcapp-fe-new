@@ -134,7 +134,8 @@ export default function ServiceAgreementConsent({
       // This prevents the loop where endStroke updates props -> props update pad -> pad redraws
       if (value !== currentVal) {
         if (value && value.startsWith('data:image')) {
-          pad.fromDataURL(value);
+          pad.clear();
+          pad.fromDataURL(value, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
         } else if (!value) {
           pad.clear();
         }

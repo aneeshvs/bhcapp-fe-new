@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 import SignaturePad from 'signature_pad';
@@ -39,8 +39,8 @@ export default function AgreementSignatures({
   isSignatureOnly = false,
 }: AgreementSignaturesProps) {
   const participantSignaturePad = useRef<SignaturePad | null>(null);
-  const representativeSignaturePad = useRef<SignaturePad | null>(null);
   const participantCanvasRef = useRef<HTMLCanvasElement>(null);
+  const representativeSignaturePad = useRef<SignaturePad | null>(null);
   const representativeCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const searchParams = useSearchParams();
@@ -56,72 +56,96 @@ export default function AgreementSignatures({
   const verbalSignaturePad = useRef<SignaturePad | null>(null);
   const verbalCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Initialize pads ONCE
-  useEffect(() => {
-    const initializePads = () => {
-      const setupPad = (canvasRef: React.RefObject<HTMLCanvasElement | null>, padRef: React.MutableRefObject<SignaturePad | null>, fieldName: string) => {
-        const canvas = canvasRef.current;
-        if (canvas && !padRef.current) {
-          canvas.width = canvas.offsetWidth;
-          canvas.height = canvas.offsetHeight;
-          const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
-          padRef.current = pad;
-          pad.addEventListener("endStroke", () => {
-            if (pad.isEmpty()) return;
-            handleChange({ target: { name: fieldName, value: pad.toDataURL() } });
-          });
-        }
-      };
+  // Sync data helper
+  const syncPad = useCallback((padRef: React.MutableRefObject<SignaturePad | null>, value: string | undefined) => {
+    const pad = padRef.current;
+    if (!pad) return;
 
-      setupPad(participantCanvasRef, participantSignaturePad, "participant_signature");
-      setupPad(representativeCanvasRef, representativeSignaturePad, "representative_signature");
-      setupPad(verbalCanvasRef, verbalSignaturePad, "verbal_consent_staff_signature");
-    };
-
-    const timer = setTimeout(initializePads, 200);
-
-    const handleResize = () => {
-      [participantCanvasRef, representativeCanvasRef, verbalCanvasRef].forEach((canvasRef, index) => {
-        const canvas = canvasRef.current;
-        const pad = index === 0 ? participantSignaturePad.current : (index === 1 ? representativeSignaturePad.current : verbalSignaturePad.current);
-        if (canvas && pad) {
-          const data = pad.toData();
-          canvas.width = canvas.offsetWidth;
-          canvas.height = canvas.offsetHeight;
-          pad.clear();
-          pad.fromData(data);
-        }
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
+    if (value && value.startsWith('data:image')) {
+      if (pad.isEmpty() || pad.toDataURL() !== value) {
+        pad.clear();
+        pad.fromDataURL(value, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
+      }
+    } else if (!value) {
+      pad.clear();
+    }
   }, []);
 
-  // Sync data
+  // Initialize and handle resizes for signature pads
   useEffect(() => {
-    const syncPad = (padRef: React.MutableRefObject<SignaturePad | null>, value: string | undefined) => {
-      const pad = padRef.current;
-      if (!pad) return;
+    const initOrResizePad = (
+      cRef: React.RefObject<HTMLCanvasElement | null>,
+      padRef: React.MutableRefObject<SignaturePad | null>,
+      fieldName: string,
+      initialValue?: string
+    ) => {
+      const canvas = cRef.current;
+      if (!canvas) return;
 
-      const currentData = pad.isEmpty() ? "" : pad.toDataURL();
-      if (value !== currentData) {
-        if (value && value.startsWith('data:image')) {
-          pad.fromDataURL(value);
+      const rect = canvas.getBoundingClientRect();
+      const width = canvas.offsetWidth || rect.width || 300;
+      const height = canvas.offsetHeight || rect.height || 160;
+
+      if (width === 0 || height === 0) return;
+
+      if (!padRef.current) {
+        canvas.width = width;
+        canvas.height = height;
+        const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
+        padRef.current = pad;
+
+        pad.addEventListener("endStroke", () => {
+          if (!pad.isEmpty()) {
+            handleChange({ target: { name: fieldName, value: pad.toDataURL() } });
+          }
+        });
+
+        if (initialValue && initialValue.startsWith("data:image")) {
+          pad.fromDataURL(initialValue, { ratio: 1, width, height });
         }
-        else if (!value) {
+      } else {
+        if (canvas.width !== width || canvas.height !== height) {
+          const pad = padRef.current;
+          const data = pad.toData();
+          canvas.width = width;
+          canvas.height = height;
           pad.clear();
+          pad.fromData(data);
         }
       }
     };
 
+    const handleAllPads = () => {
+      initOrResizePad(participantCanvasRef, participantSignaturePad, "participant_signature", formData.participant_signature);
+      initOrResizePad(representativeCanvasRef, representativeSignaturePad, "representative_signature", formData.representative_signature);
+      initOrResizePad(verbalCanvasRef, verbalSignaturePad, "verbal_consent_staff_signature", formData.verbal_consent_staff_signature);
+    };
+
+    handleAllPads();
+    const timer = setTimeout(handleAllPads, 200);
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleAllPads();
+    });
+
+    if (participantCanvasRef.current) resizeObserver.observe(participantCanvasRef.current);
+    if (representativeCanvasRef.current) resizeObserver.observe(representativeCanvasRef.current);
+    if (verbalCanvasRef.current) resizeObserver.observe(verbalCanvasRef.current);
+
+    window.addEventListener('resize', handleAllPads);
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleAllPads);
+    };
+  }, []);
+
+  // Sync data when formData values change from API payload
+  useEffect(() => {
     syncPad(participantSignaturePad, formData.participant_signature);
     syncPad(representativeSignaturePad, formData.representative_signature);
     syncPad(verbalSignaturePad, formData.verbal_consent_staff_signature);
-  }, [formData.participant_signature, formData.representative_signature, formData.verbal_consent_staff_signature]);
+  }, [formData.participant_signature, formData.representative_signature, formData.verbal_consent_staff_signature, syncPad]);
 
   const handleClear = (type: 'participant' | 'representative' | 'verbal') => {
     const pad =

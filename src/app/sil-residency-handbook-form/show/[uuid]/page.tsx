@@ -90,7 +90,7 @@ export default function ShowSilResidencyHandbookPage() {
       const modeResponse = await phpApi.get('/php/check-signature-mode.php', {
         params: {
           uuid,
-          form_name: 'sil_residency_handbook'
+          form_name: 'sil-residency-handbook'
         }
       });
       if (modeResponse.data.success) {
@@ -365,12 +365,17 @@ export default function ShowSilResidencyHandbookPage() {
               isOpen={openSections[key as SectionKey]}
               onToggle={() => handleTrackerClick(key as SectionKey)}
             >
-              <Component
-                formData={formData}
-                handleChange={handleChange}
-                uuid={uuid as string}
-                readOnly={isReadOnly}
-              />
+              <fieldset
+                disabled={isReadOnly && key !== "ReviewSignatures"}
+                className={isReadOnly && key !== "ReviewSignatures" ? "opacity-75 pointer-events-none" : ""}
+              >
+                <Component
+                  formData={formData}
+                  handleChange={handleChange}
+                  uuid={uuid as string}
+                  readOnly={isReadOnly && key !== "ReviewSignatures"}
+                />
+              </fieldset>
             </AccordianPlanSection>
           </React.Fragment>
         ))}
