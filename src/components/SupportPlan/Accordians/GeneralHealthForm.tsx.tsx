@@ -377,14 +377,19 @@ export default function GeneralHealthForm({
                 </button>
               )}
             </div>
-            <input
+            <select
               name="health_impact_scale"
-              placeholder="Enter a Scale"
-              value={formData.health_impact_scale || ""}
+              value={formData.health_impact_scale ?? ""}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded px-3 py-2"
             >
-            </input>
+              <option value="">Select Scale</option>
+              {Array.from({ length: 11 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Painful Day to Day */}
