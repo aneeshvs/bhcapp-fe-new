@@ -101,6 +101,7 @@ const ParticipantsFullReport = () => {
         fetchData(1, e.target.value, selectedStaffId, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter);
     };
 
+    
     const handleCoordinatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedStaffId(e.target.value);
         fetchData(1, search, e.target.value, sortStatus.columnAccessor, sortStatus.direction, pageSize, showExpiredOnly, completionFilter);

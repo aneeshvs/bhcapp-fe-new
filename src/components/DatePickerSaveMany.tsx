@@ -12,6 +12,41 @@ interface DatePickerSaveManyProps {
   disabled?: boolean;
 }
 
+// Helper function to normalize any incoming date string (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, etc.) to ISO YYYY-MM-DD
+function parseAndFormatToIso(rawDate: string | null | undefined): string {
+  if (!rawDate) return "";
+  const str = String(rawDate).trim();
+  if (!str) return "";
+
+  // 1. Check if already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+
+  // 2. Extract DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (e.g. '13/03/1993 (62)')
+  const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmyMatch) {
+    const p1 = parseInt(dmyMatch[1], 10);
+    const p2 = parseInt(dmyMatch[2], 10);
+    const year = dmyMatch[3];
+    if (p1 > 12) {
+      return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+    }
+    if (p2 > 12) {
+      return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+    }
+    return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+  }
+
+  // 3. Extract YYYY/MM/DD or YYYY-MM-DD
+  const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (ymdMatch) {
+    return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
+  }
+
+  return str;
+}
+
 export default function DatePickerSaveMany({
   name,
   value,
@@ -23,14 +58,18 @@ export default function DatePickerSaveMany({
 
   useEffect(() => {
     if (!inputRef.current) return;
-    if (disabled) return; // Don't init flatpickr if disabled? Or maybe init but it won't open?
+    if (disabled) return;
 
-    // Check if flatpickr instance exists? 
-    // Actually, if disabled changes, we might want to destroy/re-init or just rely on input disabled.
-    // Flatpickr doesn't automatically unbind if input becomes disabled.
+    const isoValue = parseAndFormatToIso(value);
 
-    // Let's just pass disabled to input and hope flatpickr respects it (it usually does).
-    // But if we return early here, we might miss init if it starts enabled.
+    // Convert ISO YYYY-MM-DD to Flatpickr's configured d-m-Y format (DD-MM-YYYY)
+    let dmyString: string | undefined = undefined;
+    if (isoValue && isoValue.includes("-")) {
+      const [y, m, d] = isoValue.split("-");
+      if (y && m && d) {
+        dmyString = `${d}-${m}-${y}`;
+      }
+    }
 
     const emitChange = (date: Date | undefined) => {
       if (!date) {
@@ -48,7 +87,7 @@ export default function DatePickerSaveMany({
     const fp = flatpickr(inputRef.current, {
       dateFormat: "d-m-Y",
       allowInput: true,
-      defaultDate: value || undefined,
+      defaultDate: dmyString || undefined,
       clickOpens: !disabled,
       disableMobile: true,
 
@@ -61,12 +100,13 @@ export default function DatePickerSaveMany({
       },
     });
 
-    // ... (rest is same)
-
     // Sync display when parent value changes
-    if (value && inputRef.current) {
-      const [y, m, d] = value.split("-");
-      inputRef.current.value = `${d}-${m}-${y}`;
+    if (dmyString && inputRef.current) {
+      inputRef.current.value = dmyString;
+      fp.setDate(dmyString, false);
+    } else if (!value && inputRef.current) {
+      inputRef.current.value = "";
+      fp.clear(false);
     }
 
     return () => fp.destroy();

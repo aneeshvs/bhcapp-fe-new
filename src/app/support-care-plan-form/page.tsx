@@ -19,6 +19,9 @@ import { SupportCoordination } from "@/src/components/SupportCarePlan/ApiRespons
 import { EmergencyContact } from "@/src/components/SupportCarePlan/ApiResponse";
 import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import api from "@/src/utils/api";
+import { IconRobot, IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "SupportCarePlan",
@@ -127,6 +130,140 @@ export default function SupportCarePlanPage() {
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
   const [isExpandedAll, setIsExpandedAll] = useState(false);
+
+  const [autofilling, setAutofilling] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: Object.keys(formData).reduce((acc, key) => {
+          if (key !== 'submit_final' && key !== 'form_status') {
+             if (key === 'type') {
+                 acc[key] = 'string (MUST BE ONE OF: not_applicable, partner, carer, guardian, parent, advocacy, other)';
+             } else if (key.includes('date') || key.includes('dob')) {
+                 acc[key] = 'string (YYYY-MM-DD format, e.g. 1963-08-21)';
+             } else {
+                 acc[key] = typeof (formData as any)[key] === 'number' ? 'number (0 for No/False, 1 for Yes/True/Applicable)' : 'string';
+             }
+          }
+          return acc;
+        }, {} as Record<string, string>),
+        myGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
+        homeGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
+        supportGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
+        dayProgramGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
+        emergencyContacts: [{ name: "string", relationship: "string", phone: "string", email: "string", location: "string" }],
+        communicationPlan: {
+          helps_me_talk: ["string (Include ONLY explicitly checked items from: Interpreter, Symbols, Pictures, Gesturing, Facial Expressions, Simple words, When you wait for me to respond, My Supporter/carer, Other (Including Assistive technology))"],
+          helps_me_understand: ["string (Include ONLY explicitly checked items from: Short plain sentences, Simple words, Concrete examples, Diagrams or pictures, Checking to see if I understand, Asking me to explain it, Asking my supporter/carer to explain it to me, Using real objects, Giving me a demonstration, Other)"],
+          please_communicate_by: ["string (Include ONLY explicitly checked items from: Speaking directly to me, Taking time to tell me, Waiting for me to respond, Writing down notes in my care plan, Knowing I cannot talk but can hear and understand, Other)"],
+          emergency_communication: "string"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        
+        // Merge formData
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            const isDummy = (str: string) => {
+              const lower = str.trim().toLowerCase();
+              return (
+                lower === "" ||
+                lower === "n/a" ||
+                lower === "none" ||
+                lower === "unknown" ||
+                lower === "undefined" ||
+                lower === "not available" ||
+                lower === "no information" ||
+                lower.includes("not mentioned") ||
+                lower.includes("not applicable") ||
+                lower.includes("not found") ||
+                lower.includes("not specified") ||
+                lower.includes("none specified") ||
+                lower.includes("not explicitly")
+              );
+            };
+
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+            if (sanitized.type && typeof sanitized.type === 'string') {
+              sanitized.type = sanitized.type.toLowerCase();
+            }
+            return sanitized;
+          });
+        }
+
+        // Merge array fields
+        if (d.myGoals?.length) setMyGoals(d.myGoals.map((g: any) => ({ ...g, category: 'sil', goal_key: '' })));
+        if (d.homeGoals?.length) setHomeGoals(d.homeGoals.map((g: any) => ({ ...g, category: 'home', goal_key: '' })));
+        if (d.supportGoals?.length) setSupportGoals(d.supportGoals.map((g: any) => ({ ...g, category: 'support', goal_key: '' })));
+        if (d.dayProgramGoals?.length) setDayProgramGoals(d.dayProgramGoals.map((g: any) => ({ ...g, category: 'day_program', goal_key: '' })));
+        if (d.emergencyContacts?.length) setEmergencyContacts(d.emergencyContacts);
+        if (d.communicationPlan) {
+          setCommunicationPlan(prev => ({
+            helps_me_talk: Array.isArray(d.communicationPlan.helps_me_talk) ? d.communicationPlan.helps_me_talk : prev.helps_me_talk,
+            helps_me_understand: Array.isArray(d.communicationPlan.helps_me_understand) ? d.communicationPlan.helps_me_understand : prev.helps_me_understand,
+            please_communicate_by: Array.isArray(d.communicationPlan.please_communicate_by) ? d.communicationPlan.please_communicate_by : prev.please_communicate_by,
+            emergency_communication: typeof d.communicationPlan.emergency_communication === 'string' ? d.communicationPlan.emergency_communication : prev.emergency_communication
+          }));
+        }
+
+        window.alert("Support Care Plan auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
+  };
 
   const toggleExpandAll = () => {
     const nextState = !isExpandedAll;
@@ -649,7 +786,24 @@ export default function SupportCarePlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
+              >
+                <IconFileText size={18} />
+                PDF Extraction
+              </button>
+              <button
+                type="button"
+                onClick={handleAutofill}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
+                {autofilling ? "Auto-filling..." : "AI Autofill"}
+              </button>
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -822,6 +976,12 @@ export default function SupportCarePlanPage() {
         </div>
       )
       }
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+      />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import api from "@/src/utils/api";
+import ReactMarkdown from 'react-markdown';
 import { IconCloudUpload, IconRobot, IconFileText, IconCheck, IconAlertTriangle, IconLoader, IconFileDownload } from "@tabler/icons-react";
 
 export default function AIOnboardingPage() {
@@ -10,7 +11,9 @@ export default function AIOnboardingPage() {
     const userId = searchParams.get("userid") || "";
     const clientType = searchParams.get("client_type") || "";
 
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
+    const [instructions, setInstructions] = useState("");
+    const [staffNotes, setStaffNotes] = useState("");
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [extractedData, setExtractedData] = useState<any>(null);
@@ -20,15 +23,20 @@ export default function AIOnboardingPage() {
     const [error, setError] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            const newFiles = Array.from(e.target.files);
+            setFiles(prev => [...prev, ...newFiles]);
             setError(null);
         }
     };
 
+    const removeFile = (indexToRemove: number) => {
+        setFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
     const handleUpload = async () => {
-        if (!file) {
-            setError("Please select a file first.");
+        if (files.length === 0) {
+            setError("Please select at least one file first.");
             return;
         }
 
@@ -38,9 +46,17 @@ export default function AIOnboardingPage() {
 
         try {
             const formData = new FormData();
-            formData.append("file", file);
+            files.forEach((file) => {
+                formData.append("files[]", file);
+            });
             formData.append("user_id", userId);
             formData.append("client_type", clientType);
+            if (instructions.trim()) {
+                formData.append("instructions", instructions.trim());
+            }
+            if (staffNotes.trim()) {
+                formData.append("staff_notes", staffNotes.trim());
+            }
 
             // Simulate progress for better UX
             const interval = setInterval(() => {
@@ -91,15 +107,6 @@ export default function AIOnboardingPage() {
                             Upload documents to automatically generate case studies and pre-fill forms.
                         </p>
                     </div>
-                    {/* <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-                        <div className="w-10 h-10 bg-blue-600/10 rounded-full flex items-center justify-center text-blue-600">
-                            <IconRobot size={24} />
-                        </div> 
-                        <div>
-                            <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">AI Powered by</div>
-                            <div className="text-sm font-extrabold text-gray-800">GPT-4o Intelligence</div>
-                        </div>
-                    </div> */}
                 </header>
 
                 {(!extractedData && !rawText) ? (
@@ -112,17 +119,23 @@ export default function AIOnboardingPage() {
                                 <div className="w-20 h-20 bg-blue-600/5 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
                                     <IconCloudUpload size={40} />
                                 </div>
-                                <h2 className="text-2xl font-bold mb-2">Upload Client Document</h2>
-                                <p className="text-gray-400 text-sm">Support formats: PDF, maximum 10MB</p>
+                                <h2 className="text-2xl font-bold mb-2">Upload Client Documents</h2>
+                                <p className="text-gray-400 text-sm">Support formats: PDF, JPG, PNG, max 10MB per file</p>
                             </div>
 
                             <label className="block w-full cursor-pointer">
                                 <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:border-blue-500/50 hover:bg-blue-50/30 transition-all group/upload">
-                                    <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf" />
-                                    {file ? (
-                                        <div className="flex items-center justify-center gap-3 text-blue-600">
-                                            <IconFileText size={24} />
-                                            <span className="font-semibold text-lg truncate max-w-[200px]">{file.name}</span>
+                                    <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" multiple />
+                                    {files.length > 0 ? (
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            {files.map((f, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl">
+                                                    <IconFileText size={20} />
+                                                    <span className="font-semibold text-sm truncate max-w-[200px]">{f.name}</span>
+                                                    <button type="button" onClick={(e) => { e.preventDefault(); removeFile(idx); }} className="text-red-500 ml-2 hover:text-red-700">X</button>
+                                                </div>
+                                            ))}
+                                            <p className="text-gray-400 text-sm mt-2 font-medium hover:text-blue-500">Click to add more files</p>
                                         </div>
                                     ) : (
                                         <div className="text-gray-400 group-hover/upload:text-gray-500 transition-colors">
@@ -133,6 +146,36 @@ export default function AIOnboardingPage() {
                                 </div>
                             </label>
 
+                            {/* Extraction Instructions & Guidance (Optional) */}
+                            <div className="mt-6 space-y-2">
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Extraction Instructions & Guidance (Optional)
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    value={instructions}
+                                    onChange={(e) => setInstructions(e.target.value)}
+                                    disabled={loading}
+                                    placeholder="e.g. Focus on medical history, NDIS goals, emergency contacts, dietary preferences..."
+                                    className="w-full text-sm p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 resize-none text-gray-800 transition-all"
+                                />
+                            </div>
+
+                            {/* Staff Notes & Extra Fields (Optional) */}
+                            <div className="mt-4 space-y-2">
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Staff Notes & Extra Fields (Optional)
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    value={staffNotes}
+                                    onChange={(e) => setStaffNotes(e.target.value)}
+                                    disabled={loading}
+                                    placeholder="e.g. Participant prefers afternoon visits; check wheelchair mobility details..."
+                                    className="w-full text-sm p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 resize-none text-gray-800 transition-all"
+                                />
+                            </div>
+
                             {error && (
                                 <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600">
                                     <IconAlertTriangle size={20} />
@@ -142,9 +185,9 @@ export default function AIOnboardingPage() {
 
                             <button
                                 onClick={handleUpload}
-                                disabled={!file || loading}
+                                disabled={files.length === 0 || loading}
                                 className={`mt-8 w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 ${
-                                    !file || loading 
+                                    files.length === 0 || loading 
                                     ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200" 
                                     : "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-1"
                                 }`}
@@ -197,7 +240,7 @@ export default function AIOnboardingPage() {
                                         {extractedData ? "AI-Generated Case Study" : "Document Summary"}
                                     </h2>
                                     <a 
-                                        href={`http://localhost:8000/api/ai/case-study/export-pdf/${caseStudyId}`}
+                                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.bhcapp.com.au/api'}/ai/case-study/export-pdf/${caseStudyId}`}
                                         target="_blank"
                                         className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors"
                                     >
@@ -215,7 +258,7 @@ export default function AIOnboardingPage() {
                         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-                                    <IconFileText className="text-blue-500" /> Raw Extracted Text
+                                    <IconFileText className="text-blue-500" /> Extracted Document Text
                                 </h3>
                                 <button 
                                     onClick={() => setShowRaw(!showRaw)}
@@ -224,6 +267,28 @@ export default function AIOnboardingPage() {
                                     {showRaw ? "Hide Raw Text" : "View Raw Text"}
                                 </button>
                             </div>
+                            
+                            {/* Formatted Markdown (Default View) */}
+                            {!showRaw && extractedData?.full_transcription && (
+                                <div className="bg-gray-50 p-8 rounded-xl border border-gray-200 text-gray-700 mb-6 prose max-w-none">
+                                    <ReactMarkdown
+                                        components={{
+                                            h1: ({node: _node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6 text-gray-900 border-b pb-2" {...props} />,
+                                            h2: ({node: _node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5 text-gray-800" {...props} />,
+                                            h3: ({node: _node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4 text-gray-800" {...props} />,
+                                            ul: ({node: _node, ...props}) => <ul className="list-disc pl-6 mb-4 space-y-1" {...props} />,
+                                            ol: ({node: _node, ...props}) => <ol className="list-decimal pl-6 mb-4 space-y-1" {...props} />,
+                                            li: ({node: _node, ...props}) => <li className="text-gray-700" {...props} />,
+                                            p: ({node: _node, ...props}) => <p className="mb-4 leading-relaxed" {...props} />,
+                                            strong: ({node: _node, ...props}) => <strong className="font-bold text-gray-900" {...props} />,
+                                        }}
+                                    >
+                                        {extractedData.full_transcription}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
+
+                            {/* Raw Debug Text */}
                             {showRaw && (
                                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 font-mono text-sm text-gray-600 max-h-[400px] overflow-y-auto whitespace-pre-wrap animate-in fade-in zoom-in duration-300">
                                     {rawText || "No raw text available."}
@@ -258,23 +323,30 @@ export default function AIOnboardingPage() {
                                     { label: "Allergies", value: extractedData.medical_info?.allergies }
                                 ]} />
                             </div>
+                            
                         )} */}
 
-                        <div className="flex justify-end gap-4 mt-8">
+                        <div className="flex flex-wrap justify-end gap-4 mt-8">
                             <button 
                                 onClick={() => { setExtractedData(null); setRawText(null); setShowRaw(false); }}
-                                className="px-8 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors font-bold"
+                                className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors font-bold text-sm"
                             >
-                                Start Over
+                                Upload Another Document
                             </button>
-                            {/* {extractedData && (
-                                <button 
-                                    onClick={handlePopulate}
-                                    className="px-8 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold shadow-lg shadow-blue-100"
-                                >
-                                    Populate All Forms
-                                </button>
-                            )} */}
+                            <a 
+                                href={`/support-plan-form?userid=${userId}&client_type=${clientType}`}
+                                className="px-6 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all font-bold text-sm shadow-md flex items-center gap-2"
+                            >
+                                <IconRobot size={18} />
+                                Open Support Plan (AI Autofill)
+                            </a>
+                            <a 
+                                href={`/support-care-plan-form?userid=${userId}&client_type=${clientType}`}
+                                className="px-6 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold text-sm shadow-md flex items-center gap-2"
+                            >
+                                <IconRobot size={18} />
+                                Open Support Care Plan (AI Autofill)
+                            </a>
                         </div>
                     </div>
                 )}

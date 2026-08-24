@@ -16,6 +16,9 @@ import { sectionsConfig } from "@/src/components/SupportPlan/sectionsConfig";
 import { SupportPlanService } from "@/src/components/SupportPlan/ApiResponse";
 import { SupportPlanMyGoal } from "@/src/components/SupportPlan/ApiResponse";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import api from "@/src/utils/api";
+import { IconRobot, IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 // Add type for validation errors
 type ValidationErrors = Record<string, string[]>;
@@ -106,6 +109,190 @@ export default function SupportPlanPage() {
   // Add state for validation errors
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [formSubmissionError, setFormSubmissionError] = useState<string>("");
+  const [autofilling, setAutofilling] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: Object.keys(formData).reduce((acc, key) => {
+          if (key !== 'submit_final' && key !== 'form_status') {
+             if (key.includes('date') || key.includes('dob')) {
+                 acc[key] = 'string (YYYY-MM-DD format, e.g. 1963-08-21)';
+             } else {
+                 acc[key] = typeof (formData as any)[key] === 'number' ? 'number (0 for No/False, 1 for Yes/True/Applicable)' : 'string';
+             }
+          }
+          return acc;
+        }, {} as Record<string, string>),
+        services: [{
+          name: "string (Service name, e.g. Assistive Technology, Domestic Assistance)",
+          service_provided: "string (Details of service provided, e.g. Assistance with mobility)",
+          funded_by: "string (Funding source, e.g. AT-HM funding, HCP, NDIS)",
+          duration_frequency: "string (Duration or frequency, e.g. 2 hours weekly, As needed)",
+          support_to_implement_by_us: "number (1 if support is to be implemented by us, 0 otherwise)"
+        }],
+        myGoals: [{
+          goal: "string (Main goal description)",
+          measure_progress: "string (How will we measure this goal's progress)",
+          success_look_like: "string (What will success look like for you)",
+          who_will_support: "string (Who will support you)",
+          participant_support: "string (How participant will support the goal)",
+          target_date: "string (When we aim to meet this goal)"
+        }]
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            const isDummy = (str: string) => {
+              const lower = str.trim().toLowerCase();
+              return (
+                lower === "" ||
+                lower === "n/a" ||
+                lower === "none" ||
+                lower === "unknown" ||
+                lower === "undefined" ||
+                lower === "not available" ||
+                lower === "no information" ||
+                lower.includes("not mentioned") ||
+                lower.includes("not applicable") ||
+                lower.includes("not found") ||
+                lower.includes("not specified") ||
+                lower.includes("none specified") ||
+                lower.includes("not explicitly")
+              );
+            };
+
+            const parseDateToIso = (rawStr: string) => {
+              if (!rawStr) return "";
+              const str = rawStr.trim();
+              if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+              // Extract DD/MM/YYYY or DD-MM-YYYY (e.g., '13/03/1993 (62)')
+              const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+              if (dmyMatch) {
+                const p1 = parseInt(dmyMatch[1], 10);
+                const p2 = parseInt(dmyMatch[2], 10);
+                const year = dmyMatch[3];
+                if (p1 > 12) {
+                  return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+                }
+                if (p2 > 12) {
+                  return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+                }
+                return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+              }
+
+              // Extract YYYY/MM/DD or YYYY-MM-DD
+              const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+              if (ymdMatch) {
+                return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
+              }
+
+              return str;
+            };
+
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date') || key.includes('dob')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            // DOB Protection: If date_of_birth is set to a future date (e.g. 2025/2026 plan review date) and previous state had a valid past DOB, preserve the valid past DOB
+            if (sanitized.date_of_birth) {
+              const getYearFromStr = (str: string) => {
+                const m = str.match(/(\d{4})/);
+                return m ? parseInt(m[1], 10) : 0;
+              };
+              const year = getYearFromStr(sanitized.date_of_birth);
+              if (year >= 2025 && prev.date_of_birth) {
+                const prevYear = getYearFromStr(prev.date_of_birth);
+                if (prevYear > 1900 && prevYear < 2025) {
+                  sanitized.date_of_birth = prev.date_of_birth;
+                }
+              }
+            }
+            return sanitized;
+          });
+        }
+        if (d.services?.length) {
+          const normalizedServices = d.services.map((s: any) => ({
+            name: s.name || s.support_service || s.service_name || s.service || "",
+            service_provided: s.service_provided || s.serviceProvided || s.provider || s.details || "",
+            funded_by: s.funded_by || s.funding_source || s.fundedBy || s.funded_by_source || "",
+            duration_frequency: s.duration_frequency || s.frequency || s.duration || "",
+            support_to_implement_by_us: (s.support_to_implement_by_us === 1 || s.support_to_implement_by_us === "1" || s.support_to_implement_by_us === true || (typeof s.support_to_implement_by_us === 'string' && s.support_to_implement_by_us.trim().toLowerCase() === 'yes')) ? 1 : 0,
+            goal_key: s.goal_key || undefined
+          }));
+          setServices(normalizedServices);
+        }
+        if (d.myGoals?.length) {
+          const normalizedGoals = d.myGoals.map((g: any) => ({
+            goal: g.goal || g.my_goals || "",
+            measure_progress: g.measure_progress || g.how_will_i_achieve || g.measureProgress || "",
+            success_look_like: g.success_look_like || g.successLookLike || "",
+            who_will_support: g.who_will_support || g.whoWillSupport || "",
+            participant_support: g.participant_support || g.how_will_bhc_support || g.participantSupport || "",
+            target_date: g.target_date || g.targetDate || "",
+            goal_key: g.goal_key || undefined
+          }));
+          setMyGoals(normalizedGoals);
+        }
+
+        window.alert("Support Plan auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
+  };
 
   // Memoized values
   const sectionRefs = useMemo(() => createSectionRefs(), []);
@@ -628,7 +815,24 @@ export default function SupportPlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end items-center gap-4 mb-4">
+            <div className="flex justify-end items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
+              >
+                <IconFileText size={18} />
+                PDF Extraction
+              </button>
+              <button
+                type="button"
+                onClick={handleAutofill}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
+                {autofilling ? "Auto-filling..." : "AI Autofill"}
+              </button>
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
                 onClick={scrollToSignature}
@@ -768,6 +972,12 @@ export default function SupportPlanPage() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+      />
     </>
   );
 }
