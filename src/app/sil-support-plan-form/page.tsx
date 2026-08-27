@@ -6,6 +6,8 @@ import { getFormSession, index, update, show } from "@/src/services/crud";
 import { me } from "@/src/services/auth";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import api from "@/src/utils/api";
 import Image from "next/image";
 
 export default function SilSupportPlanPage() {
@@ -18,6 +20,8 @@ export default function SilSupportPlanPage() {
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
 
   const [loading, setLoading] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [flag, setFlag] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [formData, setFormData] = useState<any>({ sil_provider: "Best of Homecare" });
@@ -215,6 +219,195 @@ export default function SilSupportPlanPage() {
       fetchFormData();
     }
   }, [sessionUuid, sessionUserId, sessionClientType]);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          client_name: "string (Full name of participant)",
+          date_of_birth: "string (YYYY-MM-DD format)",
+          ndis_number: "string (NDIS Number)",
+          address: "string (Participant primary residential address)",
+          sil_provider: "string (SIL Provider name, default Best of Homecare)",
+          plan_start_date: "string (Plan start date YYYY-MM-DD)",
+          review_date: "string (Plan review date YYYY-MM-DD)"
+        },
+        decisionMakers: [{
+          decision_maker_type: "string (Type/Relationship, e.g. Emergency Contact, Legal Guardian, Family Member)",
+          name_and_contact_details: "string (Name and phone number / email / contact details)"
+        }],
+        clientGoal: {
+          short_term_goals: "string (Short term goals of client)",
+          long_term_goals: "string (Long term goals of client)",
+          living_skills_goals: "string (Independent living skills goals)",
+          community_participation_goals: "string (Community access and social participation goals)"
+        },
+        dailyRoutines: [
+          { day: "Monday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Tuesday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Wednesday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Thursday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Friday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Saturday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
+          { day: "Sunday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" }
+        ],
+        supportNeed: {
+          personal_care_support: "string (Personal care support details)",
+          domestic_support: "string (Domestic cleaning, cooking, laundry support)",
+          community_access_support: "string (Community access support details)",
+          behavioural_or_emotional_support: "string (Behavioural/emotional support details)",
+          health_and_medication_support: "string (Health & medication support details)",
+          communication_needs: "string (Communication support needs)"
+        },
+        naturalSupport: {
+          details: "string (Connection to family, friends and natural supports)"
+        },
+        clinicalManagementPlan: {
+          details: "string (Clinical management plans, diabetes, mealtime, medication)"
+        },
+        externalProviders: [{
+          provider_name: "string (Provider name)",
+          service_type: "string (Service type e.g. GP, OT, Physio, Speech)",
+          contact_details: "string (Contact info)",
+          key_role: "string (Key role in client support)"
+        }],
+        behaviourSupport: {
+          bsp_in_place: "string (Yes or No)",
+          key_triggers: "string (Key triggers)",
+          early_warning_signs: "string (Early warning signs)",
+          de_escalation_strategies: "string (De-escalation strategies)",
+          prohibited_practices: "string (Prohibited practices)",
+          approved_strategies: "string (Approved strategies)"
+        },
+        healthMedical: {
+          gp_details: "string (GP details)",
+          allergies: "string (Allergies)",
+          medications: "string (Medications)",
+          health_risks: "string (Health risks)"
+        },
+        riskManagements: [
+          { risk_type: "Personal care risk", description_of_risk: "string", likelihood: "string", impact: "string", control_measures: "string", responsible_person: "string" },
+          { risk_type: "Home environment", description_of_risk: "string", likelihood: "string", impact: "string", control_measures: "string", responsible_person: "string" },
+          { risk_type: "Community access", description_of_risk: "string", likelihood: "string", impact: "string", control_measures: "string", responsible_person: "string" },
+          { risk_type: "Medication management", description_of_risk: "string", likelihood: "string", impact: "string", control_measures: "string", responsible_person: "string" },
+          { risk_type: "Clinical/health risk", description_of_risk: "string", likelihood: "string", impact: "string", control_measures: "string", responsible_person: "string" }
+        ],
+        communication: {
+          communication_method: "string (Communication method)",
+          support_required: "string (Support required)",
+          interpreter_required: "string (Yes or No)"
+        },
+        choiceControl: {
+          daily_choices: "string (Daily choices)",
+          meal_choices: "string (Meal choices)",
+          activities_and_outings: "string (Activities and outings)",
+          household_decisions: "string (Household decisions)"
+        },
+        teamMemberRequirement: {
+          staffing_ratio: "string (Staffing ratio)",
+          team_member_preferences: "string (Team member preferences)",
+          training_requirements: "string (Training requirements)",
+          continuity_requirements: "string (Continuity requirements)"
+        },
+        emergencyInformation: {
+          emergency_contacts: "string (Emergency contacts)",
+          evacuation_plan: "string (Evacuation plan)",
+          emergency_procedures: "string (Emergency procedures)",
+          after_hours_support: "string (After-hours support)"
+        },
+        reviewSignature: {
+          signer_type: "string (participant or representative)",
+          participant_name: "string (Participant name)",
+          participant_date: "string (Date YYYY-MM-DD)",
+          representative_name: "string (Representative name)",
+          relationship_to_participant: "string (Relationship)",
+          representative_date: "string (Date YYYY-MM-DD)"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        if (d.formData) {
+          setFormData((prev: any) => ({
+            ...prev,
+            ...d.formData,
+            sil_provider: d.formData.sil_provider || prev.sil_provider || "Best of Homecare"
+          }));
+          if (d.formData.client_name) setClientName(d.formData.client_name);
+        }
+        if (d.decisionMakers?.length) {
+          setDecisionMakers(d.decisionMakers);
+        }
+        if (d.clientGoal) {
+          setClientGoal((prev: any) => ({ ...prev, ...d.clientGoal }));
+        }
+        if (d.dailyRoutines?.length) {
+          setDailyRoutines(d.dailyRoutines);
+        }
+        if (d.supportNeed) {
+          setSupportNeed((prev: any) => ({ ...prev, ...d.supportNeed }));
+        }
+        if (d.naturalSupport) {
+          setNaturalSupport((prev: any) => ({ ...prev, ...d.naturalSupport }));
+        }
+        if (d.clinicalManagementPlan) {
+          setClinicalManagementPlan((prev: any) => ({ ...prev, ...d.clinicalManagementPlan }));
+        }
+        if (d.externalProviders?.length) {
+          setExternalProviders(d.externalProviders);
+        }
+        if (d.behaviourSupport) {
+          setBehaviourSupport((prev: any) => ({ ...prev, ...d.behaviourSupport }));
+        }
+        if (d.healthMedical) {
+          setHealthMedical((prev: any) => ({ ...prev, ...d.healthMedical }));
+        }
+        if (d.riskManagements?.length) {
+          setRiskManagements(d.riskManagements);
+        }
+        if (d.communication) {
+          setCommunication((prev: any) => ({ ...prev, ...d.communication }));
+        }
+        if (d.choiceControl) {
+          setChoiceControl((prev: any) => ({ ...prev, ...d.choiceControl }));
+        }
+        if (d.teamMemberRequirement) {
+          setTeamMemberRequirement((prev: any) => ({ ...prev, ...d.teamMemberRequirement }));
+        }
+        if (d.emergencyInformation) {
+          setEmergencyInformation((prev: any) => ({ ...prev, ...d.emergencyInformation }));
+        }
+        if (d.reviewSignature) {
+          setReviewSignature((prev: any) => ({ ...prev, ...d.reviewSignature }));
+        }
+
+        window.alert("SIL Support Plan auto-filled successfully using AI!");
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
+  };
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
@@ -482,6 +675,9 @@ export default function SilSupportPlanPage() {
               setReviewSignature={setReviewSignature}
               handleChange={handleChange}
               uuid={sessionUuid || undefined}
+              onPdfExtractionClick={() => setIsPdfModalOpen(true)}
+              onAutofillClick={handleAutofill}
+              autofilling={autofilling}
             />
 
             <div className="flex items-center mt-6">
@@ -502,6 +698,12 @@ export default function SilSupportPlanPage() {
               </button>
             </div>
           </form>
+          <PdfExtractionModal
+            isOpen={isPdfModalOpen}
+            onClose={() => setIsPdfModalOpen(false)}
+            userId={sessionUserId || searchParams.get("userid") || ""}
+            clientType={sessionClientType || searchParams.get("client_type") || ""}
+          />
         </div>
       ) : (
         <div className="flex justify-center items-center min-h-[200px]"><span>Loading...</span></div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, createRef, RefObject, useCallback,
 import SignaturePad from "signature_pad";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import AccordianPlanSection from "@/src/components/AccordianSection";
+import { IconFileText, IconRobot, IconLoader } from "@tabler/icons-react";
 
 const SingleSignaturePad: React.FC<{
   label: string;
@@ -184,6 +185,9 @@ interface SilSupportPlanFormProps {
   handleChange: (e: any) => void;
   uuid?: string;
   isReadOnly?: boolean;
+  onPdfExtractionClick?: () => void;
+  onAutofillClick?: () => void;
+  autofilling?: boolean;
 }
 
 export default function SilSupportPlanForm({
@@ -224,6 +228,9 @@ export default function SilSupportPlanForm({
   handleChange,
   uuid,
   isReadOnly = false,
+  onPdfExtractionClick,
+  onAutofillClick,
+  autofilling = false,
 }: SilSupportPlanFormProps) {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -493,7 +500,28 @@ export default function SilSupportPlanForm({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end items-center gap-4 mb-4">
+      <div className="flex justify-end items-center gap-3 mb-4 flex-wrap">
+        {onPdfExtractionClick && (
+          <button
+            type="button"
+            onClick={onPdfExtractionClick}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
+          >
+            <IconFileText size={18} />
+            PDF Extraction
+          </button>
+        )}
+        {onAutofillClick && (
+          <button
+            type="button"
+            onClick={onAutofillClick}
+            disabled={autofilling}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+          >
+            {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
+            {autofilling ? "Auto-filling..." : "AI Autofill"}
+          </button>
+        )}
         <div 
           className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
           onClick={scrollToSignature}
