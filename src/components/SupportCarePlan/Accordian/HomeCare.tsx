@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { destroy } from '@/src/services/crud';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
+import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
 import { SilGoal } from "@/src/components/SupportCarePlan/types";
 
 interface PreviousSilGoalsProps {
@@ -23,6 +24,13 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
     const { name, value } = e.target;
     const updatedSil = [...homeGoals];
     updatedSil[index][name as keyof SilGoal] = value;
+    setHomeGoals(updatedSil);
+  };
+
+  const handleAiUpdate = (index: number, fieldName: keyof SilGoal, newValue: string) => {
+    if (!setHomeGoals) return;
+    const updatedSil = [...homeGoals];
+    updatedSil[index][fieldName] = newValue;
     setHomeGoals(updatedSil);
   };
 
@@ -107,10 +115,9 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
           </button>
         )}
       </div>
-
       <div className="p-4">
         {homeGoals.length === 0 ? (
-          <p className="text-center text-gray-500 py-4">No home care goals added yet.</p>
+          <p className="text-center text-gray-500 py-4">No Home Care goals added yet.</p>
         ) : (
           homeGoals.map((goal, index) => (
             <div
@@ -132,7 +139,14 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
               {/* Goals of Support */}
               <div>
-                <label className="block mb-1 font-medium">Goals of support What is the specific goal to be achieved through BHC supports?</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium">Goals of support What is the specific goal to be achieved through BHC supports?</label>
+                  <AiFieldPromptButton
+                    fieldLabel="Goals of support (Home Care)"
+                    currentValue={goal.goals_of_support || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'goals_of_support', val)}
+                  />
+                </div>
                 <textarea
                   name="goals_of_support"
                   value={goal.goals_of_support || ''}
@@ -145,7 +159,14 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
               {/* Steps */}
               <div>
-                <label className="block mb-1 font-medium">Steps What will the participant do to actively participate in meeting this goal?</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium">Steps What will the participant do to actively participate in meeting this goal?</label>
+                  <AiFieldPromptButton
+                    fieldLabel="Participant Steps"
+                    currentValue={goal.steps || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'steps', val)}
+                  />
+                </div>
                 <textarea
                   name="steps"
                   value={goal.steps || ''}
@@ -158,7 +179,14 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
               {/* Organisation Steps */}
               <div>
-                <label className="block mb-1 font-medium">Organisation’s steps What support will we provide to meet this goal?</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium">Organisation’s steps What support will we provide to meet this goal?</label>
+                  <AiFieldPromptButton
+                    fieldLabel="Organisation Steps"
+                    currentValue={goal.organisation_steps || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'organisation_steps', val)}
+                  />
+                </div>
                 <textarea
                   name="organisation_steps"
                   value={goal.organisation_steps || ''}
@@ -171,7 +199,14 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
               {/* Risk */}
               <div>
-                <label className="block mb-1 font-medium">Risk</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium">Risk</label>
+                  <AiFieldPromptButton
+                    fieldLabel="Risk"
+                    currentValue={goal.risk || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'risk', val)}
+                  />
+                </div>
                 <textarea
                   name="risk"
                   value={goal.risk || ''}
@@ -184,7 +219,14 @@ export default function HomeCareGoals({ homeGoals = [], setHomeGoals, uuid }: Pr
 
               {/* Risk Management Strategies */}
               <div>
-                <label className="block mb-1 font-medium">Risk Management Strategies</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-medium">Risk Management Strategies</label>
+                  <AiFieldPromptButton
+                    fieldLabel="Risk Management Strategies"
+                    currentValue={goal.risk_management_strategies || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'risk_management_strategies', val)}
+                  />
+                </div>
                 <textarea
                   name="risk_management_strategies"
                   value={goal.risk_management_strategies || ''}

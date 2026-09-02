@@ -146,10 +146,10 @@ export default function AIOnboardingPage() {
                                 </div>
                             </label>
 
-                            {/* Extraction Instructions & Guidance (Optional) */}
+                            {/* Prompt Heading (Optional) */}
                             <div className="mt-6 space-y-2">
                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                                    Extraction Instructions & Guidance (Optional)
+                                    Prompt Heading (Optional)
                                 </label>
                                 <textarea
                                     rows={2}
@@ -161,10 +161,10 @@ export default function AIOnboardingPage() {
                                 />
                             </div>
 
-                            {/* Staff Notes & Extra Fields (Optional) */}
+                            {/* Additional Information (Optional) */}
                             <div className="mt-4 space-y-2">
                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                                    Staff Notes & Extra Fields (Optional)
+                                    Additional Information (Optional)
                                 </label>
                                 <textarea
                                     rows={2}

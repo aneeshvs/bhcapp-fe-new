@@ -144,12 +144,12 @@ export default function SupportPlanPage() {
           support_to_implement_by_us: "number (1 if support is to be implemented by us, 0 otherwise)"
         }],
         myGoals: [{
-          goal: "string (Main goal description)",
-          measure_progress: "string (How will we measure this goal's progress)",
-          success_look_like: "string (What will success look like for you)",
-          who_will_support: "string (Who will support you)",
-          participant_support: "string (How participant will support the goal)",
-          target_date: "string (When we aim to meet this goal)"
+          goal: "string (Comprehensive main goal description synthesized from client context; MUST be a detailed person-centered narrative of MINIMUM 300 CHARACTERS)",
+          measure_progress: "string (Detailed measure of goal progress, how achievements will be tracked, minimum 150 characters)",
+          success_look_like: "string (What success looks like for participant, minimum 150 characters)",
+          who_will_support: "string (Who will support participant, e.g. BHC Support Workers, Family, Allied Health)",
+          participant_support: "string (How BHC and participant will work together to support goal)",
+          target_date: "string (When we aim to meet this goal YYYY-MM-DD)"
         }]
       };
 
@@ -819,19 +819,20 @@ export default function SupportPlanPage() {
               <button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
-              >
-                <IconFileText size={18} />
-                PDF Extraction
-              </button>
-              <button
-                type="button"
-                onClick={handleAutofill}
                 disabled={autofilling}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
               >
-                {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
-                {autofilling ? "Auto-filling..." : "AI Autofill"}
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
               </button>
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
@@ -977,6 +978,7 @@ export default function SupportPlanPage() {
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
       />
     </>
   );

@@ -4,6 +4,8 @@ import { useSearchParams } from 'next/navigation';
 import { destroy } from '@/src/services/crud';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 
+import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
+
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `goal_${crypto.randomUUID()}`;
@@ -68,7 +70,6 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
 
     // Check if this goal has a goal_key (submitted to backend)
     const hasGoalKey = !!goal.goal_key;
-    // const isUnsavedGoal = unsavedGoalIndexes.has(index);
 
     // Only call API for goals that have goal_key (exist in backend)
     if (hasGoalKey && effectiveUuid) {
@@ -81,8 +82,6 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
         });
       } catch (error) {
         console.error('Failed to remove goal from backend:', error);
-        // Even if API call fails, remove from local state
-        // You might want to show an error message to the user
       }
     }
 
@@ -143,7 +142,14 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Goal</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-gray-700">Goal Description</label>
+                  <AiFieldPromptButton
+                    fieldLabel={`Goal #${index + 1}`}
+                    currentValue={goal.goal || ''}
+                    onUpdate={(val) => updateGoal(index, 'goal', val)}
+                  />
+                </div>
                 <textarea
                   value={goal.goal}
                   onChange={(e) => updateGoal(index, 'goal', e.target.value)}
@@ -154,9 +160,16 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  How will we measure this goal’s progress
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    How will we measure this goal’s progress
+                  </label>
+                  <AiFieldPromptButton
+                    fieldLabel="Measure Progress"
+                    currentValue={goal.measure_progress || ''}
+                    onUpdate={(val) => updateGoal(index, 'measure_progress', val)}
+                  />
+                </div>
                 <textarea
                   value={goal.measure_progress}
                   onChange={(e) => updateGoal(index, 'measure_progress', e.target.value)}
@@ -167,9 +180,16 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  What will success look like for you?
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    What will success look like for you?
+                  </label>
+                  <AiFieldPromptButton
+                    fieldLabel="Success Look Like"
+                    currentValue={goal.success_look_like || ''}
+                    onUpdate={(val) => updateGoal(index, 'success_look_like', val)}
+                  />
+                </div>
                 <textarea
                   value={goal.success_look_like}
                   onChange={(e) => updateGoal(index, 'success_look_like', e.target.value)}
@@ -180,9 +200,16 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Who will support you
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    Who will support you
+                  </label>
+                  <AiFieldPromptButton
+                    fieldLabel="Who Will Support"
+                    currentValue={goal.who_will_support || ''}
+                    onUpdate={(val) => updateGoal(index, 'who_will_support', val)}
+                  />
+                </div>
                 <textarea
                   value={goal.who_will_support}
                   onChange={(e) => updateGoal(index, 'who_will_support', e.target.value)}
@@ -193,9 +220,16 @@ export default function SupportPlanMyGoals({ myGoals = [], setMyGoals, uuid }: S
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  How participant will support the goal
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    How participant will support the goal
+                  </label>
+                  <AiFieldPromptButton
+                    fieldLabel="Participant Support"
+                    currentValue={goal.participant_support || ''}
+                    onUpdate={(val) => updateGoal(index, 'participant_support', val)}
+                  />
+                </div>
                 <textarea
                   value={goal.participant_support}
                   onChange={(e) => updateGoal(index, 'participant_support', e.target.value)}

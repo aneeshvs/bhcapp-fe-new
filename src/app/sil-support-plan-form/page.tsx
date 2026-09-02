@@ -247,10 +247,10 @@ export default function SilSupportPlanPage() {
           name_and_contact_details: "string (Name and phone number / email / contact details)"
         }],
         clientGoal: {
-          short_term_goals: "string (Short term goals of client)",
-          long_term_goals: "string (Long term goals of client)",
-          living_skills_goals: "string (Independent living skills goals)",
-          community_participation_goals: "string (Community access and social participation goals)"
+          short_term_goals: "string (Comprehensive short term goal narrative based on extracted client profile context; MUST be a detailed person-centered narrative of MINIMUM 300 CHARACTERS detailing outcomes, support strategies, and milestones)",
+          long_term_goals: "string (Comprehensive long term goal narrative based on extracted client profile context; MUST be a detailed person-centered narrative of MINIMUM 300 CHARACTERS detailing long-term vision, milestones, and ongoing support approach)",
+          living_skills_goals: "string (Comprehensive independent living skills goal narrative based on extracted client profile context; MUST be a detailed narrative of MINIMUM 300 CHARACTERS detailing daily living activities, training, and support routines)",
+          community_participation_goals: "string (Comprehensive community participation & social engagement goal narrative based on extracted client profile context; MUST be a detailed narrative of MINIMUM 300 CHARACTERS detailing community access, transport, and social connection strategies)"
         },
         dailyRoutines: [
           { day: "Monday", morning_routine: "string", day_activities: "string", evening_routine: "string", overnight_support: "string" },
@@ -703,6 +703,7 @@ export default function SilSupportPlanPage() {
             onClose={() => setIsPdfModalOpen(false)}
             userId={sessionUserId || searchParams.get("userid") || ""}
             clientType={sessionClientType || searchParams.get("client_type") || ""}
+            onExtractionComplete={handleAutofill}
           />
         </div>
       ) : (

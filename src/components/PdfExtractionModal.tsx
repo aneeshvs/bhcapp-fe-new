@@ -79,7 +79,7 @@ export default function PdfExtractionModal({
       setProgress(100);
 
       if (response.data.success) {
-        setSuccessMsg("PDF extracted successfully and saved to client profile! Click 'AI Autofill' button anytime to populate form fields.");
+        setSuccessMsg("PDF extracted successfully! Auto-filling form fields with AI...");
         
         if (onExtractionComplete) {
           await onExtractionComplete();
@@ -183,7 +183,7 @@ export default function PdfExtractionModal({
             {/* Staff Instructions / Custom Guidance */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
-                Extraction Instructions & Guidance (Optional)
+                Prompt
               </label>
               <textarea
                 rows={5}
@@ -198,7 +198,7 @@ export default function PdfExtractionModal({
             {/* Additional Staff Fields & Extracted Notes */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
-                Staff Notes & Extra Fields (Optional)
+                Additional Information
               </label>
               <textarea
                 rows={5}

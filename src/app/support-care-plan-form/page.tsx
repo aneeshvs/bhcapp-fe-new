@@ -160,10 +160,10 @@ export default function SupportCarePlanPage() {
           }
           return acc;
         }, {} as Record<string, string>),
-        myGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
-        homeGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
-        supportGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
-        dayProgramGoals: [{ goal_title: "string", goals_of_support: "string", steps: "string", organisation_steps: "string", risk: "string", risk_management_strategies: "string" }],
+        myGoals: [{ goal_title: "string (Goal title)", goals_of_support: "string (Comprehensive person-centered goal narrative based on extracted client context; MINIMUM 300 CHARACTERS)", steps: "string (Participant action steps, minimum 150 characters)", organisation_steps: "string (Support worker action steps, minimum 150 characters)", risk: "string", risk_management_strategies: "string" }],
+        homeGoals: [{ goal_title: "string (Home/living goal title)", goals_of_support: "string (Comprehensive home & independent living goal narrative based on extracted client context; MINIMUM 300 CHARACTERS)", steps: "string (Participant action steps, minimum 150 characters)", organisation_steps: "string (Support worker action steps, minimum 150 characters)", risk: "string", risk_management_strategies: "string" }],
+        supportGoals: [{ goal_title: "string (Support/community goal title)", goals_of_support: "string (Comprehensive community & social support goal narrative based on extracted client context; MINIMUM 300 CHARACTERS)", steps: "string (Participant action steps, minimum 150 characters)", organisation_steps: "string (Support worker action steps, minimum 150 characters)", risk: "string", risk_management_strategies: "string" }],
+        dayProgramGoals: [{ goal_title: "string (Day program goal title)", goals_of_support: "string (Comprehensive day program & skill building goal narrative based on extracted client context; MINIMUM 300 CHARACTERS)", steps: "string (Participant action steps, minimum 150 characters)", organisation_steps: "string (Support worker action steps, minimum 150 characters)", risk: "string", risk_management_strategies: "string" }],
         emergencyContacts: [{ name: "string", relationship: "string", phone: "string", email: "string", location: "string" }],
         communicationPlan: {
           helps_me_talk: ["string (Include ONLY explicitly checked items from: Interpreter, Symbols, Pictures, Gesturing, Facial Expressions, Simple words, When you wait for me to respond, My Supporter/carer, Other (Including Assistive technology))"],
@@ -233,8 +233,8 @@ export default function SupportCarePlanPage() {
 
         // Merge array fields
         if (d.myGoals?.length) setMyGoals(d.myGoals.map((g: any) => ({ ...g, category: 'sil', goal_key: '' })));
-        if (d.homeGoals?.length) setHomeGoals(d.homeGoals.map((g: any) => ({ ...g, category: 'home', goal_key: '' })));
-        if (d.supportGoals?.length) setSupportGoals(d.supportGoals.map((g: any) => ({ ...g, category: 'support', goal_key: '' })));
+        if (d.homeGoals?.length) setHomeGoals(d.homeGoals.map((g: any) => ({ ...g, category: 'homecare', goal_key: '' })));
+        if (d.supportGoals?.length) setSupportGoals(d.supportGoals.map((g: any) => ({ ...g, category: 'support_coordination', goal_key: '' })));
         if (d.dayProgramGoals?.length) setDayProgramGoals(d.dayProgramGoals.map((g: any) => ({ ...g, category: 'day_program', goal_key: '' })));
         if (d.emergencyContacts?.length) setEmergencyContacts(d.emergencyContacts);
         if (d.communicationPlan) {
@@ -790,19 +790,20 @@ export default function SupportCarePlanPage() {
               <button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
-              >
-                <IconFileText size={18} />
-                PDF Extraction
-              </button>
-              <button
-                type="button"
-                onClick={handleAutofill}
                 disabled={autofilling}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
               >
-                {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
-                {autofilling ? "Auto-filling..." : "AI Autofill"}
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
               </button>
               <button
                 type="button"
@@ -981,6 +982,7 @@ export default function SupportCarePlanPage() {
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
       />
     </>
   );

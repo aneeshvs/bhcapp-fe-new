@@ -5,6 +5,7 @@ import SignaturePad from "signature_pad";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import { IconFileText, IconRobot, IconLoader } from "@tabler/icons-react";
+import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
 
 const SingleSignaturePad: React.FC<{
   label: string;
@@ -505,21 +506,20 @@ export default function SilSupportPlanForm({
           <button
             type="button"
             onClick={onPdfExtractionClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2"
-          >
-            <IconFileText size={18} />
-            PDF Extraction
-          </button>
-        )}
-        {onAutofillClick && (
-          <button
-            type="button"
-            onClick={onAutofillClick}
             disabled={autofilling}
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
           >
-            {autofilling ? <IconLoader size={18} className="animate-spin" /> : <IconRobot size={18} />}
-            {autofilling ? "Auto-filling..." : "AI Autofill"}
+            {autofilling ? (
+              <>
+                <IconLoader size={18} className="animate-spin" />
+                Auto-filling...
+              </>
+            ) : (
+              <>
+                <IconFileText size={18} />
+                PDF Extraction & AI Autofill
+              </>
+            )}
           </button>
         )}
         <div 
@@ -754,9 +754,16 @@ export default function SilSupportPlanForm({
             <div key={field} className="relative" onMouseEnter={() => setHoveredField(`client_goal_${field}`)} onMouseLeave={() => setHoveredField(null)}>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-gray-700 capitalize">{field.replace(/_/g, " ")}</label>
-                {hoveredField === `client_goal_${field}` && (
-                  <button type="button" onClick={() => handleViewLogs(`client_goal_${field}`)} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
-                )}
+                <div className="flex items-center gap-2">
+                  <AiFieldPromptButton
+                    fieldLabel={field.replace(/_/g, " ")}
+                    currentValue={clientGoal[field] || ""}
+                    onUpdate={(val) => handleClientGoalChange(field, val)}
+                  />
+                  {hoveredField === `client_goal_${field}` && (
+                    <button type="button" onClick={() => handleViewLogs(`client_goal_${field}`)} className="text-xs btn-primary text-white px-2 py-1 rounded">View Logs</button>
+                  )}
+                </div>
               </div>
               <textarea
                 value={clientGoal[field] || ""}
