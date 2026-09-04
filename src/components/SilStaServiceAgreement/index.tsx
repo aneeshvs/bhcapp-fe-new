@@ -445,7 +445,7 @@ export default function SilStaServiceAgreementForm({
                     </fieldset>
                   </AccordianPlanSection>
 
-                  {key === "ScheduleOfSupportSection" && (
+                  {key === "GeneralDetailsSection" && (
                     <StaticTermsContent />
                   )}
                 </React.Fragment>
