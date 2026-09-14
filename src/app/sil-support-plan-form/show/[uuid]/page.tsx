@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { update, show, verifyFormOtp, getFormSession, index } from "@/src/services/crud";
+import { update, show, verifyFormOtp, getFormSession, index, store } from "@/src/services/crud";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
 import Image from "next/image";
 import phpApi from "@/src/utils/PhpApi";
@@ -363,7 +363,7 @@ export default function ShowSilSupportPlanPage() {
         data.append("signature_only", "1");
       }
 
-      const response = await update("sil-support-plan", data);
+      const response = await store("client/sil-support-plan/update", data);
       if (response.success) {
         window.alert("Form submitted successfully.");
         fetchFormData();

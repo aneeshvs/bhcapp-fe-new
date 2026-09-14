@@ -271,7 +271,7 @@ export default function SilStaServiceAgreementForm({
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const dataToSave = { ...formData };
+      const dataToSave = { ...formData, isClientView };
       if (isSignatureOnly) {
         dataToSave.signature_only = 1;
       }

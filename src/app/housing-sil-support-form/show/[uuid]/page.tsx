@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
-import { verifyFormOtp, VerifyOtpResponse, update, show } from "@/src/services/crud";
+import { verifyFormOtp, VerifyOtpResponse, update, show, store } from "@/src/services/crud";
 import Tracker from "@/src/components/Tracker";
 import { mapApiResponseToFormData } from "@/src/components/HousingSilSupport/MapApiResponseToFormData";
 import { sectionsConfig } from "@/src/components/HousingSilSupport/sectionsConfig";
@@ -177,7 +177,7 @@ export default function ShowHousingSilSupportPage() {
         if (uuid) data.append("uuid", uuid as string);
         if (isSignatureOnly) data.append("signature_only", "1");
 
-        const apiResponse = await update("housing-sil-support/update", data);
+        const apiResponse = await store("client/housing-sil-support/update", data);
 
         if (apiResponse.success) {
           window.alert("submitted successfully.");
