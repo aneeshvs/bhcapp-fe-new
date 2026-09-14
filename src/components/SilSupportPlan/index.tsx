@@ -1530,13 +1530,16 @@ export default function SilSupportPlanForm({
             <SingleSignaturePad
               label={(reviewSignature.signer_type || "participant") === "participant" ? "Participant Signature" : "Representative Signature"}
               elementId={(reviewSignature.signer_type || "participant") === "participant" ? "participant-signature-pad" : "representative-signature-pad"}
-              value={reviewSignature.signer_type === "representative" ? (reviewSignature.representative_signature || reviewSignature.participant_signature || "") : (reviewSignature.participant_signature || "")}
+              value={reviewSignature.signer_type === "representative" ? (reviewSignature.representative_signature || "") : (reviewSignature.participant_signature || "")}
               onChange={(val) => {
                 if (reviewSignature.signer_type === "representative") {
                   handleReviewSignatureChange("representative_signature", val);
                   handleReviewSignatureChange("participant_signature", val);
                 } else {
                   handleReviewSignatureChange("participant_signature", val);
+                  if (!val) {
+                    handleReviewSignatureChange("representative_signature", val);
+                  }
                 }
               }}
             />

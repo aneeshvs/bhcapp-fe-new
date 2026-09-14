@@ -258,7 +258,7 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
           elementId={signerType === "participant" ? "participant-signature-pad" : "representative-signature-pad"}
           value={
             signerType === "representative"
-              ? data.representative_signature || data.participant_signature || ""
+              ? data.representative_signature || ""
               : data.participant_signature || ""
           }
           disabled={readOnly}
@@ -268,6 +268,9 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
               onChange("participant_signature", val);
             } else {
               onChange("participant_signature", val);
+              if (!val) {
+                onChange("representative_signature", val);
+              }
             }
           }}
         />
