@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
+import AiFieldPromptButton from '@/src/components/AiFieldPromptButton';
 
 interface SupportInfoProps {
   formData: {
@@ -135,15 +136,22 @@ export default function SupportInformation({ formData, handleChange, uuid }: Sup
         >
           <div className="flex justify-between items-center mb-1">
             <label className="block font-medium">Do you have a mealtime management plan that includes dietary or modification requirements?</label>
-            {hoveredField === 'mealtimePlan' && (
-              <button
-                type='button'
-                onClick={() => handleViewLogs('mealtime_plan')}
-                className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
-              >
-                View Logs
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <AiFieldPromptButton
+                fieldLabel="Mealtime Plan"
+                currentValue={formData.mealtimePlan || ''}
+                onUpdate={(val) => handleChange({ target: { name: 'mealtimePlan', value: val } })}
+              />
+              {hoveredField === 'mealtimePlan' && (
+                <button
+                  type='button'
+                  onClick={() => handleViewLogs('mealtime_plan')}
+                  className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
           </div>
           <input
             type="text"
@@ -163,15 +171,22 @@ export default function SupportInformation({ formData, handleChange, uuid }: Sup
         >
           <div className="flex justify-between items-center mb-1">
             <label className="block font-medium">Likes</label>
-            {hoveredField === 'likes' && (
-              <button
-                type='button'
-                onClick={() => handleViewLogs('likes')}
-                className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
-              >
-                View Logs
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <AiFieldPromptButton
+                fieldLabel="Likes"
+                currentValue={formData.likes || ''}
+                onUpdate={(val) => handleChange({ target: { name: 'likes', value: val } })}
+              />
+              {hoveredField === 'likes' && (
+                <button
+                  type='button'
+                  onClick={() => handleViewLogs('likes')}
+                  className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
           </div>
           <input
             type="text"
@@ -191,15 +206,22 @@ export default function SupportInformation({ formData, handleChange, uuid }: Sup
         >
           <div className="flex justify-between items-center mb-1">
             <label className="block font-medium">Dislikes</label>
-            {hoveredField === 'dislikes' && (
-              <button
-                type='button'
-                onClick={() => handleViewLogs('dislikes')}
-                className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
-              >
-                View Logs
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <AiFieldPromptButton
+                fieldLabel="Dislikes"
+                currentValue={formData.dislikes || ''}
+                onUpdate={(val) => handleChange({ target: { name: 'dislikes', value: val } })}
+              />
+              {hoveredField === 'dislikes' && (
+                <button
+                  type='button'
+                  onClick={() => handleViewLogs('dislikes')}
+                  className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
           </div>
           <input
             type="text"
@@ -219,15 +241,22 @@ export default function SupportInformation({ formData, handleChange, uuid }: Sup
         >
           <div className="flex justify-between items-center mb-1">
             <label className="block font-medium">Interests</label>
-            {hoveredField === 'interests' && (
-              <button
-                type='button'
-                onClick={() => handleViewLogs('interests')}
-                className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
-              >
-                View Logs
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <AiFieldPromptButton
+                fieldLabel="Interests"
+                currentValue={formData.interests || ''}
+                onUpdate={(val) => handleChange({ target: { name: 'interests', value: val } })}
+              />
+              {hoveredField === 'interests' && (
+                <button
+                  type='button'
+                  onClick={() => handleViewLogs('interests')}
+                  className="text-xs btn-primary btn-primary:hover text-white px-2 py-1 rounded"
+                >
+                  View Logs
+                </button>
+              )}
+            </div>
           </div>
           <input
             type="text"

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { destroy } from '@/src/services/crud';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
+import AiFieldPromptButton from '@/src/components/AiFieldPromptButton';
 
 export interface NdisGoals {
   goal_description: string;
@@ -23,6 +24,12 @@ export default function NdisGoals({ ndisGoals, setNdisGoals, uuid }: PreviousNdi
     const { name, value } = e.target;
     const updateNdis = [...ndisGoals];
     updateNdis[index][name as keyof NdisGoals] = value;
+    setNdisGoals(updateNdis);
+  };
+
+  const handleAiUpdate = (index: number, field: keyof NdisGoals, val: string) => {
+    const updateNdis = [...ndisGoals];
+    updateNdis[index][field] = val;
     setNdisGoals(updateNdis);
   };
 
@@ -104,30 +111,39 @@ export default function NdisGoals({ ndisGoals, setNdisGoals, uuid }: PreviousNdi
           <p className="text-center text-gray-500 py-4">No NDIS goals added yet.</p>
         ) : (
           ndisGoals.map((goal, index) => (
-            <div key={index} className="grid grid-cols-1 gap-4 mb-6 p-4 rounded relative border border-gray-200">
-              <div className="mb-3">
-                <label className="block mb-1 font-medium">
-                  What are the NDIS Goals that you would like assistance from BHC with?
-                </label>
+            <div key={index} className="grid grid-cols-1 gap-4 mb-6 p-4 rounded-lg border border-gray-200 bg-white shadow-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                <span className="font-semibold text-sm text-gray-700">Goal #{index + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeNdisGoals(index)}
+                  className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1 transition px-2 py-1 rounded hover:bg-red-50"
+                  title="Remove this goal"
+                >
+                  ❌ Remove
+                </button>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="font-medium text-sm text-gray-800">
+                    What are the NDIS Goals that you would like assistance from BHC with?
+                  </label>
+                  <AiFieldPromptButton
+                    fieldLabel={`NDIS Goal #${index + 1}`}
+                    currentValue={goal.goal_description || ''}
+                    onUpdate={(val) => handleAiUpdate(index, 'goal_description', val)}
+                  />
+                </div>
                 <textarea
                   name="goal_description"
                   value={goal.goal_description || ''}
                   onChange={(e) => handleFieldChange(index, e)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-hidden"
                   placeholder="Enter goal description"
                   rows={3}
                 />
               </div>
-
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={() => removeNdisGoals(index)}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
-                title="Remove this goal"
-              >
-                ❌ Remove
-              </button>
             </div>
           ))
         )}

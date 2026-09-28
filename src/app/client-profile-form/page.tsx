@@ -26,6 +26,9 @@ import { me } from '@/src/services/auth';
 import { useSearchParams } from 'next/navigation';
 import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiResponse';
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import api from "@/src/utils/api";
+import { IconFileText, IconLoader } from "@tabler/icons-react";
 interface OnboardSubmitSuccess {
   success: true;
   data: {
@@ -90,6 +93,223 @@ export default function ClientProfileForm() {
         return acc;
       }, {} as Record<string, boolean>)
     );
+  };
+
+  const [autofilling, setAutofilling] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: Object.keys(formData).reduce((acc, key) => {
+          if (key !== 'submit_final' && key !== 'form_status') {
+            if (key.includes('date') || key.includes('dob')) {
+              acc[key] = 'string (YYYY-MM-DD format, e.g. 1999-12-17)';
+            } else if (key === 'gender') {
+              acc[key] = 'string (MUST BE EXACTLY ONE OF: male, female, non-binary)';
+            } else if (key === 'agreement') {
+              acc[key] = 'number (1 ONLY IF client needs independent advocate/family member/guardian to assist with understanding agreement, 0 if No/Not required)';
+            } else if (key === 'description') {
+              acc[key] = 'string (Contact information & details of independent advocate/family member/guardian ONLY IF agreement is 1. IF agreement is 0 or no advocate listed, MUST be empty string "")';
+            } else if (key === 'fundingType') {
+              acc[key] = 'string (MUST BE EXACTLY ONE OF: Self-Managed, NDIA, Plan Managed. Inspect document table carefully to identify which box/checkbox is selected/darkened. Return "Plan Managed" if Plan Managed is selected)';
+            } else if (key === 'fundingContactPerson') {
+              acc[key] = 'string (Contact person for funding ONLY if explicitly listed in the Contact person for funding field. If N/A or empty, MUST be empty string "")';
+            } else if (key === 'planManagerName') {
+              acc[key] = 'string (Name of Plan Manager organization/contact, e.g. Instacare. If N/A, MUST be empty string "")';
+            } else if (key === 'has_children_under_18' || key === 'interpreterRequired' || key === 'auslanRequired' || key === 'ndisPlanAttached' || key === 'has_support_plan' || key === 'plan_copy_received' || key === 'epilepsy' || key === 'asthma' || key === 'diabetes' || key === 'vaccineAssistance' || key === 'communicationAssist' || key === 'staffAdministerMedication' || key === 'self_administered' || key === 'guardian' || key === 'support_worker' || key === 'male' || key === 'female' || key === 'no_preference') {
+              acc[key] = 'number (1 if Yes/True/Checked, 0 if No/False/Unchecked)';
+            } else {
+              acc[key] = typeof (formData as any)[key] === 'number'
+                ? 'number (0 for No/False/Not applicable, 1 for Yes/True/Applicable)'
+                : 'string (If N/A, None, or empty in document, return empty string "")';
+            }
+          }
+          return acc;
+        }, {} as Record<string, string>),
+        careEntries: [{
+          type_of_service: "string (e.g. Personal Care, Domestic Assistance, Community Support)",
+          primary_task_list: "string (Primary tasks required)",
+          secondary_task_list: "string (Secondary tasks or additional support details)"
+        }],
+        ndisGoals: [{
+          goal_description: "string (Comprehensive participant NDIS goal description)"
+        }],
+        healthProffessional: [{
+          role: "string (e.g. GP, Occupational Therapist, Physiotherapist, Psychiatrist)",
+          name: "string (Full name of health professional)",
+          contact_number: "string (Phone number or contact info)"
+        }],
+        healthInformation: {
+          health_conditions: ["string (Selected health conditions, e.g. Diabetes, Hypertension, Arthritis)"],
+          health_other_description: "string (Additional health conditions or clinical notes)"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            const isDummy = (str: string | undefined | null) => {
+              if (!str) return true;
+              const lower = str.trim().toLowerCase();
+              return (
+                lower === "" ||
+                lower === "n/a" ||
+                lower === "na" ||
+                lower === "none" ||
+                lower === "nil" ||
+                lower === "unknown" ||
+                lower === "undefined" ||
+                lower === "not available" ||
+                lower === "no information" ||
+                lower.includes("not mentioned") ||
+                lower.includes("not applicable") ||
+                lower.includes("not found") ||
+                lower.includes("not specified") ||
+                lower.includes("none specified") ||
+                lower.includes("not explicitly")
+              );
+            };
+
+            const parseDateToIso = (rawStr: string) => {
+              if (!rawStr) return "";
+              const str = rawStr.trim();
+              if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+              const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+              if (dmyMatch) {
+                const p1 = parseInt(dmyMatch[1], 10);
+                const p2 = parseInt(dmyMatch[2], 10);
+                const year = dmyMatch[3];
+                if (p1 > 12) return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+                if (p2 > 12) return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+                return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+              }
+              const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+              if (ymdMatch) {
+                return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
+              }
+              return str;
+            };
+
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date') || key.includes('dob')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            // Radio button normalization:
+            if (sanitized.gender && typeof sanitized.gender === 'string') {
+              const g = sanitized.gender.trim().toLowerCase();
+              if (g.includes('female')) sanitized.gender = 'female';
+              else if (g.includes('non-binary') || g.includes('nonbinary') || g.includes('other')) sanitized.gender = 'non-binary';
+              else if (g.includes('male')) sanitized.gender = 'male';
+            }
+
+            if (sanitized.fundingType && typeof sanitized.fundingType === 'string') {
+              const ft = sanitized.fundingType.trim().toLowerCase();
+              if (ft.includes('plan')) sanitized.fundingType = 'Plan Managed';
+              else if (ft.includes('ndia') || ft.includes('agency')) sanitized.fundingType = 'NDIA';
+              else if (ft.includes('self')) sanitized.fundingType = 'Self-Managed';
+            }
+
+            // Independent advocate agreement & description protection:
+            if (isDummy(sanitized.description)) {
+              sanitized.description = "";
+            }
+            if (isDummy(sanitized.fundingContactPerson)) {
+              sanitized.fundingContactPerson = "";
+            }
+            if (isDummy(sanitized.planManagerName)) {
+              sanitized.planManagerName = "";
+            }
+            if (isDummy(sanitized.planManagerMobile)) {
+              sanitized.planManagerMobile = "";
+            }
+            if (isDummy(sanitized.planManagerEmail)) {
+              sanitized.planManagerEmail = "";
+            }
+
+            return sanitized;
+          });
+        }
+
+        if (d.careEntries?.length) {
+          setCareEntries(d.careEntries.map((c: any) => ({
+            type_of_service: c.type_of_service || '',
+            primary_task_list: c.primary_task_list || '',
+            secondary_task_list: c.secondary_task_list || '',
+            goal_key: c.goal_key || ''
+          })));
+        }
+
+        if (d.ndisGoals?.length) {
+          setNdisGoals(d.ndisGoals.map((g: any) => ({
+            goal_description: g.goal_description || '',
+            goal_key: g.goal_key || ''
+          })));
+        }
+
+        if (d.healthProffessional?.length) {
+          setHealthProffessional(d.healthProffessional.map((hp: any) => ({
+            role: hp.role || '',
+            name: hp.name || '',
+            contact_number: hp.contact_number || ''
+          })));
+        }
+
+        if (d.healthInformation) {
+          setHealthInformation({
+            health_conditions: Array.isArray(d.healthInformation.health_conditions) ? d.healthInformation.health_conditions : [],
+            health_other_description: d.healthInformation.health_other_description || ''
+          });
+        }
+
+        window.alert("Client Profile auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+      } else {
+        alert(response.data.message || "Failed to auto-fill form data.");
+      }
+    } catch (err: any) {
+      console.error("Autofill error:", err);
+      alert(err.response?.data?.message || err.message || "An error occurred during AI autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
 
@@ -607,7 +827,25 @@ export default function ClientProfileForm() {
               </h1>
             </div>
 
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -897,6 +1135,13 @@ export default function ClientProfileForm() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }
