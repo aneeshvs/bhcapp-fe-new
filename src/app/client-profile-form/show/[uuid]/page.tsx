@@ -16,7 +16,7 @@ import Emergency from '@/src/components/ClientProfileForm/Emergency';
 import ScheduleOfCare from '@/src/components/ClientProfileForm/ScheduleOfCare';
 import ReligiousCulturalBackground from '@/src/components/ClientProfileForm/Culture';
 import NdisGoals from '@/src/components/ClientProfileForm/NdisGoals';
-import HealthProffessional from '@/src/components/ClientProfileForm/HealthProffessional';
+import HealthProffessional, { normalizeRole } from '@/src/components/ClientProfileForm/HealthProffessional';
 import DiagnosisSummary from '@/src/components/ClientProfileForm/DiagnosisSummary';
 import HealthInformation from '@/src/components/ClientProfileForm/HealthInformation';
 import HealthcareSupport from '@/src/components/ClientProfileForm/HealthCareSupport';
@@ -211,7 +211,19 @@ export default function ShowClientProfilePage() {
             // Append complex fields
             dataToSave.append('schedule_of_cares', JSON.stringify(careEntries));
             dataToSave.append('ndis_goals_onboarding', JSON.stringify(ndisGoals));
-            dataToSave.append('health_professional_details', JSON.stringify(healthProffessional));
+            const cleanHealthProfessionals = healthProffessional
+                .map(hp => ({
+                    role: normalizeRole(hp.role || ''),
+                    name: (hp.name || '').trim(),
+                    contact_number: (hp.contact_number || '').trim()
+                }))
+                .filter(hp => {
+                    if (!hp.role && !hp.name && !hp.contact_number) return false;
+                    if (/^\d+$/.test(hp.role) && /^\d+$/.test(hp.name) && /^\d+$/.test(hp.contact_number)) return false;
+                    if (!hp.name && !hp.contact_number) return false;
+                    return true;
+                });
+            dataToSave.append('health_professional_details', JSON.stringify(cleanHealthProfessionals));
             
             // Health Information
             if (healthInformationState.health_conditions) {

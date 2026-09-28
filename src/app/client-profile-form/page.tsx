@@ -13,7 +13,7 @@ import Emergency from '@/src/components/ClientProfileForm/Emergency';
 import ScheduleOfCare from '@/src/components/ClientProfileForm/ScheduleOfCare';
 import ReligiousCulturalBackground from '@/src/components/ClientProfileForm/Culture';
 import NdisGoals from '@/src/components/ClientProfileForm/NdisGoals';
-import HealthProffessional from '@/src/components/ClientProfileForm/HealthProffessional';
+import HealthProffessional, { normalizeRole } from '@/src/components/ClientProfileForm/HealthProffessional';
 import DiagnosisSummary from '@/src/components/ClientProfileForm/DiagnosisSummary';
 import HealthInformation from '@/src/components/ClientProfileForm/HealthInformation';
 import HealthcareSupport from '@/src/components/ClientProfileForm/HealthCareSupport';
@@ -60,7 +60,7 @@ export default function ClientProfileForm() {
     goal_description: '',
     goal_key: '' // Provide empty string as default
   }]);
-  const [healthProffessional, setHealthProffessional] = useState([{ role: '', name: '', contact_number: '' }]);
+  const [healthProffessional, setHealthProffessional] = useState<{ role: string; name: string; contact_number: string }[]>([]);
   const [healthInformation, setHealthInformation] = useState({ health_conditions: [] as string[], health_other_description: '' });
   const [loading, setLoading] = useState<null | 'save' | 'submit'>(null);
   const [flag, setFlag] = useState(false);
@@ -285,11 +285,15 @@ export default function ClientProfileForm() {
         }
 
         if (d.healthProffessional?.length) {
-          setHealthProffessional(d.healthProffessional.map((hp: any) => ({
-            role: hp.role || '',
-            name: hp.name || '',
-            contact_number: hp.contact_number || ''
-          })));
+          setHealthProffessional(
+            d.healthProffessional
+              .map((hp: any) => ({
+                role: normalizeRole(hp.role || ''),
+                name: hp.name || '',
+                contact_number: hp.contact_number || ''
+              }))
+              .filter((hp: any) => hp.role && (hp.name || hp.contact_number))
+          );
         }
 
         if (d.healthInformation) {
@@ -618,7 +622,20 @@ export default function ClientProfileForm() {
       data.append('ndis_goals_onboarding', JSON.stringify(ndisGoals));
 
       // Health Proffessional
-      data.append('health_professional_details', JSON.stringify(healthProffessional));
+      const cleanHealthProfessionals = healthProffessional
+        .map(hp => ({
+          role: normalizeRole(hp.role || ''),
+          name: (hp.name || '').trim(),
+          contact_number: (hp.contact_number || '').trim()
+        }))
+        .filter(hp => {
+          if (!hp.role && !hp.name && !hp.contact_number) return false;
+          if (/^\d+$/.test(hp.role) && /^\d+$/.test(hp.name) && /^\d+$/.test(hp.contact_number)) return false;
+          if (!hp.name && !hp.contact_number) return false;
+          return true;
+        });
+
+      data.append('health_professional_details', JSON.stringify(cleanHealthProfessionals));
 
       // DiagnosisSummary
       data.append('primary_diagnosis', formData.primaryDiagnosis || '');

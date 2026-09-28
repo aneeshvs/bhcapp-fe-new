@@ -8,6 +8,18 @@ export interface HealthProffessional {
   contact_number: string;
 }
 
+export const normalizeRole = (role: string): string => {
+  if (!role) return "";
+  const r = role.trim().toLowerCase();
+  if (r === "gp" || r === "general practitioner" || r === "doctor" || r === "general practice") return "General Practitioner";
+  if (r === "physio" || r === "physiotherapist" || r === "physiotherapy") return "Physiotherapy";
+  if (r === "speech therapist" || r === "speech pathologist" || r === "speech therapy" || r === "st") return "Speech Therapist";
+  if (r === "occupational therapist" || r === "ot" || r === "occupational therapy") return "Occupational Therapist";
+  if (r === "behaviour support practitioner" || r === "behaviour support" || r === "bsp") return "Behaviour Support Practitioner";
+  if (r === "podiatrist" || r === "podiatry") return "Podiatrist";
+  return role.trim();
+};
+
 interface PreviousHealthProffessionalProps {
   healthProffessional: HealthProffessional[];
   setHealthProffessional: React.Dispatch<React.SetStateAction<HealthProffessional[]>>;
@@ -31,10 +43,15 @@ export default function HealthProffessional({
   ];
 
   // Separate predefined and 'others' for clarity
-  const others = healthProffessional.filter(p => !predefinedRoles.includes(p.role));
-  const predefined = predefinedRoles.map((role) =>
-    healthProffessional.find((p) => p.role === role) || { role, name: "", contact_number: "" }
+  const others = healthProffessional.filter(
+    (p) => !predefinedRoles.includes(normalizeRole(p.role))
   );
+  const predefined = predefinedRoles.map((role) => {
+    const found = healthProffessional.find(
+      (p) => normalizeRole(p.role) === role
+    );
+    return found ? { ...found, role } : { role, name: "", contact_number: "" };
+  });
 
   const updateProfessional = (
     index: number,
@@ -45,26 +62,29 @@ export default function HealthProffessional({
     const updatedProfessionals = [...healthProffessional];
 
     if (isOther) {
-      const filteredIndex = healthProffessional.findIndex(
-        (p) => !predefinedRoles.includes(p.role) && others.indexOf(p) === index
-      );
-      if (filteredIndex !== -1) {
-        updatedProfessionals[filteredIndex] = {
-          ...updatedProfessionals[filteredIndex],
-          [field]: value,
-        };
+      const targetOther = others[index];
+      if (targetOther) {
+        const actualIndex = updatedProfessionals.indexOf(targetOther);
+        if (actualIndex !== -1) {
+          updatedProfessionals[actualIndex] = {
+            ...updatedProfessionals[actualIndex],
+            [field]: value,
+          };
+        }
       }
     } else {
       const role = predefinedRoles[index];
-      const existingIndex = updatedProfessionals.findIndex((p) => p.role === role);
+      const existingIndex = updatedProfessionals.findIndex(
+        (p) => normalizeRole(p.role) === role
+      );
 
       if (existingIndex !== -1) {
         updatedProfessionals[existingIndex] = {
           ...updatedProfessionals[existingIndex],
+          role,
           [field]: value,
         };
       } else {
-        // Role doesn't exist yet — add it
         const newEntry: HealthProffessional = {
           role,
           name: field === "name" ? value : "",
