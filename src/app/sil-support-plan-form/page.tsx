@@ -550,10 +550,26 @@ export default function SilSupportPlanPage() {
       }
 
       if (reviewSignature) {
-        Object.entries(reviewSignature).forEach(([k, v]) => {
-          if (v !== null && v !== undefined) {
-            data.append(`review_signature[${k}]`, String(v));
-          }
+        const fullReviewSig = {
+          signer_type: reviewSignature.signer_type || "participant",
+          participant_name: reviewSignature.participant_name ?? reviewSignature.client ?? "",
+          participant_date: reviewSignature.participant_date ?? reviewSignature.date ?? "",
+          participant_signature: reviewSignature.participant_signature ?? "",
+          representative_name: reviewSignature.representative_name ?? "",
+          representative_relation: reviewSignature.representative_relation ?? "",
+          representative_date: reviewSignature.representative_date ?? reviewSignature.date ?? "",
+          representative_signature: reviewSignature.representative_signature ?? "",
+          guardian_nominee_name: reviewSignature.guardian_nominee_name ?? reviewSignature.guardian_nominee ?? "",
+          guardian_nominee_date: reviewSignature.guardian_nominee_date ?? reviewSignature.date ?? "",
+          guardian_nominee_signature: reviewSignature.guardian_nominee_signature ?? "",
+          key_team_member_name: reviewSignature.key_team_member_name ?? reviewSignature.key_team_member ?? "",
+          key_team_member_date: reviewSignature.key_team_member_date ?? reviewSignature.date ?? "",
+          key_team_member_signature: reviewSignature.key_team_member_signature ?? "",
+          ...reviewSignature,
+        };
+
+        Object.entries(fullReviewSig).forEach(([k, v]) => {
+          data.append(`review_signature[${k}]`, v !== null && v !== undefined ? String(v) : "");
         });
       }
 

@@ -35,6 +35,11 @@ const SingleSignaturePad: React.FC<{
         const pad = new SignaturePad(canvas, { backgroundColor: "rgba(255,255,255,0)" });
         padRef.current = pad;
 
+        if (value && value.startsWith("data:image")) {
+          loadedValueRef.current = value;
+          pad.fromDataURL(value, { ratio: 1, width, height });
+        }
+
         pad.addEventListener("endStroke", () => {
           if (!pad.isEmpty()) {
             const dataUrl = pad.toDataURL();
@@ -80,13 +85,13 @@ const SingleSignaturePad: React.FC<{
     if (!pad) return;
 
     if (value && value.startsWith("data:image")) {
-      if (value !== loadedValueRef.current) {
+      if (pad.isEmpty() || pad.toDataURL() !== value) {
         loadedValueRef.current = value;
         pad.clear();
         pad.fromDataURL(value, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
       }
     } else if (!value) {
-      if (loadedValueRef.current !== "") {
+      if (!pad.isEmpty() || loadedValueRef.current !== "") {
         loadedValueRef.current = "";
         pad.clear();
       }
@@ -107,6 +112,10 @@ const SingleSignaturePad: React.FC<{
       loadedValueRef.current = dataUrl;
       onChange(dataUrl);
       window.alert("Signature saved to form!");
+    } else if (padRef.current && padRef.current.isEmpty()) {
+      loadedValueRef.current = "";
+      onChange("");
+      window.alert("Signature cleared from form!");
     }
   };
 
@@ -1547,13 +1556,13 @@ export default function SilSupportPlanForm({
                   setReviewSignature((prev: any) => ({
                     ...prev,
                     representative_signature: val,
-                    participant_signature: val || prev.participant_signature || ""
+                    participant_signature: "",
                   }));
                 } else {
                   setReviewSignature((prev: any) => ({
                     ...prev,
                     participant_signature: val,
-                    ...(val ? {} : { representative_signature: "" })
+                    representative_signature: "",
                   }));
                 }
               }}
