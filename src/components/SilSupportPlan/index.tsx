@@ -16,6 +16,7 @@ const SingleSignaturePad: React.FC<{
 }> = ({ label, value, onChange, disabled, elementId }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const padRef = useRef<SignaturePad | null>(null);
+  const loadedValueRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const initOrResizeCanvas = () => {
@@ -36,7 +37,9 @@ const SingleSignaturePad: React.FC<{
 
         pad.addEventListener("endStroke", () => {
           if (!pad.isEmpty()) {
-            onChange(pad.toDataURL());
+            const dataUrl = pad.toDataURL();
+            loadedValueRef.current = dataUrl;
+            onChange(dataUrl);
           }
         });
       } else {
@@ -75,17 +78,23 @@ const SingleSignaturePad: React.FC<{
   useEffect(() => {
     const pad = padRef.current;
     if (!pad) return;
+
     if (value && value.startsWith("data:image")) {
-      if (pad.isEmpty() || pad.toDataURL() !== value) {
+      if (value !== loadedValueRef.current) {
+        loadedValueRef.current = value;
         pad.clear();
         pad.fromDataURL(value, { ratio: 1, width: (pad as any).canvas.width, height: (pad as any).canvas.height });
       }
     } else if (!value) {
-      pad.clear();
+      if (loadedValueRef.current !== "") {
+        loadedValueRef.current = "";
+        pad.clear();
+      }
     }
   }, [value]);
 
   const handleClear = () => {
+    loadedValueRef.current = "";
     if (padRef.current) {
       padRef.current.clear();
     }
@@ -94,7 +103,9 @@ const SingleSignaturePad: React.FC<{
 
   const handleSave = () => {
     if (padRef.current && !padRef.current.isEmpty()) {
-      onChange(padRef.current.toDataURL());
+      const dataUrl = padRef.current.toDataURL();
+      loadedValueRef.current = dataUrl;
+      onChange(dataUrl);
       window.alert("Signature saved to form!");
     }
   };
@@ -1533,13 +1544,17 @@ export default function SilSupportPlanForm({
               value={reviewSignature.signer_type === "representative" ? (reviewSignature.representative_signature || "") : (reviewSignature.participant_signature || "")}
               onChange={(val) => {
                 if (reviewSignature.signer_type === "representative") {
-                  handleReviewSignatureChange("representative_signature", val);
-                  handleReviewSignatureChange("participant_signature", val);
+                  setReviewSignature((prev: any) => ({
+                    ...prev,
+                    representative_signature: val,
+                    participant_signature: val || prev.participant_signature || ""
+                  }));
                 } else {
-                  handleReviewSignatureChange("participant_signature", val);
-                  if (!val) {
-                    handleReviewSignatureChange("representative_signature", val);
-                  }
+                  setReviewSignature((prev: any) => ({
+                    ...prev,
+                    participant_signature: val,
+                    ...(val ? {} : { representative_signature: "" })
+                  }));
                 }
               }}
             />
