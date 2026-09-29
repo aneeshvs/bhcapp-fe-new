@@ -15,6 +15,9 @@ import AccordianPlanSection from "@/src/components/AccordianSection";
 import { sectionsConfig } from "@/src/components/IndividualRiskAssesment/sectionsConfig";
 import { PlanManualHandlingsFormData } from "@/src/components/IndividualRiskAssesment/ApiResponse";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import api from "@/src/utils/api";
+import { IconFileText, IconLoader } from "@tabler/icons-react";
 
 // Add type for validation errors
 type ValidationErrors = Record<string, string[]>;
@@ -104,6 +107,146 @@ export default function SupportPlanPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const [autofilling, setAutofilling] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: Object.keys(formData).reduce((acc, key) => {
+          if (key !== 'submit_final' && key !== 'form_status') {
+            if (key.includes('date')) {
+              acc[key] = 'string (YYYY-MM-DD format, e.g. 2026-09-24)';
+            } else {
+              acc[key] = typeof (formData as any)[key] === 'number'
+                ? 'number (0 for No/False/Safe, 1 for Yes/True/Risk Present)'
+                : 'string (Detailed hazard description or risk management plan)';
+            }
+          }
+          return acc;
+        }, {} as Record<string, string>),
+        manualHandlings: [{
+          training_provided: "number (0 or 1)",
+          training_hazards: "string (Hazards associated with manual handling training)",
+          training_management_plan: "string (Management plan for training hazards)",
+          tasks_safe: "number (0 or 1)",
+          tasks_hazards: "string (Hazards associated with manual handling tasks)",
+          tasks_management_plan: "string (Management plan for manual handling tasks)"
+        }]
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            const isDummy = (str: string) => {
+              const lower = str.trim().toLowerCase();
+              return (
+                lower === "" ||
+                lower === "n/a" ||
+                lower === "none" ||
+                lower === "unknown" ||
+                lower === "undefined" ||
+                lower === "not available" ||
+                lower === "no information" ||
+                lower.includes("not mentioned") ||
+                lower.includes("not applicable") ||
+                lower.includes("not found") ||
+                lower.includes("not specified") ||
+                lower.includes("none specified") ||
+                lower.includes("not explicitly")
+              );
+            };
+
+            const parseDateToIso = (rawStr: string) => {
+              if (!rawStr) return "";
+              const str = rawStr.trim();
+              if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+              const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+              if (dmyMatch) {
+                const p1 = parseInt(dmyMatch[1], 10);
+                const p2 = parseInt(dmyMatch[2], 10);
+                const year = dmyMatch[3];
+                if (p1 > 12) return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+                if (p2 > 12) return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+                return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+              }
+              const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+              if (ymdMatch) {
+                return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
+              }
+              return str;
+            };
+
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+            return sanitized;
+          });
+        }
+
+        if (d.manualHandlings?.length) {
+          setManualHandlings(d.manualHandlings.map((m: any) => ({
+            goal_key: m.goal_key || '',
+            training_provided: (m.training_provided === 1 || m.training_provided === "1" || m.training_provided === true || (typeof m.training_provided === 'string' && m.training_provided.toLowerCase() === 'yes')) ? 1 : 0,
+            training_hazards: m.training_hazards || '',
+            training_management_plan: m.training_management_plan || '',
+            tasks_safe: (m.tasks_safe === 1 || m.tasks_safe === "1" || m.tasks_safe === true || (typeof m.tasks_safe === 'string' && m.tasks_safe.toLowerCase() === 'yes')) ? 1 : 0,
+            tasks_hazards: m.tasks_hazards || '',
+            tasks_management_plan: m.tasks_management_plan || ''
+          })));
+        }
+
+        window.alert("Individual Risk Assessment auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+      } else {
+        alert(response.data.message || "Failed to auto-fill form data.");
+      }
+    } catch (err: any) {
+      console.error("Autofill error:", err);
+      alert(err.response?.data?.message || err.message || "An error occurred during AI autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
   const getComponentProps = useCallback(
@@ -537,7 +680,25 @@ export default function SupportPlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -653,6 +814,13 @@ export default function SupportPlanPage() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }
