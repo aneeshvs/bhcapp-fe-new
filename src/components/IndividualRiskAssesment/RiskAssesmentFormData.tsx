@@ -102,7 +102,7 @@ const RiskAssessmentFormData = {
   physical_management_plan: '',
   physical_bsp_plan: 0,
 
-  verbal_aggression: '',
+  verbal_aggression: 'No',
   verbal_hazards: '',
   verbal_management_plan: '',
   verbal_bsp_plan: 0,
@@ -138,7 +138,7 @@ const RiskAssessmentFormData = {
   other_risks_management_plan: '',
   other_risks_bsp_plan: 0,
 
-  finance_management: '',
+  finance_management: 'No',
   finance_hazards: '',
   finance_management_plan: '',
   finance_bsp_plan: 0,

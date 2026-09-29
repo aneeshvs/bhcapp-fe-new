@@ -72,7 +72,8 @@ export default function AssessmentViolenceRisksForm({
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
   const clearRiskFields = (riskField: string, fieldsToClear: string[]) => {
-    if (formData[riskField as keyof AssessmentViolenceRisksFormData] === 0) {
+    const val = formData[riskField as keyof AssessmentViolenceRisksFormData];
+    if (val === 0 || val === 'No' || val === 'N/A') {
       fieldsToClear.forEach(fieldName => {
         if (formData[fieldName as keyof AssessmentViolenceRisksFormData]) {
           handleChange({

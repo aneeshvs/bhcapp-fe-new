@@ -130,6 +130,8 @@ export default function SupportPlanPage() {
           if (key !== 'submit_final' && key !== 'form_status') {
             if (key.includes('date')) {
               acc[key] = 'string (YYYY-MM-DD format, e.g. 2026-09-24)';
+            } else if (key === 'finance_management' || key === 'verbal_aggression') {
+              acc[key] = 'string ("Yes", "No", or "N/A" - default to "No" if no risk is identified)';
             } else {
               acc[key] = typeof (formData as any)[key] === 'number'
                 ? 'number (0 for No/False/Safe, 1 for Yes/True/Risk Present)'
@@ -202,7 +204,33 @@ export default function SupportPlanPage() {
             Object.keys(d.formData).forEach(key => {
               const val = d.formData[key];
               const prevVal = (prev as any)[key];
-              if (typeof prevVal === 'number') {
+
+              if (key === 'finance_management' || key === 'verbal_aggression') {
+                if (typeof val === 'string') {
+                  const clean = val.trim();
+                  const lower = clean.toLowerCase();
+                  if (lower === 'yes' || lower === '1' || lower === 'true') {
+                    (sanitized as any)[key] = 'Yes';
+                  } else if (lower === 'n/a' || lower === 'na' || lower === 'not applicable') {
+                    (sanitized as any)[key] = 'N/A';
+                  } else if (lower === 'no' || lower === '0' || lower === 'false') {
+                    (sanitized as any)[key] = 'No';
+                  } else if (!isDummy(clean)) {
+                    // Put descriptive notes into corresponding notes field if empty
+                    const notesKey = key === 'finance_management' ? 'finance_management_notes' : 'verbal_aggression_notes';
+                    if (!(sanitized as any)[notesKey] || (sanitized as any)[notesKey] === '') {
+                      (sanitized as any)[notesKey] = clean;
+                    }
+                    (sanitized as any)[key] = 'No';
+                  } else {
+                    (sanitized as any)[key] = 'No';
+                  }
+                } else if (val === 1 || val === true) {
+                  (sanitized as any)[key] = 'Yes';
+                } else {
+                  (sanitized as any)[key] = 'No';
+                }
+              } else if (typeof prevVal === 'number') {
                 if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
                   (sanitized as any)[key] = 1;
                 } else {
@@ -467,7 +495,11 @@ export default function SupportPlanPage() {
         // Ensure all formData values are properly stringified
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
-            data.append(key, String(value));
+            if ((key === 'finance_management' || key === 'verbal_aggression') && (!value || !['Yes', 'No', 'N/A'].includes(String(value)))) {
+              data.append(key, 'No');
+            } else {
+              data.append(key, String(value));
+            }
           }
         });
 

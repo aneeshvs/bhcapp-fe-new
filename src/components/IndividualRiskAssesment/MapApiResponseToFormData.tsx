@@ -109,7 +109,7 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
         physical_bsp_plan: responseData.violence_risk?.physical_bsp_plan,
 
         // Verbal Aggression
-        verbal_aggression: responseData.violence_risk?.verbal_aggression,
+        verbal_aggression: responseData.violence_risk?.verbal_aggression || 'No',
         verbal_hazards: responseData.violence_risk?.verbal_hazards,
         verbal_management_plan: responseData.violence_risk?.verbal_management_plan,
         verbal_bsp_plan: responseData.violence_risk?.verbal_bsp_plan,
@@ -153,7 +153,7 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
         other_risks_bsp_plan: responseData.violence_risk?.other_risks_bsp_plan,
 
         // Finance Management
-        finance_management: responseData.violence_risk?.finance_management,
+        finance_management: responseData.violence_risk?.finance_management || 'No',
         finance_hazards: responseData.violence_risk?.finance_hazards,
         finance_management_plan: responseData.violence_risk?.finance_management_plan,
         finance_bsp_plan: responseData.violence_risk?.finance_bsp_plan,
