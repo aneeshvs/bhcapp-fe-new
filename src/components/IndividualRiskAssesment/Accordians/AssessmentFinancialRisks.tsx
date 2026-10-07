@@ -77,25 +77,15 @@ export default function AssessmentFinancialRisksForm({
 
     // Finance Management Clearing Effect
     useEffect(() => {
-        // We need to handle the mixed types (string for text, number for bsp_plan)
-        // If finance_management is not 'Yes', clear hazards, plan, bsp.
+        // If finance_management is not 'Yes', clear hazards and management plan
         const riskField = 'finance_management';
         const currentValue = formData[riskField];
 
         if (currentValue !== 'Yes' && currentValue !== undefined) {
-            // Clear fields
-            const fields = ['finance_hazards', 'finance_management_plan', 'finance_bsp_plan'];
+            // Clear fields (keep finance_bsp_plan intact)
+            const fields = ['finance_hazards', 'finance_management_plan'];
             fields.forEach(f => {
-                // Check if it has a value before clearing to avoid infinite loops if handleChange triggers this
                 if (formData[f as keyof AssessmentFinancialRisksFormData]) {
-                    // Determine empty value based on type
-                    const emptyVal = f.includes('bsp_plan') ? 0 : '';
-                    // Note: The original code sent '' for everything in clearRiskFields, 
-                    // even for bsp_plan which is number? 
-                    // "value: ''"
-                    // And `handleRadioNumberChange` casts to Number. 
-                    // If we send '', Number('') is 0. So that works.
-
                     handleChange({
                         target: {
                             name: f,
@@ -105,7 +95,7 @@ export default function AssessmentFinancialRisksForm({
                 }
             });
         }
-    }, [formData.finance_management, formData.finance_hazards, formData.finance_management_plan, formData.finance_bsp_plan, handleChange]);
+    }, [formData.finance_management, formData.finance_hazards, formData.finance_management_plan, handleChange]);
 
     const handleViewLogs = (fieldName: string) => {
         setSelectedField(fieldName);
@@ -207,7 +197,7 @@ export default function AssessmentFinancialRisksForm({
                                         type="radio"
                                         name={bspPlanField}
                                         value={value}
-                                        checked={formData[bspPlanField as keyof AssessmentFinancialRisksFormData] === value}
+                                        checked={Number(formData[bspPlanField as keyof AssessmentFinancialRisksFormData]) === value}
                                         onChange={handleRadioNumberChange}
                                     />
                                     {label}

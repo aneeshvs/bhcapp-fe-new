@@ -106,13 +106,13 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
         physical_aggression: responseData.violence_risk?.physical_aggression,
         physical_hazards: responseData.violence_risk?.physical_hazards,
         physical_management_plan: responseData.violence_risk?.physical_management_plan,
-        physical_bsp_plan: responseData.violence_risk?.physical_bsp_plan,
+        physical_bsp_plan: responseData.violence_risk?.physical_bsp_plan ? 1 : 0,
 
         // Verbal Aggression
         verbal_aggression: responseData.violence_risk?.verbal_aggression || 'No',
         verbal_hazards: responseData.violence_risk?.verbal_hazards,
         verbal_management_plan: responseData.violence_risk?.verbal_management_plan,
-        verbal_bsp_plan: responseData.violence_risk?.verbal_bsp_plan,
+        verbal_bsp_plan: responseData.violence_risk?.verbal_bsp_plan ? 1 : 0,
         verbal_aggression_notes: responseData.violence_risk?.verbal_aggression_notes,
 
 
@@ -120,43 +120,43 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
         client_aggression: responseData.violence_risk?.client_aggression,
         client_hazards: responseData.violence_risk?.client_hazards,
         client_management_plan: responseData.violence_risk?.client_management_plan,
-        client_bsp_plan: responseData.violence_risk?.client_bsp_plan,
+        client_bsp_plan: responseData.violence_risk?.client_bsp_plan ? 1 : 0,
 
         // Self Harm
         self_harm: responseData.violence_risk?.self_harm,
         self_harm_hazards: responseData.violence_risk?.self_harm_hazards,
         self_harm_management_plan: responseData.violence_risk?.self_harm_management_plan,
-        self_harm_bsp_plan: responseData.violence_risk?.self_harm_bsp_plan,
+        self_harm_bsp_plan: responseData.violence_risk?.self_harm_bsp_plan ? 1 : 0,
 
         // Drug & Alcohol Use
         drug_alcohol_use: responseData.violence_risk?.drug_alcohol_use,
         drug_alcohol_hazards: responseData.violence_risk?.drug_alcohol_hazards,
         drug_alcohol_management_plan: responseData.violence_risk?.drug_alcohol_management_plan,
-        drug_alcohol_bsp_plan: responseData.violence_risk?.drug_alcohol_bsp_plan,
+        drug_alcohol_bsp_plan: responseData.violence_risk?.drug_alcohol_bsp_plan ? 1 : 0,
 
         // Sexual Abuse History
         sexual_abuse_history: responseData.violence_risk?.sexual_abuse_history,
         sexual_abuse_hazards: responseData.violence_risk?.sexual_abuse_hazards,
         sexual_abuse_management_plan: responseData.violence_risk?.sexual_abuse_management_plan,
-        sexual_abuse_bsp_plan: responseData.violence_risk?.sexual_abuse_bsp_plan,
+        sexual_abuse_bsp_plan: responseData.violence_risk?.sexual_abuse_bsp_plan ? 1 : 0,
 
         // Emotional Manipulation
         emotional_manipulation: responseData.violence_risk?.emotional_manipulation,
         emotional_hazards: responseData.violence_risk?.emotional_hazards,
         emotional_management_plan: responseData.violence_risk?.emotional_management_plan,
-        emotional_bsp_plan: responseData.violence_risk?.emotional_bsp_plan,
+        emotional_bsp_plan: responseData.violence_risk?.emotional_bsp_plan ? 1 : 0,
 
         // Other Known Risks
         other_known_risks: responseData.violence_risk?.other_known_risks,
         other_risks_hazards: responseData.violence_risk?.other_risks_hazards,
         other_risks_management_plan: responseData.violence_risk?.other_risks_management_plan,
-        other_risks_bsp_plan: responseData.violence_risk?.other_risks_bsp_plan,
+        other_risks_bsp_plan: responseData.violence_risk?.other_risks_bsp_plan ? 1 : 0,
 
         // Finance Management
         finance_management: responseData.violence_risk?.finance_management || 'No',
         finance_hazards: responseData.violence_risk?.finance_hazards,
         finance_management_plan: responseData.violence_risk?.finance_management_plan,
-        finance_bsp_plan: responseData.violence_risk?.finance_bsp_plan,
+        finance_bsp_plan: responseData.violence_risk?.finance_bsp_plan ? 1 : 0,
         finance_management_notes: responseData.violence_risk?.finance_management_notes,
     };
 }

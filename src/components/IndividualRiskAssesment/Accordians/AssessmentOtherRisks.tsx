@@ -49,10 +49,9 @@ export default function AssessmentOtherRisksForm({
     useEffect(() => {
         clearRiskFields('other_known_risks', [
             'other_risks_hazards',
-            'other_risks_management_plan',
-            'other_risks_bsp_plan'
+            'other_risks_management_plan'
         ]);
-    }, [formData.other_known_risks, formData.other_risks_hazards, formData.other_risks_management_plan, formData.other_risks_bsp_plan, handleChange]);
+    }, [formData.other_known_risks, formData.other_risks_hazards, formData.other_risks_management_plan, handleChange]);
 
     const handleViewLogs = (fieldName: string) => {
         setSelectedField(fieldName);
@@ -108,7 +107,7 @@ export default function AssessmentOtherRisksForm({
                                     type="radio"
                                     name={riskField}
                                     value={value}
-                                    checked={formData[riskField as keyof AssessmentOtherRisksFormData] === value}
+                                    checked={Number(formData[riskField as keyof AssessmentOtherRisksFormData]) === value}
                                     onChange={handleRadioNumberChange}
                                 />
                                 {label}
@@ -118,7 +117,7 @@ export default function AssessmentOtherRisksForm({
                 </div>
 
                 {/* BSP Plan - Only show if Yes (1) */}
-                {formData[riskField as keyof AssessmentOtherRisksFormData] === 1 && (
+                {Number(formData[riskField as keyof AssessmentOtherRisksFormData]) === 1 && (
                     <div
                         className="relative"
                         onMouseEnter={() => setHoveredField(bspPlanField)}
@@ -143,7 +142,7 @@ export default function AssessmentOtherRisksForm({
                                         type="radio"
                                         name={bspPlanField}
                                         value={value}
-                                        checked={formData[bspPlanField as keyof AssessmentOtherRisksFormData] === value}
+                                        checked={Number(formData[bspPlanField as keyof AssessmentOtherRisksFormData]) === value}
                                         onChange={handleRadioNumberChange}
                                     />
                                     {label}

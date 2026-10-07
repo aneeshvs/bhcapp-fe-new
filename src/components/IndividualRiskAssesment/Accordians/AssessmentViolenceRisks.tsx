@@ -91,64 +91,57 @@ export default function AssessmentViolenceRisksForm({
   useEffect(() => {
     clearRiskFields('physical_aggression', [
       'physical_hazards',
-      'physical_management_plan',
-      'physical_bsp_plan'
+      'physical_management_plan'
     ]);
-  }, [formData.physical_aggression, formData.physical_hazards, formData.physical_management_plan, formData.physical_bsp_plan, handleChange]);
+  }, [formData.physical_aggression, formData.physical_hazards, formData.physical_management_plan, handleChange]);
 
   // Verbal Aggression
   useEffect(() => {
     clearRiskFields('verbal_aggression', [
       'verbal_hazards',
-      'verbal_management_plan',
-      'verbal_bsp_plan'
+      'verbal_management_plan'
     ]);
-  }, [formData.verbal_aggression, formData.verbal_hazards, formData.verbal_management_plan, formData.verbal_bsp_plan, handleChange]);
+  }, [formData.verbal_aggression, formData.verbal_hazards, formData.verbal_management_plan, handleChange]);
 
   // Client Aggression
   useEffect(() => {
     clearRiskFields('client_aggression', [
       'client_hazards',
-      'client_management_plan',
-      'client_bsp_plan'
+      'client_management_plan'
     ]);
-  }, [formData.client_aggression, formData.client_hazards, formData.client_management_plan, formData.client_bsp_plan, handleChange]);
+  }, [formData.client_aggression, formData.client_hazards, formData.client_management_plan, handleChange]);
 
   // Self Harm
   useEffect(() => {
     clearRiskFields('self_harm', [
       'self_harm_hazards',
-      'self_harm_management_plan',
-      'self_harm_bsp_plan'
+      'self_harm_management_plan'
     ]);
-  }, [formData.self_harm, formData.self_harm_hazards, formData.self_harm_management_plan, formData.self_harm_bsp_plan, handleChange]);
+  }, [formData.self_harm, formData.self_harm_hazards, formData.self_harm_management_plan, handleChange]);
 
   // Drug & Alcohol Use
   useEffect(() => {
     clearRiskFields('drug_alcohol_use', [
       'drug_alcohol_hazards',
-      'drug_alcohol_management_plan',
-      'drug_alcohol_bsp_plan'
+      'drug_alcohol_management_plan'
     ]);
-  }, [formData.drug_alcohol_use, formData.drug_alcohol_hazards, formData.drug_alcohol_management_plan, formData.drug_alcohol_bsp_plan, handleChange]);
+  }, [formData.drug_alcohol_use, formData.drug_alcohol_hazards, formData.drug_alcohol_management_plan, handleChange]);
 
   // Sexual Abuse History
   useEffect(() => {
     clearRiskFields('sexual_abuse_history', [
       'sexual_abuse_hazards',
-      'sexual_abuse_management_plan',
-      'sexual_abuse_bsp_plan'
+      'sexual_abuse_management_plan'
     ]);
-  }, [formData.sexual_abuse_history, formData.sexual_abuse_hazards, formData.sexual_abuse_management_plan, formData.sexual_abuse_bsp_plan, handleChange]);
+  }, [formData.sexual_abuse_history, formData.sexual_abuse_hazards, formData.sexual_abuse_management_plan, handleChange]);
 
   // Emotional Manipulation
   useEffect(() => {
     clearRiskFields('emotional_manipulation', [
       'emotional_hazards',
-      'emotional_management_plan',
-      'emotional_bsp_plan'
+      'emotional_management_plan'
     ]);
-  }, [formData.emotional_manipulation, formData.emotional_hazards, formData.emotional_management_plan, formData.emotional_bsp_plan, handleChange]);
+  }, [formData.emotional_manipulation, formData.emotional_hazards, formData.emotional_management_plan, handleChange]);
 
 
 
@@ -218,7 +211,7 @@ export default function AssessmentViolenceRisksForm({
                   type="radio"
                   name={riskField}
                   value={value}
-                  checked={formData[riskField as keyof AssessmentViolenceRisksFormData] === value}
+                  checked={Number(formData[riskField as keyof AssessmentViolenceRisksFormData]) === value}
                   onChange={handleRadioNumberChange}
                 />
                 {label}
@@ -228,7 +221,7 @@ export default function AssessmentViolenceRisksForm({
         </div>
 
         {/* BSP Plan */}
-        {formData[riskField as keyof AssessmentViolenceRisksFormData] === 1 && (
+        {Number(formData[riskField as keyof AssessmentViolenceRisksFormData]) === 1 && (
           <div
             className="relative"
             onMouseEnter={() => setHoveredField(bspPlanField)}
@@ -253,7 +246,7 @@ export default function AssessmentViolenceRisksForm({
                     type="radio"
                     name={bspPlanField}
                     value={value}
-                    checked={formData[bspPlanField as keyof AssessmentViolenceRisksFormData] === value}
+                    checked={Number(formData[bspPlanField as keyof AssessmentViolenceRisksFormData]) === value}
                     onChange={handleRadioNumberChange}
                   />
                   {label}
@@ -397,7 +390,7 @@ export default function AssessmentViolenceRisksForm({
                     type="radio"
                     name={bspPlanField}
                     value={value}
-                    checked={formData[bspPlanField as keyof AssessmentViolenceRisksFormData] === value}
+                    checked={Number(formData[bspPlanField as keyof AssessmentViolenceRisksFormData]) === value}
                     onChange={handleRadioNumberChange}
                   />
                   {label}

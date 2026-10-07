@@ -226,7 +226,30 @@ export default function ShowRiskAssessmentPage() {
 
             Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null && value !== undefined) {
-                    data.append(key, String(value));
+                    if (key.endsWith('_bsp_plan')) {
+                        data.append(key, (String(value) === '1' || String(value) === 'true') ? '1' : '0');
+                    } else if ((key === 'finance_management' || key === 'verbal_aggression') && (!value || !['Yes', 'No', 'N/A'].includes(String(value)))) {
+                        data.append(key, 'No');
+                    } else {
+                        data.append(key, String(value));
+                    }
+                }
+            });
+
+            const bspFieldsList = [
+                'physical_bsp_plan',
+                'verbal_bsp_plan',
+                'client_bsp_plan',
+                'self_harm_bsp_plan',
+                'drug_alcohol_bsp_plan',
+                'sexual_abuse_bsp_plan',
+                'emotional_bsp_plan',
+                'other_risks_bsp_plan',
+                'finance_bsp_plan',
+            ];
+            bspFieldsList.forEach(bspKey => {
+                if (!data.has(bspKey)) {
+                    data.append(bspKey, '0');
                 }
             });
 
