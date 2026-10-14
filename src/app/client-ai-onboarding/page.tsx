@@ -120,12 +120,12 @@ export default function AIOnboardingPage() {
                                     <IconCloudUpload size={40} />
                                 </div>
                                 <h2 className="text-2xl font-bold mb-2">Upload Client Documents</h2>
-                                <p className="text-gray-400 text-sm">Support formats: PDF, JPG, PNG, max 10MB per file</p>
+                                <p className="text-gray-400 text-sm">Support formats: PDF, DOC, DOCX, JPG, PNG, WEBP, BMP, TIFF, max 25MB per file</p>
                             </div>
 
                             <label className="block w-full cursor-pointer">
                                 <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:border-blue-500/50 hover:bg-blue-50/30 transition-all group/upload">
-                                    <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" multiple />
+                                    <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.bmp,.tiff" multiple />
                                     {files.length > 0 ? (
                                         <div className="flex flex-col items-center justify-center gap-3">
                                             {files.map((f, idx) => (

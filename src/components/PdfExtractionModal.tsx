@@ -44,7 +44,7 @@ export default function PdfExtractionModal({
 
   const handleUploadAndExtract = async () => {
     if (files.length === 0) {
-      setError("Please select at least one PDF or document file.");
+      setError("Please select at least one PDF, Word document, or image file.");
       return;
     }
 
@@ -79,7 +79,7 @@ export default function PdfExtractionModal({
       setProgress(100);
 
       if (response.data.success) {
-        setSuccessMsg("PDF extracted successfully! Auto-filling form fields with AI...");
+        setSuccessMsg("Document extracted successfully! Auto-filling form fields with AI...");
         
         if (onExtractionComplete) {
           await onExtractionComplete();
@@ -94,12 +94,12 @@ export default function PdfExtractionModal({
       } else {
         clearInterval(interval);
         setLoading(false);
-        setError(response.data.message || "Failed to extract PDF document.");
+        setError(response.data.message || "Failed to extract document.");
       }
     } catch (err: any) {
       clearInterval(interval);
       setLoading(false);
-      setError(err.response?.data?.message || err.message || "An error occurred during PDF extraction.");
+      setError(err.response?.data?.message || err.message || "An error occurred during document extraction.");
     }
   };
 
@@ -113,8 +113,8 @@ export default function PdfExtractionModal({
               <IconFileText size={28} className="text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-xl leading-tight">PDF Document Extraction</h3>
-              <p className="text-xs text-blue-100 mt-0.5">Upload PDF / Document to auto-fill form data with custom AI guidance</p>
+              <h3 className="font-bold text-xl leading-tight">Document Extraction & AI Autofill</h3>
+              <p className="text-xs text-blue-100 mt-0.5">Upload PDF, Word (DOC/DOCX), or Images to auto-fill form data with AI</p>
             </div>
           </div>
           <button
@@ -134,16 +134,16 @@ export default function PdfExtractionModal({
               <input
                 type="file"
                 className="hidden"
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.bmp,.tiff"
                 multiple
                 onChange={handleFileChange}
                 disabled={loading}
               />
               <IconCloudUpload size={44} className="text-blue-500 mx-auto mb-2" />
               <p className="text-base font-semibold text-gray-700">
-                Click to select PDF / Document
+                Click to select PDF / Word Document / Image
               </p>
-              <p className="text-xs text-gray-400 mt-1">Supports PDF, PNG, JPG (max 10MB per file)</p>
+              <p className="text-xs text-gray-400 mt-1">Supports PDF, DOC, DOCX, JPG, PNG, WEBP, BMP, TIFF (max 25MB per file)</p>
             </div>
           </label>
 
@@ -217,7 +217,7 @@ export default function PdfExtractionModal({
               <div className="flex justify-between text-xs font-medium text-blue-600">
                 <span className="flex items-center gap-1.5 font-semibold">
                   <IconLoader size={16} className="animate-spin" />
-                  Extracting PDF text & processing AI analysis...
+                  Extracting document content & processing AI analysis...
                 </span>
                 <span>{progress}%</span>
               </div>
@@ -270,7 +270,7 @@ export default function PdfExtractionModal({
             ) : (
               <>
                 <IconFileText size={18} />
-                Extract PDF Content
+                Extract Document Content
               </>
             )}
           </button>
