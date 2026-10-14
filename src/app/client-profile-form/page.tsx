@@ -15,7 +15,7 @@ import ReligiousCulturalBackground from '@/src/components/ClientProfileForm/Cult
 import NdisGoals from '@/src/components/ClientProfileForm/NdisGoals';
 import HealthProffessional, { normalizeRole } from '@/src/components/ClientProfileForm/HealthProffessional';
 import DiagnosisSummary from '@/src/components/ClientProfileForm/DiagnosisSummary';
-import HealthInformation from '@/src/components/ClientProfileForm/HealthInformation';
+import HealthInformation, { ALLOWED_HEALTH_CONDITIONS } from '@/src/components/ClientProfileForm/HealthInformation';
 import HealthcareSupport from '@/src/components/ClientProfileForm/HealthCareSupport';
 import Behaviour from '@/src/components/ClientProfileForm/BehaviorSupport';
 import MedicalAlerts from '@/src/components/ClientProfileForm/MedicalAlerts';
@@ -28,7 +28,7 @@ import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiRespons
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 import api from "@/src/utils/api";
-import { IconFileText, IconLoader } from "@tabler/icons-react";
+import { IconFileText, IconLoader, IconSparkles } from "@tabler/icons-react";
 interface OnboardSubmitSuccess {
   success: true;
   data: {
@@ -151,8 +151,8 @@ export default function ClientProfileForm() {
           contact_number: "string (Phone number or contact info)"
         }],
         healthInformation: {
-          health_conditions: ["string (Selected health conditions, e.g. Diabetes, Hypertension, Arthritis)"],
-          health_other_description: "string (Additional health conditions or clinical notes)"
+          health_conditions: ["string (Selected health conditions, MUST ONLY BE chosen from: 'Urinary Catheter Management', 'Intellectual Disability', 'Spinal Cord Disability/Injury', 'Bowel Care', 'Wound Care / Pressure Area Care', 'Hearing Impairment', 'Tracheostomy Management', 'Cerebral Palsy', 'Subcutaneous Medication Management', 'Mealtime Support or Dysphagia', 'Enteral Feeding or Peg Feeding', 'Ventilator', 'Medication Support', 'Autism', 'Mental Health', 'Physical Disability', 'Other')"],
+          health_other_description: "string (Details for 'Other' health conditions or additional clinical notes)"
         }
       };
 
@@ -297,9 +297,38 @@ export default function ClientProfileForm() {
         }
 
         if (d.healthInformation) {
+          const rawConditions = Array.isArray(d.healthInformation.health_conditions)
+            ? d.healthInformation.health_conditions
+            : [];
+          
+          const validConditions: string[] = [];
+          const unrecognizedConditions: string[] = [];
+
+          rawConditions.forEach((c: any) => {
+            if (typeof c !== 'string') return;
+            const trimmed = c.trim();
+            const matched = ALLOWED_HEALTH_CONDITIONS.find(
+              opt => opt.toLowerCase() === trimmed.toLowerCase()
+            );
+            if (matched) {
+              if (!validConditions.includes(matched)) validConditions.push(matched);
+            } else if (trimmed) {
+              unrecognizedConditions.push(trimmed);
+            }
+          });
+
+          let otherDesc = d.healthInformation.health_other_description || '';
+          if (unrecognizedConditions.length > 0) {
+            if (!validConditions.includes('Other')) {
+              validConditions.push('Other');
+            }
+            const extraNotes = unrecognizedConditions.join(', ');
+            otherDesc = otherDesc ? `${otherDesc}; ${extraNotes}` : extraNotes;
+          }
+
           setHealthInformation({
-            health_conditions: Array.isArray(d.healthInformation.health_conditions) ? d.healthInformation.health_conditions : [],
-            health_other_description: d.healthInformation.health_other_description || ''
+            health_conditions: validConditions,
+            health_other_description: otherDesc
           });
         }
 
@@ -347,7 +376,7 @@ export default function ClientProfileForm() {
   
   const fetchFormData = async () => {
     try {
-      const effectiveUuid = sessionUuid || searchParams.get('uuid');
+      const effectiveUuid = sessionUuid || searchParams.get('form-uuid') || searchParams.get('uuid');
       if (!effectiveUuid) {
         console.log('No UUID - skipping initial data fetch');
         return;
@@ -477,12 +506,35 @@ export default function ClientProfileForm() {
         setHealthProffessional(response.data.health_professional_details);
       }
 
-      if (response.data?.health_information?.health_conditions) {
+      if (response.data?.health_information) {
+        const rawConditions = response.data?.health_information?.health_conditions
+          ? (Array.isArray(response.data.health_information.health_conditions)
+              ? response.data.health_information.health_conditions
+              : [response.data.health_information.health_conditions])
+          : [];
+        const validConditions: string[] = [];
+        const unrecognized: string[] = [];
+        rawConditions.forEach((c: any) => {
+          if (typeof c !== 'string') return;
+          const trimmed = c.trim();
+          const matched = ALLOWED_HEALTH_CONDITIONS.find(
+            opt => opt.toLowerCase() === trimmed.toLowerCase()
+          );
+          if (matched) {
+            if (!validConditions.includes(matched)) validConditions.push(matched);
+          } else if (trimmed) {
+            unrecognized.push(trimmed);
+          }
+        });
+        let otherDesc = response.data.health_information.health_other_description || '';
+        if (unrecognized.length > 0) {
+          if (!validConditions.includes('Other')) validConditions.push('Other');
+          const extra = unrecognized.join(', ');
+          otherDesc = otherDesc ? `${otherDesc}; ${extra}` : extra;
+        }
         setHealthInformation({
-          health_conditions: Array.isArray(response.data.health_information.health_conditions)
-            ? response.data.health_information.health_conditions
-            : [response.data.health_information.health_conditions],
-          health_other_description: response.data.health_information.health_other_description || ''
+          health_conditions: validConditions,
+          health_other_description: otherDesc
         });
       }
 
@@ -491,7 +543,7 @@ export default function ClientProfileForm() {
     }
   };
   useEffect(() => {
-    const effectiveUuid = sessionUuid || searchParams.get('uuid');
+    const effectiveUuid = sessionUuid || searchParams.get('form-uuid') || searchParams.get('uuid');
     if (effectiveUuid) {
       fetchFormData();
     }
@@ -517,7 +569,7 @@ export default function ClientProfileForm() {
         const form = "client-profile";
 
         // 👇 pass form to API
-        const formUuid = searchParams.get('form-uuid');
+        const formUuid = searchParams.get('form-uuid') || searchParams.get('uuid');
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
         const token = localStorage.getItem("token");
@@ -642,8 +694,27 @@ export default function ClientProfileForm() {
       data.append('secondary_diagnosis', formData.secondaryDiagnosis || '');
 
       // Health Info
-      data.append('health_conditions', JSON.stringify(healthInformation.health_conditions || ''));
-      data.append('health_other_description', healthInformation.health_other_description || '');
+      const rawSubmittedConditions = healthInformation.health_conditions || [];
+      const validSubmittedConditions: string[] = [];
+      const extraUnrecognized: string[] = [];
+      rawSubmittedConditions.forEach(c => {
+        if (!c || typeof c !== 'string') return;
+        const trimmed = c.trim();
+        const matched = ALLOWED_HEALTH_CONDITIONS.find(opt => opt.toLowerCase() === trimmed.toLowerCase());
+        if (matched) {
+          if (!validSubmittedConditions.includes(matched)) validSubmittedConditions.push(matched);
+        } else if (trimmed) {
+          extraUnrecognized.push(trimmed);
+        }
+      });
+      let finalOtherDesc = healthInformation.health_other_description || '';
+      if (extraUnrecognized.length > 0) {
+        if (!validSubmittedConditions.includes('Other')) validSubmittedConditions.push('Other');
+        const extra = extraUnrecognized.join(', ');
+        finalOtherDesc = finalOtherDesc ? `${finalOtherDesc}; ${extra}` : extra;
+      }
+      data.append('health_conditions', JSON.stringify(validSubmittedConditions));
+      data.append('health_other_description', finalOtherDesc);
 
       // Health care
       data.append('medicare', formData.medicare || '');
@@ -815,7 +886,7 @@ export default function ClientProfileForm() {
               className="h-auto"
             />
           </div>
-          {(sessionUuid || searchParams.get('uuid')) && (
+          {(sessionUuid || searchParams.get('form-uuid') || searchParams.get('uuid')) && (
             <div className="text-center mb-4">
               <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
                 <div
@@ -859,7 +930,25 @@ export default function ClientProfileForm() {
                 ) : (
                   <>
                     <IconFileText size={18} />
-                    PDF Extraction & AI Autofill
+                    PDF Extraction
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleAutofill}
+                disabled={autofilling}
+                className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconSparkles size={18} />
+                    AI Autofill
                   </>
                 )}
               </button>
@@ -1028,7 +1117,7 @@ export default function ClientProfileForm() {
                 isOpen={openSections.healthInfo}
                 onToggle={() => handleTrackerClick('healthInfo')}
               >
-                <HealthInformation healthInformation={healthInformation} setHealthInformation={setHealthInformation} uuid={sessionUuid} />
+                <HealthInformation healthInformation={healthInformation} setHealthInformation={setHealthInformation} uuid={sessionUuid} errors={errors} />
               </AccordionItem>
             </div>
 

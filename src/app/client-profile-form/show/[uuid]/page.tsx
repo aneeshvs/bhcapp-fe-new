@@ -18,7 +18,7 @@ import ReligiousCulturalBackground from '@/src/components/ClientProfileForm/Cult
 import NdisGoals from '@/src/components/ClientProfileForm/NdisGoals';
 import HealthProffessional, { normalizeRole } from '@/src/components/ClientProfileForm/HealthProffessional';
 import DiagnosisSummary from '@/src/components/ClientProfileForm/DiagnosisSummary';
-import HealthInformation from '@/src/components/ClientProfileForm/HealthInformation';
+import HealthInformation, { ALLOWED_HEALTH_CONDITIONS } from '@/src/components/ClientProfileForm/HealthInformation';
 import HealthcareSupport from '@/src/components/ClientProfileForm/HealthCareSupport';
 import Behaviour from '@/src/components/ClientProfileForm/BehaviorSupport';
 import MedicalAlerts from '@/src/components/ClientProfileForm/MedicalAlerts';
@@ -227,9 +227,32 @@ export default function ShowClientProfilePage() {
             
             // Health Information
             if (healthInformationState.health_conditions) {
-                dataToSave.append('health_conditions', JSON.stringify(healthInformationState.health_conditions));
+                const rawConditions = Array.isArray(healthInformationState.health_conditions)
+                    ? healthInformationState.health_conditions
+                    : [healthInformationState.health_conditions];
+                const validConditions: string[] = [];
+                const extraUnrecognized: string[] = [];
+                rawConditions.forEach((c: any) => {
+                    if (!c || typeof c !== 'string') return;
+                    const trimmed = c.trim();
+                    const matched = ALLOWED_HEALTH_CONDITIONS.find(opt => opt.toLowerCase() === trimmed.toLowerCase());
+                    if (matched) {
+                        if (!validConditions.includes(matched)) validConditions.push(matched);
+                    } else if (trimmed) {
+                        extraUnrecognized.push(trimmed);
+                    }
+                });
+                let finalOtherDesc = healthInformationState.health_other_description || '';
+                if (extraUnrecognized.length > 0) {
+                    if (!validConditions.includes('Other')) validConditions.push('Other');
+                    const extra = extraUnrecognized.join(', ');
+                    finalOtherDesc = finalOtherDesc ? `${finalOtherDesc}; ${extra}` : extra;
+                }
+                dataToSave.append('health_conditions', JSON.stringify(validConditions));
+                dataToSave.append('health_other_description', finalOtherDesc);
+            } else {
+                dataToSave.append('health_other_description', healthInformationState.health_other_description || '');
             }
-            dataToSave.append('health_other_description', healthInformationState.health_other_description || '');
 
             dataToSave.append('uuid', uuid);
             dataToSave.append('user_id', sessionUserId);

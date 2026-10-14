@@ -11,9 +11,10 @@ export interface HealthInformationProps {
     React.SetStateAction<{ health_conditions: string[]; health_other_description: string }>
   >;
   uuid?: string | null;
+  errors?: Record<string, string>;
 }
 
-const healthOptions = [
+export const ALLOWED_HEALTH_CONDITIONS = [
   'Urinary Catheter Management',
   'Intellectual Disability',
   'Spinal Cord Disability/Injury',
@@ -33,10 +34,13 @@ const healthOptions = [
   'Other',
 ];
 
+export const healthOptions = ALLOWED_HEALTH_CONDITIONS;
+
 export default function HealthInformation({
   healthInformation,
   setHealthInformation,
-  uuid
+  uuid,
+  errors
 }: HealthInformationProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -74,6 +78,15 @@ export default function HealthInformation({
 
       {/* Body */}
       <div className="p-4 bg-white">
+        {errors && Object.keys(errors).some(k => k.startsWith('health_conditions') || k.startsWith('health_other_description')) && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded text-sm">
+            {Object.entries(errors)
+              .filter(([k]) => k.startsWith('health_conditions') || k.startsWith('health_other_description'))
+              .map(([k, msg]) => (
+                <div key={k}>{msg}</div>
+              ))}
+          </div>
+        )}
         <div
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
           onMouseEnter={() => setHovered(true)}
