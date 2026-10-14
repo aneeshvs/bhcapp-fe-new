@@ -28,7 +28,7 @@ import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiRespons
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 import api from "@/src/utils/api";
-import { IconFileText, IconLoader, IconSparkles } from "@tabler/icons-react";
+import { IconFileText, IconLoader } from "@tabler/icons-react";
 interface OnboardSubmitSuccess {
   success: true;
   data: {
@@ -930,25 +930,7 @@ export default function ClientProfileForm() {
                 ) : (
                   <>
                     <IconFileText size={18} />
-                    PDF Extraction
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleAutofill}
-                disabled={autofilling}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
-              >
-                {autofilling ? (
-                  <>
-                    <IconLoader size={18} className="animate-spin" />
-                    Auto-filling...
-                  </>
-                ) : (
-                  <>
-                    <IconSparkles size={18} />
-                    AI Autofill
+                    PDF Extraction & AI Autofill
                   </>
                 )}
               </button>
