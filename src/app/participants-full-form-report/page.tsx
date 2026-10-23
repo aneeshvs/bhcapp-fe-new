@@ -39,14 +39,14 @@ interface SavedReport {
     updated_at?: string;
 }
 
+const DEFAULT_REPORT_FIELDS = ['full_name', 'preferred_name', 'gender', 'date_of_birth', 'address'];
+
 const ParticipantsFullFormReport = () => {
     const [forms, setForms] = useState<FormOption[]>([]);
     const [selectedFormKey, setSelectedFormKey] = useState<string>("onboarding");
     const [selectedTable, setSelectedTable] = useState<string>("ALL");
     const [selectedField, setSelectedField] = useState<string>("ALL");
-    const [selectedFieldsList, setSelectedFieldsList] = useState<string[]>([
-        'staff_id', 'full_name', 'gender', 'date_of_birth', 'phone_number', 'email'
-    ]);
+    const [selectedFieldsList, setSelectedFieldsList] = useState<string[]>(DEFAULT_REPORT_FIELDS);
 
     const [listData, setListData] = useState({
         current_page: 1,
@@ -73,7 +73,7 @@ const ParticipantsFullFormReport = () => {
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState("");
     const [sortStatus, setSortStatus] = useState({ columnAccessor: 'client_full_name', direction: 'asc' });
-    const [showFilters, setShowFilters] = useState<boolean>(true);
+    const [showFilters, setShowFilters] = useState<boolean>(false);
 
     // Field search filter state for Table Fields pills
     const [fieldSearch, setFieldSearch] = useState<string>("");
@@ -163,12 +163,15 @@ const ParticipantsFullFormReport = () => {
                 setSelectedTable("ALL");
                 setSelectedField("ALL");
 
-                // Default initial columns so table shows data nicely right away
-                const defaultFields: string[] = [];
-                if (defaultForm.tables && defaultForm.tables[0] && defaultForm.tables[0].fields) {
-                    defaultFields.push(...defaultForm.tables[0].fields.slice(0, 6).map(f => f.key));
+                // Default initial columns: Full Name, Preferred Name, Gender, Date Of Birth, Address (staff_id excluded)
+                if (defaultForm.key === 'onboarding') {
+                    setSelectedFieldsList(DEFAULT_REPORT_FIELDS);
+                } else if (defaultForm.tables && defaultForm.tables[0] && defaultForm.tables[0].fields) {
+                    const availableKeys = defaultForm.tables[0].fields.map(f => f.key).filter(k => k !== 'staff_id');
+                    setSelectedFieldsList(availableKeys.slice(0, 5));
+                } else {
+                    setSelectedFieldsList(DEFAULT_REPORT_FIELDS);
                 }
-                setSelectedFieldsList(defaultFields);
             }
         } catch (error) {
             console.error("Error fetching forms list:", error);
@@ -257,8 +260,13 @@ const ParticipantsFullFormReport = () => {
         setSelectedField("ALL");
         const found = forms.find(f => f.key === newFormKey);
         const defaultFields: string[] = [];
-        if (found && found.tables && found.tables[0] && found.tables[0].fields) {
-            defaultFields.push(...found.tables[0].fields.slice(0, 6).map(f => f.key));
+        if (newFormKey === 'onboarding') {
+            defaultFields.push(...DEFAULT_REPORT_FIELDS);
+        } else if (found && found.tables && found.tables[0] && found.tables[0].fields) {
+            const availableKeys = found.tables[0].fields.map(f => f.key).filter(k => k !== 'staff_id');
+            defaultFields.push(...availableKeys.slice(0, 5));
+        } else {
+            defaultFields.push(...DEFAULT_REPORT_FIELDS);
         }
         setSelectedFieldsList(defaultFields);
         setSelectedReportId(null);
