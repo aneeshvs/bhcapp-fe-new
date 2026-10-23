@@ -39,14 +39,12 @@ interface SavedReport {
     updated_at?: string;
 }
 
-const DEFAULT_REPORT_FIELDS = ['full_name', 'preferred_name', 'gender', 'date_of_birth', 'address'];
-
 const ParticipantsFullFormReport = () => {
     const [forms, setForms] = useState<FormOption[]>([]);
     const [selectedFormKey, setSelectedFormKey] = useState<string>("onboarding");
     const [selectedTable, setSelectedTable] = useState<string>("ALL");
     const [selectedField, setSelectedField] = useState<string>("ALL");
-    const [selectedFieldsList, setSelectedFieldsList] = useState<string[]>(DEFAULT_REPORT_FIELDS);
+    const [selectedFieldsList, setSelectedFieldsList] = useState<string[]>([]);
 
     const [listData, setListData] = useState({
         current_page: 1,
@@ -162,16 +160,7 @@ const ParticipantsFullFormReport = () => {
                 setSelectedFormKey(defaultForm.key);
                 setSelectedTable("ALL");
                 setSelectedField("ALL");
-
-                // Default initial columns: Full Name, Preferred Name, Gender, Date Of Birth, Address (staff_id excluded)
-                if (defaultForm.key === 'onboarding') {
-                    setSelectedFieldsList(DEFAULT_REPORT_FIELDS);
-                } else if (defaultForm.tables && defaultForm.tables[0] && defaultForm.tables[0].fields) {
-                    const availableKeys = defaultForm.tables[0].fields.map(f => f.key).filter(k => k !== 'staff_id');
-                    setSelectedFieldsList(availableKeys.slice(0, 5));
-                } else {
-                    setSelectedFieldsList(DEFAULT_REPORT_FIELDS);
-                }
+                setSelectedFieldsList([]);
             }
         } catch (error) {
             console.error("Error fetching forms list:", error);
@@ -258,17 +247,7 @@ const ParticipantsFullFormReport = () => {
         setSelectedFormKey(newFormKey);
         setSelectedTable("ALL");
         setSelectedField("ALL");
-        const found = forms.find(f => f.key === newFormKey);
-        const defaultFields: string[] = [];
-        if (newFormKey === 'onboarding') {
-            defaultFields.push(...DEFAULT_REPORT_FIELDS);
-        } else if (found && found.tables && found.tables[0] && found.tables[0].fields) {
-            const availableKeys = found.tables[0].fields.map(f => f.key).filter(k => k !== 'staff_id');
-            defaultFields.push(...availableKeys.slice(0, 5));
-        } else {
-            defaultFields.push(...DEFAULT_REPORT_FIELDS);
-        }
-        setSelectedFieldsList(defaultFields);
+        setSelectedFieldsList([]);
         setSelectedReportId(null);
         setReportNameInput("");
         setReportDescription("");
@@ -469,8 +448,9 @@ const ParticipantsFullFormReport = () => {
         setReportNameInput("");
         setReportDescription("");
         setSelectedClientId("");
+        setSelectedFieldsList([]);
         setStatusFeedback(null);
-        fetchData(1, selectedFormKey, selectedTable, selectedFieldsList, search, "", pageSize, selectedStaffId, selectedCategoryId);
+        fetchData(1, selectedFormKey, selectedTable, [], search, "", pageSize, selectedStaffId, selectedCategoryId);
     };
 
     // Save or Update Report Template
@@ -669,6 +649,11 @@ const ParticipantsFullFormReport = () => {
                         type="button"
                         onClick={() => {
                             setReportModalTab('create');
+                            if (!selectedReportId) {
+                                setReportNameInput("");
+                                setReportDescription("");
+                                setSelectedFieldsList([]);
+                            }
                             setIsReportModalOpen(true);
                         }}
                         className="btn-primary flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-white font-semibold whitespace-nowrap shrink-0 shadow-xs text-xs hover:bg-primary-dark transition-all"
