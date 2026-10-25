@@ -71,7 +71,7 @@ const ParticipantsFullFormReport = () => {
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState("");
     const [sortStatus, setSortStatus] = useState({ columnAccessor: 'client_full_name', direction: 'asc' });
-    const [showFilters, setShowFilters] = useState<boolean>(false);
+    const [showFilters, setShowFilters] = useState<boolean>(true);
 
     // Field search filter state for Table Fields pills
     const [fieldSearch, setFieldSearch] = useState<string>("");
