@@ -91,6 +91,21 @@ const ParticipantsFullFormReport = () => {
     const [savingReport, setSavingReport] = useState<boolean>(false);
     const [statusFeedback, setStatusFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+    // Modals for Signatures & Long Text Reader
+    const [signaturePreviewModal, setSignaturePreviewModal] = useState<{
+        isOpen: boolean;
+        src: string;
+        title: string;
+        clientName: string;
+    } | null>(null);
+
+    const [paragraphViewModal, setParagraphViewModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        content: string;
+        clientName: string;
+    } | null>(null);
+
     // Fetch BHC Coordinators List
     const fetchCoordinators = async () => {
         try {
@@ -577,11 +592,57 @@ const ParticipantsFullFormReport = () => {
         return `${day}/${month}/${year}`;
     };
 
-    const renderFieldValue = (value: any, fieldKey: string) => {
+    const renderFieldValue = (value: any, fieldKey: string, row?: any, fieldLabel?: string) => {
         if (value === null || value === undefined || value === '' || value === 'NIL') {
             return <span className="text-gray-400 font-normal">NIL</span>;
         }
 
+        // 1. Signature / Base64 image detection
+        const isBase64Img = typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:image%2F') || value.includes(';base64,'));
+        const isSigField = fieldKey.toLowerCase().includes('signature');
+
+        if (isBase64Img) {
+            return (
+                <div className="flex items-center gap-2 py-1">
+                    <button
+                        type="button"
+                        onClick={() => setSignaturePreviewModal({
+                            isOpen: true,
+                            src: value,
+                            title: fieldLabel || 'Signature',
+                            clientName: row?.client_full_name || `${row?.name || ''} ${row?.lastname || ''}`.trim() || 'Participant'
+                        })}
+                        className="group relative flex items-center justify-center h-10 w-28 bg-white border border-gray-300 hover:border-primary rounded-lg p-1 shadow-2xs hover:shadow-xs transition-all cursor-pointer overflow-hidden bg-slate-50 shrink-0"
+                        title="Click to view signature"
+                    >
+                        <img
+                            src={value}
+                            alt={fieldLabel || "Signature"}
+                            className="max-h-full max-w-full object-contain pointer-events-none"
+                        />
+                        <span className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-bold text-primary bg-white/80">
+                            Zoom
+                        </span>
+                    </button>
+                    <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">
+                        Signed
+                    </span>
+                </div>
+            );
+        }
+
+        if (isSigField) {
+            if (value === 'NIL' || value === '' || !value) {
+                return <span className="text-gray-400 font-normal">NIL</span>;
+            }
+            return (
+                <span className="badge bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-1 rounded">
+                    {String(value)}
+                </span>
+            );
+        }
+
+        // 2. Form Status
         if (fieldKey === 'form_status') {
             const valStr = String(value).toLowerCase();
             if (valStr === 'completed') {
@@ -590,16 +651,52 @@ const ParticipantsFullFormReport = () => {
             return <span className="badge bg-warning text-dark px-2 py-1 rounded">{String(value)}</span>;
         }
 
+        // 3. Completion Percentage
         if (fieldKey === 'completion_percentage' || (typeof value === 'number' && fieldKey.includes('percentage'))) {
             const num = parseFloat(value);
             return <span className="badge bg-primary text-white px-2 py-1 rounded">{isNaN(num) ? value : `${num.toFixed(1)}%`}</span>;
         }
 
+        // 4. Dates
         if (fieldKey.includes('date')) {
             return formatDate(value);
         }
 
-        return String(value);
+        // 5. Long Text / Paragraphs (Goals, Routines, Plans, Details, Strategies, Notes, etc.)
+        const strVal = String(value);
+        const isLongText = strVal.length > 70 || strVal.includes('\n') || 
+            fieldKey.includes('goal') || fieldKey.includes('routine') || 
+            fieldKey.includes('strategy') || fieldKey.includes('plan') || 
+            fieldKey.includes('detail') || fieldKey.includes('support') || 
+            fieldKey.includes('trigger') || fieldKey.includes('measure') ||
+            fieldKey.includes('requirement') || fieldKey.includes('needs') ||
+            fieldKey.includes('description') || fieldKey.includes('rule');
+
+        if (isLongText) {
+            return (
+                <div className="max-w-[320px] min-w-[200px] !whitespace-normal break-words py-1 text-xs text-gray-800 leading-relaxed">
+                    <p className={strVal.length > 80 ? "line-clamp-2 m-0 text-gray-700 font-normal" : "m-0 text-gray-700 font-normal"} title={strVal}>
+                        {strVal}
+                    </p>
+                    {strVal.length > 80 && (
+                        <button
+                            type="button"
+                            onClick={() => setParagraphViewModal({
+                                isOpen: true,
+                                title: fieldLabel || fieldKey,
+                                content: strVal,
+                                clientName: row?.client_full_name || `${row?.name || ''} ${row?.lastname || ''}`.trim() || 'Participant'
+                            })}
+                            className="text-[11px] text-primary hover:text-primary-dark font-bold hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
+                        >
+                            <span>Read full text →</span>
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
+        return <span className="text-xs text-gray-800">{strVal}</span>;
     };
 
     // Construct Columns dynamically for ListComponents DataTable using all selected fields across all tables
@@ -610,7 +707,7 @@ const ParticipantsFullFormReport = () => {
                 title: 'Client Name',
                 sortable: true,
                 render: (row: any) => (
-                    <div className="font-semibold text-primary">
+                    <div className="font-semibold text-primary whitespace-nowrap">
                         {row.client_full_name || `${row.name || ''} ${row.lastname || ''}`}
                     </div>
                 )
@@ -620,11 +717,20 @@ const ParticipantsFullFormReport = () => {
         allFormFields
             .filter(f => selectedFieldsList.includes(f.key))
             .forEach(f => {
+                const isSignature = f.key.toLowerCase().includes('signature');
+                const isParagraph = f.key.includes('goal') || f.key.includes('routine') || 
+                    f.key.includes('strategy') || f.key.includes('plan') || 
+                    f.key.includes('detail') || f.key.includes('support') || 
+                    f.key.includes('trigger') || f.key.includes('measure') ||
+                    f.key.includes('requirement') || f.key.includes('needs') ||
+                    f.key.includes('description') || f.key.includes('rule');
+
                 cols.push({
                     accessor: f.key,
                     title: f.label,
                     sortable: true,
-                    render: (row: any) => renderFieldValue(row[f.key], f.key)
+                    width: isSignature ? 180 : (isParagraph ? 320 : undefined),
+                    render: (row: any) => renderFieldValue(row[f.key], f.key, row, f.label)
                 });
             });
 
@@ -1273,6 +1379,112 @@ const ParticipantsFullFormReport = () => {
                                 )}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* 6. Signature Preview Modal */}
+            {signaturePreviewModal && signaturePreviewModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden border border-gray-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200">
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900">
+                                    {signaturePreviewModal.title}
+                                </h4>
+                                {signaturePreviewModal.clientName && (
+                                    <p className="text-xs text-primary font-semibold mt-0.5">
+                                        Participant: {signaturePreviewModal.clientName}
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSignaturePreviewModal(null)}
+                                className="text-gray-400 hover:text-gray-700 rounded-lg p-1.5 hover:bg-gray-200 transition-colors cursor-pointer"
+                            >
+                                <IconX className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 flex flex-col items-center justify-center bg-gray-100">
+                            <div className="bg-white p-4 rounded-xl border border-gray-300 shadow-xs w-full flex items-center justify-center min-h-[160px]">
+                                <img
+                                    src={signaturePreviewModal.src}
+                                    alt="Signature Preview"
+                                    className="max-h-56 max-w-full object-contain"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end px-6 py-3 bg-gray-50 border-t border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => setSignaturePreviewModal(null)}
+                                className="btn btn-sm btn-secondary text-xs py-1.5 px-4 rounded-lg font-semibold"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 7. Long Text / Paragraph Reader Modal */}
+            {paragraphViewModal && paragraphViewModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full flex flex-col overflow-hidden border border-gray-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200">
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900">
+                                    {paragraphViewModal.title}
+                                </h4>
+                                {paragraphViewModal.clientName && (
+                                    <p className="text-xs text-primary font-semibold mt-0.5">
+                                        Participant: {paragraphViewModal.clientName}
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setParagraphViewModal(null)}
+                                className="text-gray-400 hover:text-gray-700 rounded-lg p-1.5 hover:bg-gray-200 transition-colors cursor-pointer"
+                            >
+                                <IconX className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap select-text font-normal">
+                                {paragraphViewModal.content}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(paragraphViewModal.content);
+                                    alert("Copied to clipboard!");
+                                }}
+                                className="btn btn-sm btn-outline-primary text-xs py-1.5 px-3 rounded-lg font-semibold cursor-pointer"
+                            >
+                                Copy Text
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setParagraphViewModal(null)}
+                                className="btn btn-sm btn-secondary text-xs py-1.5 px-4 rounded-lg font-semibold cursor-pointer"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
