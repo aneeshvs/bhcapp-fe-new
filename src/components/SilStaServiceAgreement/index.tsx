@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useMemo, Suspense, createRef, RefObject } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { IconLoader } from "@tabler/icons-react";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import api from "@/src/utils/api";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 import { fetchSilStaServiceAgreement, saveSilStaServiceAgreement, generateSilStaServiceAgreementPdf, fetchSilStaServiceAgreementUuid } from "@/src/components/SilStaServiceAgreement/api";
 import { sectionsConfig } from "@/src/components/SilStaServiceAgreement/sectionsConfig";
@@ -215,6 +217,196 @@ export default function SilStaServiceAgreementForm({
     );
   };
 
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const targetUserId = userid || searchParams.get("userid") || "";
+      const targetClientType = client_type || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          ndis_plan_start_date: "string (Plan start date YYYY-MM-DD)",
+          ndis_plan_end_date: "string (Plan end date YYYY-MM-DD)",
+          service_agreement_start_date: "string (Agreement start date YYYY-MM-DD)",
+          service_agreement_end_date: "string (Agreement end date YYYY-MM-DD)",
+
+          client_name: "string (Full name of client)",
+          client_address: "string (Client address)",
+          client_email: "string (Client email)",
+          client_phone: "string (Client phone)",
+          client_ndis_number: "string (NDIS Number)",
+          client_funding_type: "string (Funding type, e.g. NDIA Managed, Plan Managed, Self Managed)",
+
+          rep_name: "string (Representative full name)",
+          rep_address: "string (Representative address)",
+          rep_legal_authority: "string (Representative legal authority, e.g. Guardian, Power of Attorney, Nominee)",
+          rep_email: "string (Representative email)",
+          rep_phone: "string (Representative phone)",
+
+          board_and_lodging_contributions: "string (Board and lodging payment or contribution notes)",
+          payment_terms: "string (Payment terms or invoicing frequency)",
+
+          provider_signature_name: "string (Provider representative name)",
+          provider_signature_date: "string (Provider signed date YYYY-MM-DD)",
+
+          client_signer_type: "string ('participant' or 'representative')",
+          client_signature_name: "string (Signer full name)",
+          representative_relation: "string (Relationship to participant)",
+          client_signature_date: "string (Signed date YYYY-MM-DD)",
+
+          witness_name: "string (Witness full name)",
+          witness_signature_date: "string (Witness signed date YYYY-MM-DD)",
+        },
+        schedule_of_supports: [
+          {
+            support_services: "string (Support service name/category)",
+            ndis_funded_support: "string (NDIS funded description)",
+            how_support_provided: "string (How support will be delivered)",
+            non_funded_support: "string (Non-funded support description)",
+            travel: "string (Travel details)",
+            program_of_supports: "string (Program of supports description)",
+            support_times: "string (Times and schedule of supports)",
+            total: "string (Total price/funding amount)"
+          }
+        ]
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            return sanitized;
+          });
+        }
+
+        if (Array.isArray(d.schedule_of_supports) && d.schedule_of_supports.length > 0) {
+          const cleanedRows: SilStaScheduleOfSupport[] = d.schedule_of_supports
+            .filter((row: any) => row && (row.support_services || row.ndis_funded_support || row.total))
+            .map((row: any) => ({
+              support_services: isDummy(row.support_services || '') ? '' : (row.support_services || ''),
+              ndis_funded_support: isDummy(row.ndis_funded_support || '') ? '' : (row.ndis_funded_support || ''),
+              how_support_provided: isDummy(row.how_support_provided || '') ? '' : (row.how_support_provided || ''),
+              non_funded_support: isDummy(row.non_funded_support || '') ? '' : (row.non_funded_support || ''),
+              travel: isDummy(row.travel || '') ? '' : (row.travel || ''),
+              program_of_supports: isDummy(row.program_of_supports || '') ? '' : (row.program_of_supports || ''),
+              support_times: isDummy(row.support_times || '') ? '' : (row.support_times || ''),
+              total: isDummy(row.total || '') ? '' : String(row.total || ''),
+            }));
+
+          if (cleanedRows.length > 0) {
+            setFormData(prev => ({
+              ...prev,
+              schedule_of_supports: cleanedRows
+            }));
+          }
+        }
+
+        window.alert("SIL/STA Service Agreement auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          sectionKeys.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<string, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
+  };
+
   const handleTrackerClick = (key: string) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -387,7 +579,25 @@ export default function SilStaServiceAgreementForm({
           className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           onSubmit={handleSave}
         >
-          <div className="flex justify-end items-center gap-4 mb-4">
+          <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
+             <button
+               type="button"
+               onClick={() => setIsPdfModalOpen(true)}
+               disabled={autofilling}
+               className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+             >
+               {autofilling ? (
+                 <>
+                   <IconLoader size={18} className="animate-spin" />
+                   Auto-filling...
+                 </>
+               ) : (
+                 <>
+                   <IconFileText size={18} />
+                   PDF Extraction & AI Autofill
+                 </>
+               )}
+             </button>
              <div 
                className="bg-yellow-100 border border-yellow-300 text-yellow-800 font-medium py-1 px-3 rounded shadow-sm text-sm cursor-pointer"
                onClick={() => {
@@ -487,6 +697,13 @@ export default function SilStaServiceAgreementForm({
 
         </form>
       </div>
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={userid || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
+        clientType={client_type || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
+        onExtractionComplete={handleAutofill}
+      />
     </div>
   );
 }

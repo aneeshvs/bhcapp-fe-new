@@ -4,8 +4,12 @@ import { useSearchParams } from 'next/navigation';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 import SignaturePad from 'signature_pad';
 import DatePickerSaveMany from '@/src/components/DatePickerSaveMany';
+import SignatureTypeToggle from '@/src/components/SignatureTypeToggle';
+import SignatureCopyPasteButtons from '@/src/components/SignatureCopyPasteButtons';
 
 interface AgreementSignatures {
+  signature_type?: string;
+  paper_signed?: number | string;
   participant_signature?: string; // base64 string
   agreement_participant_name?: string;
   participant_date?: string;
@@ -214,6 +218,15 @@ export default function AgreementSignatures({
 
       {/* Fields */}
       <div className="p-4 bg-white">
+        <SignatureTypeToggle
+          value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+          onChange={(val) => {
+            handleChange({ target: { name: 'signature_type', value: val } });
+            handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+          }}
+          disabled={false}
+        />
+
         {/* Participant Section */}
         <div className="mb-8 pb-6 border-b border-gray-200">
           <h5 className="text-md font-semibold mb-4 text-gray-700">Participant Signature</h5>
@@ -335,6 +348,12 @@ export default function AgreementSignatures({
                     {participantSaveStatus ? "Saved!" : "Save Signature"}
                   </button>
                 )}
+                <SignatureCopyPasteButtons
+                  padRef={participantSignaturePad}
+                  currentValue={formData.participant_signature}
+                  onPaste={(dataUrl) => handleChange({ target: { name: 'participant_signature', value: dataUrl } })}
+                  label="Participant Signature"
+                />
               </div>
             </div>
           </div>
@@ -460,6 +479,12 @@ export default function AgreementSignatures({
                     {representativeSaveStatus ? "Saved!" : "Save Signature"}
                   </button>
                 )}
+                <SignatureCopyPasteButtons
+                  padRef={representativeSignaturePad}
+                  currentValue={formData.representative_signature}
+                  onPaste={(dataUrl) => handleChange({ target: { name: 'representative_signature', value: dataUrl } })}
+                  label="Representative Signature"
+                />
               </div>
             </div>
           </div>
@@ -521,6 +546,12 @@ export default function AgreementSignatures({
                   {verbalSaveStatus ? "Saved!" : "Save Signature"}
                 </button>
               )}
+              <SignatureCopyPasteButtons
+                padRef={verbalSignaturePad}
+                currentValue={formData.verbal_consent_staff_signature}
+                onPaste={(dataUrl) => handleChange({ target: { name: 'verbal_consent_staff_signature', value: dataUrl } })}
+                label="Staff Signature"
+              />
             </div>
           </div>
 

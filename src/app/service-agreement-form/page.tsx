@@ -15,6 +15,9 @@ import AgreementFormaData from "@/src/components/ServiceAgreement/AgreementFormD
 
 import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import api from "@/src/utils/api";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "ParticipantRepresentative",
@@ -73,6 +76,8 @@ export default function ServiceAgreementPage() {
   const [openSections, setOpenSections] =
     useState<Record<SectionKey, boolean>>(initialOpenSections);
   const [isExpandedAll, setIsExpandedAll] = useState(true);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
 
   const toggleExpandAll = () => {
     const nextState = !isExpandedAll;
@@ -83,6 +88,185 @@ export default function ServiceAgreementPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const handleAutofill = async () => {
+    try {
+      setAutofilling(true);
+      const targetUserId = sessionUserId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "");
+      const targetClientType = sessionClientType || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "");
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          participant_name: "string (Participant full name)",
+          ndis_number: "string (Participant 9-digit NDIS number)",
+          address: "string (Participant residential address)",
+          contact: "string (Participant phone/contact number)",
+          email: "string (Participant email address)",
+          dob: "string (Participant date of birth YYYY-MM-DD)",
+          ndis_plan_start_date: "string (NDIS plan start date YYYY-MM-DD)",
+          ndis_plan_end_date: "string (NDIS plan end date YYYY-MM-DD)",
+          term_start_date: "string (Agreement start date YYYY-MM-DD)",
+          term_end_date: "string (Agreement end date YYYY-MM-DD)",
+          term_of_this_agreement: "string (e.g. '12 Months')",
+          area_of_support: "array of strings (Supported service areas / chargeband names, e.g. ['Core Supports', 'Assistance with Daily Life', 'Capacity Building', 'Support Coordination'])",
+          representative_name: "string (Representative/Nominee/Guardian full name)",
+          representative_relationship: "string (Relationship to participant, e.g. Mother, Father, Guardian, Nominee, Advocate)",
+          representative_contact: "string (Representative contact phone)",
+          representative_email: "string (Representative email address)",
+          accepted_name: "string (Provider representative name)",
+          accepted_position: "string (Provider representative position, e.g. Service Manager, Director)",
+          accepted_date: "string (Provider acceptance date YYYY-MM-DD)",
+          consents_participant_name: "string (Signer name, either participant or representative)",
+          participant_role: "string ('participant' or 'representative')",
+          participant_date: "string (Participant/representative signed date YYYY-MM-DD)",
+          witness_name: "string (Witness full name)",
+          witness_date: "string (Witness signed date YYYY-MM-DD)",
+          verbal_staff_name: "string (Staff name for verbal consent)",
+          verbal_staff_position: "string (Staff position)",
+          verbal_date: "string (Verbal consent date YYYY-MM-DD)",
+          other_notes: "string (Verbal consent notes / additional discussion notes)",
+          received_signed_copy: "string ('Yes' or 'No')",
+          agreed_verbally: "string ('Yes' or 'No')",
+          cms_comments_entered: "string ('Yes' or 'No')"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (key === 'area_of_support') {
+                if (Array.isArray(val)) {
+                  (sanitized as any)[key] = val;
+                } else if (typeof val === 'string' && val.trim()) {
+                  try {
+                    const parsed = JSON.parse(val);
+                    (sanitized as any)[key] = Array.isArray(parsed) ? parsed : [val];
+                  } catch {
+                    (sanitized as any)[key] = [val];
+                  }
+                }
+              } else if (key === 'participant_role') {
+                if (typeof val === 'string') {
+                  const lower = val.trim().toLowerCase();
+                  (sanitized as any)[key] = lower.includes('rep') ? 'representative' : 'participant';
+                }
+              } else if (key === 'received_signed_copy' || key === 'agreed_verbally' || key === 'cms_comments_entered') {
+                if (typeof val === 'string') {
+                  const lower = val.trim().toLowerCase();
+                  (sanitized as any)[key] = (lower === 'yes' || lower === '1' || lower === 'true') ? 'Yes' : 'No';
+                } else if (typeof val === 'boolean') {
+                  (sanitized as any)[key] = val ? 'Yes' : 'No';
+                }
+              } else if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true") {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date') || key === 'dob') {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            if (!sanitized.consents_participant_name) {
+              sanitized.consents_participant_name = sanitized.participant_name || "";
+            }
+
+            return sanitized;
+          });
+        }
+
+        window.alert("Service Agreement auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (err: any) {
+      console.error("Autofill error:", err);
+      alert(err.response?.data?.message || "Failed to auto-fill form using AI. Please ensure AI Onboarding has been processed.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
   // Session bootstrap (token, userid, client_type, optional uuid)
@@ -451,7 +635,25 @@ export default function ServiceAgreementPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end items-center gap-4 mb-4">
+            <div className="flex flex-wrap justify-end items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
                 onClick={scrollToSignature}
@@ -1112,6 +1314,13 @@ export default function ServiceAgreementPage() {
               </label>
             </div>
           </form>
+          <PdfExtractionModal
+            isOpen={isPdfModalOpen}
+            onClose={() => setIsPdfModalOpen(false)}
+            userId={sessionUserId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
+            clientType={sessionClientType || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
+            onExtractionComplete={handleAutofill}
+          />
         </div>
       ) : (
         // Loader when flag is false

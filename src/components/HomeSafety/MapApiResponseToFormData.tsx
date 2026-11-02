@@ -13,10 +13,12 @@ export function mapApiResponseToFormData(responseData: HomeSafetyChecklistFormDa
         is_new_participant: responseData.is_new_participant,
         is_review_existing: responseData.is_review_existing,
         does_participant_agree: responseData.does_participant_agree,
-        entry_door: responseData.entry_door,
-        entry_door_other: responseData.entry_door_other,
+        entry_door: responseData.entry_door ? responseData.entry_door.trim().toLowerCase() : '',
+        entry_door_other: responseData.entry_door_other || '',
         form_status: responseData.form_status || '',
         submit_final: responseData.submit_final ?? 0,
+        signature_type: (responseData as any).signature_type || ((responseData as any).paper_signed ? 'paper' : 'digital'),
+        paper_signed: (responseData as any).paper_signed ?? 0,
 
 
         parking_adequate: responseData.outside_entry?.parking_adequate,

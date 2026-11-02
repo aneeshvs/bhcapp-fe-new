@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import SignaturePad from "signature_pad";
+import SignatureCopyPasteButtons from "./SignatureCopyPasteButtons";
 
 interface SingleSignaturePadProps {
   label: string;
@@ -139,6 +140,13 @@ const SingleSignaturePad: React.FC<SingleSignaturePadProps> = ({
           >
             Save Signature
           </button>
+          <SignatureCopyPasteButtons
+            padRef={padRef}
+            currentValue={value}
+            onPaste={(dataUrl) => onChange(dataUrl)}
+            label={label}
+            disabled={disabled}
+          />
         </div>
       )}
     </div>

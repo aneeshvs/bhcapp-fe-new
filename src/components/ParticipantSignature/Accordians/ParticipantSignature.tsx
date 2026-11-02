@@ -4,8 +4,12 @@ import { useSearchParams } from 'next/navigation';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 import SignaturePad from 'signature_pad';
 import DatePickerSaveMany from '../../DatePickerSaveMany';
+import SignatureTypeToggle from '@/src/components/SignatureTypeToggle';
+import SignatureCopyPasteButtons from '@/src/components/SignatureCopyPasteButtons';
 
 interface ParticipantSignature {
+  signature_type?: string;
+  paper_signed?: number | string;
   participant_signature?: string;
   date_signed?: string;
  
@@ -176,6 +180,17 @@ export default function ParticipantSignatures({
 
       {/* Fields */}
       <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <SignatureTypeToggle
+            value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+            onChange={(val) => {
+              handleChange({ target: { name: 'signature_type', value: val } });
+              handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+            }}
+            disabled={false}
+          />
+        </div>
+
         {/* Date Signed */}
         <div
           className="relative"
@@ -264,6 +279,12 @@ export default function ParticipantSignatures({
                 {saveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+            <SignatureCopyPasteButtons
+              padRef={signaturePad}
+              currentValue={formData.participant_signature}
+              onPaste={(dataUrl) => handleChange({ target: { name: 'participant_signature', value: dataUrl } })}
+              label="Participant Signature"
+            />
           </div>
         </div>
 
@@ -322,6 +343,12 @@ export default function ParticipantSignatures({
                     {verbalSaveStatus ? "Saved!" : "Save Signature"}
                   </button>
                 )}
+                <SignatureCopyPasteButtons
+                  padRef={verbalSignaturePad}
+                  currentValue={formData.verbal_consent_staff_signature}
+                  onPaste={(dataUrl) => handleChange({ target: { name: 'verbal_consent_staff_signature', value: dataUrl } })}
+                  label="Staff Signature"
+                />
               </div>
             </div>
 

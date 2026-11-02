@@ -4,9 +4,12 @@ import { useSearchParams } from "next/navigation";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import SignaturePad from "signature_pad";
 import DatePickerSaveMany from "@/src/components/DatePickerSaveMany";
-
+import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
+import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
 
 interface ConfidentialConsent {
+  signature_type?: string;
+  paper_signed?: number | string;
   signature?: string; // Can be file path or base64 string
   signed_date?: string;
   signed_by?: string;
@@ -142,7 +145,18 @@ export default function ConfidentialConsents({
 
       {/* Fields */}
       <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="mt-8 mb-6 p-6 bg-gray-50 rounded-lg border-l-4 border-blue-500 md:col-span-2">
+        <div className="md:col-span-2">
+          <SignatureTypeToggle
+            value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+            onChange={(val) => {
+              handleChange({ target: { name: 'signature_type', value: val } });
+              handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+            }}
+            disabled={false}
+          />
+        </div>
+
+        <div className="mt-4 mb-6 p-6 bg-gray-50 rounded-lg border-l-4 border-blue-500 md:col-span-2">
           <div className="text-gray-700 space-y-3 w-full">
             <p className="text-gray-600 mb-4">
               <b>
@@ -326,6 +340,12 @@ export default function ConfidentialConsents({
                 {saveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+            <SignatureCopyPasteButtons
+              padRef={signaturePad}
+              currentValue={formData.signature}
+              onPaste={(dataUrl) => handleChange({ target: { name: "signature", value: dataUrl } })}
+              label="Signature"
+            />
           </div>
         </div>
       </div>

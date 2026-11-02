@@ -571,6 +571,13 @@ export default function SilSupportPlanPage() {
         Object.entries(fullReviewSig).forEach(([k, v]) => {
           data.append(`review_signature[${k}]`, v !== null && v !== undefined ? String(v) : "");
         });
+
+        if (reviewSignature.signature_type) {
+          data.append("signature_type", String(reviewSignature.signature_type));
+        }
+        if (reviewSignature.paper_signed !== undefined) {
+          data.append("paper_signed", String(reviewSignature.paper_signed));
+        }
       }
 
       const effectiveUuid = sessionUuid || searchParams.get("form-uuid") || searchParams.get("uuid");

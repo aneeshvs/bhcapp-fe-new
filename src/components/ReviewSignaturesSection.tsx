@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import SingleSignaturePad from "./SingleSignaturePad";
+import SignatureTypeToggle from "./SignatureTypeToggle";
 
 interface ReviewSignaturesData {
+  signature_type?: string;
+  paper_signed?: number | string | boolean;
   signer_type?: string;
   participant_name?: string;
   participant_date?: string;
@@ -48,6 +51,15 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
 
   return (
     <div className="space-y-6" id="review-signatures-section">
+      <SignatureTypeToggle
+        value={(data.signature_type as "digital" | "paper") || (data.paper_signed == 1 || data.paper_signed === "1" ? "paper" : "digital")}
+        onChange={(val) => {
+          onChange("signature_type", val);
+          onChange("paper_signed", val === "paper" ? "1" : "0");
+        }}
+        disabled={readOnly}
+      />
+
       {/* Optional Acknowledgement Section */}
       {(showAcknowledgement || data.acknowledgement !== undefined) && (
         <div className="bg-white p-5 border rounded-lg shadow-sm space-y-3">

@@ -32,13 +32,22 @@ export async function login(email: string, password: string): Promise<LoginRespo
     if (response.data.success) {
         console.log("Login successful", response.data.data);
         localStorage.setItem("token", response.data.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.data.name));
+        const userData = response.data.data.user || response.data.data;
+        localStorage.setItem("user", JSON.stringify(userData));
+        if (userData?.user_type_id !== undefined) {
+            localStorage.setItem("user_type_id", String(userData.user_type_id));
+        }
     }
     return response.data;
-
 }
 
 export async function me() {
     const response = await api.get("me");
+    if (response.data) {
+        localStorage.setItem("user", JSON.stringify(response.data));
+        if (response.data.user_type_id !== undefined) {
+            localStorage.setItem("user_type_id", String(response.data.user_type_id));
+        }
+    }
     return response.data;
 }

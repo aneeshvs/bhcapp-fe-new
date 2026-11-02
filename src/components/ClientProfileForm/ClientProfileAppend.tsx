@@ -25,6 +25,26 @@ export interface HealthInformation {
   health_other_description?: string;
 }
 
+const sanitizeDateForSubmit = (val: string | null | undefined): string => {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmyMatch) {
+    const p1 = parseInt(dmyMatch[1], 10);
+    const p2 = parseInt(dmyMatch[2], 10);
+    const year = dmyMatch[3];
+    if (p1 > 12) return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    if (p2 > 12) return `${year}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+    return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+  }
+  const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (ymdMatch) {
+    return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, '0')}-${String(ymdMatch[3]).padStart(2, '0')}`;
+  }
+  return '';
+};
+
 export const prepareClientProfileFormData = (
   formData: ClientApiResponse,
   user_id: string | null,
@@ -47,7 +67,7 @@ export const prepareClientProfileFormData = (
   data.append('full_name', formData.full_name || '');
   data.append('preferred_name', formData.preferred_name || '');
   data.append('gender', formData.gender || '');
-  data.append('date_of_birth', formData.date_of_birth || '');
+  data.append('date_of_birth', sanitizeDateForSubmit(formData.date_of_birth));
   data.append('address', formData.address || '');
   data.append('postcode', formData.postcode || '');
   data.append('phone_number', formData.phone_number || '');
@@ -60,8 +80,8 @@ export const prepareClientProfileFormData = (
   data.append('type_of_funding', formData.funding?.type_of_funding || '');
   data.append('funding_contact_person', formData.funding?.funding_contact_person || '');
   data.append('ndis_plan_attached', String(formData.funding?.ndis_plan_attached ?? 0));
-  data.append('ndis_plan_start_date', formData.funding?.ndis_plan_start_date || '');
-  data.append('ndis_plan_end_date', formData.funding?.ndis_plan_end_date || '');
+  data.append('ndis_plan_start_date', sanitizeDateForSubmit(formData.funding?.ndis_plan_start_date));
+  data.append('ndis_plan_end_date', sanitizeDateForSubmit(formData.funding?.ndis_plan_end_date));
   data.append('plan_manager_name', formData.funding?.plan_manager_name || '');
   data.append('plan_manager_email', formData.funding?.plan_manager_email || '');
   data.append('plan_manager_phone', formData.funding?.plan_manager_phone || '');
@@ -133,9 +153,9 @@ export const prepareClientProfileFormData = (
 
   // Preventive Health Summary
   data.append('medical_checkup_status', formData.preventive_health_summary?.medical_checkup_status || '');
-  data.append('last_dental_check', formData.preventive_health_summary?.last_dental_check || '');
-  data.append('last_hearing_check', formData.preventive_health_summary?.last_hearing_check || '');
-  data.append('last_vision_check', formData.preventive_health_summary?.last_vision_check || '');
+  data.append('last_dental_check', sanitizeDateForSubmit(formData.preventive_health_summary?.last_dental_check));
+  data.append('last_hearing_check', sanitizeDateForSubmit(formData.preventive_health_summary?.last_hearing_check));
+  data.append('last_vision_check', sanitizeDateForSubmit(formData.preventive_health_summary?.last_vision_check));
   data.append('requires_vaccination_assistance', String(formData.preventive_health_summary?.requires_vaccination_assistance ?? 0));
   data.append('communication_assistance_required', String(formData.support_information?.communication_assistance_required ?? 0));
   data.append('mealtime_plan', formData.support_information?.mealtime_plan || '');

@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from "react";
 import { SectionProps } from "./types";
 import FormFieldWrapper from "@/src/components/SilStaServiceAgreement/FormFieldWrapper";
 import SignaturePad from "signature_pad";
+import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
+import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
 
 const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid }) => {
   const apiEndpoint = "/centrepay-deduction-authority/logs";
@@ -121,6 +123,14 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
       </div>
 
       <div className="p-4 bg-white">
+        <SignatureTypeToggle
+          value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+          onChange={(val) => {
+            handleChange({ target: { name: 'signature_type', value: val } });
+            handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+          }}
+          disabled={false}
+        />
         
         {/* Provider Signature */}
         <div className="mb-8 pb-6 border-b border-gray-200">
@@ -177,6 +187,12 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 >
                   Save Signature
                 </button>
+                <SignatureCopyPasteButtons
+                  padRef={providerPadRef}
+                  currentValue={formData.provider_signature}
+                  onPaste={(dataUrl) => handleChange({ target: { name: "provider_signature", value: dataUrl } })}
+                  label="Provider Signature"
+                />
               </div>
             </div>
           </div>
@@ -299,6 +315,12 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
               >
                 Save Signature
               </button>
+              <SignatureCopyPasteButtons
+                padRef={clientPadRef}
+                currentValue={formData.client_signature}
+                onPaste={(dataUrl) => handleChange({ target: { name: "client_signature", value: dataUrl } })}
+                label="Client Signature"
+              />
             </div>
           </div>
         </div>
@@ -358,6 +380,12 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
                 >
                   Save Signature
                 </button>
+                <SignatureCopyPasteButtons
+                  padRef={witnessPadRef}
+                  currentValue={formData.witness_signature}
+                  onPaste={(dataUrl) => handleChange({ target: { name: "witness_signature", value: dataUrl } })}
+                  label="Witness Signature"
+                />
               </div>
             </div>
           </div>

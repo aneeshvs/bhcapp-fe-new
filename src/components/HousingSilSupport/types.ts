@@ -4,6 +4,8 @@ export interface HousingSilSupportData {
   client_type?: string;
   form_status?: string;
   completion_percentage?: number;
+  signature_type?: string;
+  paper_signed?: number | string;
   
   housing_separate?: string;
   change_sil_without_losing_home?: string;

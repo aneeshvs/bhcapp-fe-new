@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useMemo, createRef, RefObject } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { IconLoader } from "@tabler/icons-react";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import api from "@/src/utils/api";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 import {
   fetchMedicineAdministrationConsent,
@@ -115,6 +117,152 @@ export default function MedicineAdministrationConsentForm({
         return acc;
       }, {} as Record<string, boolean>)
     );
+  };
+
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const targetUserId = userid || searchParams.get("userid") || "";
+      const targetClientType = client_type || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          participant_name: "string (Participant full name)",
+          medication_support: "boolean (true if client needs medication reminding, prompting, or opening containers)",
+          medication_assistance: "boolean (true if staff stores, opens, dispenses, or administers medication)",
+          manage_medication_self: "boolean (true if client manages medication independently)",
+          provider_signature_name: "string (Provider representative name)",
+          provider_signature_date: "string (Provider signed date YYYY-MM-DD)",
+          client_signer_type: "string ('participant' or 'representative')",
+          client_signature_name: "string (Full name of participant or representative)",
+          representative_relation: "string (Relationship to participant, e.g. Parent, Guardian, Nominee, Advocate)",
+          client_signature_date: "string (Signed date YYYY-MM-DD)",
+          witness_name: "string (Witness full name)",
+          witness_signature_date: "string (Witness signed date YYYY-MM-DD)"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'boolean') {
+                if (val === true || val === "true" || val === 1 || val === "1" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = true;
+                } else {
+                  (sanitized as any)[key] = false;
+                }
+              } else if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else if (key === 'client_signer_type') {
+                  const lower = val.trim().toLowerCase();
+                  (sanitized as any)[key] = lower.includes('rep') ? 'representative' : 'participant';
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            return sanitized;
+          });
+        }
+
+        window.alert("Medicine Administration Consent auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          sectionKeys.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<string, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (err: any) {
+      console.error("Autofill error:", err);
+      alert(err.response?.data?.message || "Failed to auto-fill form using AI. Please ensure AI Onboarding has been processed.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
   useEffect(() => {
@@ -327,6 +475,24 @@ export default function MedicineAdministrationConsentForm({
           onSubmit={handleSave}
         >
           <div className="flex flex-wrap justify-end items-center gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setIsPdfModalOpen(true)}
+              disabled={autofilling}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {autofilling ? (
+                <>
+                  <IconLoader size={18} className="animate-spin" />
+                  Auto-filling...
+                </>
+              ) : (
+                <>
+                  <IconFileText size={18} />
+                  PDF Extraction & AI Autofill
+                </>
+              )}
+            </button>
             <div
               className="bg-yellow-100 border border-yellow-300 text-yellow-800 font-medium py-1 px-3 rounded shadow-sm text-sm cursor-pointer"
               onClick={() => {
@@ -422,6 +588,13 @@ export default function MedicineAdministrationConsentForm({
           </div>
         </form>
       </div>
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={userid || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
+        clientType={client_type || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
+        onExtractionComplete={handleAutofill}
+      />
     </div>
   );
 }

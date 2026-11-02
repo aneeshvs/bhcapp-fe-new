@@ -4,8 +4,12 @@ import { useSearchParams } from 'next/navigation';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 import SignaturePad from 'signature_pad';
 import DatePickerSaveMany from '@/src/components/DatePickerSaveMany';
+import SignatureTypeToggle from '@/src/components/SignatureTypeToggle';
+import SignatureCopyPasteButtons from '@/src/components/SignatureCopyPasteButtons';
 
 interface SupportPlanApproval {
+  signature_type?: string;
+  paper_signed?: number | string;
   participant_name?: string;
   date_of_approval: string;
   signature?: string; // Can be file path or base64 string
@@ -145,6 +149,17 @@ export default function SupportPlanApproval({
       </div>
 
       <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <SignatureTypeToggle
+            value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+            onChange={(val) => {
+              handleChange({ target: { name: 'signature_type', value: val } });
+              handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+            }}
+            disabled={false}
+          />
+        </div>
+
         {/* Main Approval Fields */}
         <div className="relative" onMouseEnter={() => setHoveredField('participant_name')} onMouseLeave={() => setHoveredField(null)}>
           <div className="flex justify-between items-center mb-1">
@@ -189,6 +204,12 @@ export default function SupportPlanApproval({
                 {saveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+            <SignatureCopyPasteButtons
+              padRef={signaturePad}
+              currentValue={formData.signature}
+              onPaste={(dataUrl) => handleChange({ target: { name: 'signature', value: dataUrl } })}
+              label="Participant Signature"
+            />
           </div>
         </div>
 
@@ -251,6 +272,12 @@ export default function SupportPlanApproval({
                 {verbalSaveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+            <SignatureCopyPasteButtons
+              padRef={verbalSignaturePad}
+              currentValue={formData.verbal_consent_staff_signature}
+              onPaste={(dataUrl) => handleChange({ target: { name: 'verbal_consent_staff_signature', value: dataUrl } })}
+              label="Staff Signature"
+            />
           </div>
         </div>
 

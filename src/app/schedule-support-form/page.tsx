@@ -19,6 +19,9 @@ import Image from "next/image";
 import Link from "next/link";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import FieldLogsModal from '@/src/components/FieldLogsModal';
+import api from "@/src/utils/api";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "ScheduleOfSupports", "FundedSupports", "UnfundedSupports", "AgreementSignatures"
@@ -97,6 +100,9 @@ export default function SupportCarePlanPage() {
     useState<Record<SectionKey, boolean>>(initialOpenSections);
   const [isExpandedAll, setIsExpandedAll] = useState(false);
 
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
   const toggleExpandAll = () => {
     const nextState = !isExpandedAll;
     setIsExpandedAll(nextState);
@@ -106,6 +112,241 @@ export default function SupportCarePlanPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          client_name: "string (Participant full name, e.g. Deborah Turner)",
+          participant_name: "string (Participant full name, e.g. Deborah Turner)",
+          creation_date: "string (Plan/schedule creation date YYYY-MM-DD)",
+          funding_review_date: "string (Funding/plan review date YYYY-MM-DD)",
+          support_on_public_holiday: "number (1 if support on public holidays is agreed/requested, 0 otherwise)",
+          sil_section_flag: "number (1 if SIL/SDA supported independent living accommodation applies, 0 otherwise)",
+          sil_rent_charges: "number (Fortnightly rent charges, default 390.20 if SIL applies)",
+          sil_utilities: "number (Fortnightly utilities, default 204.80 if SIL applies)",
+          sil_food_groceries: "number (Fortnightly food & groceries, default 200.00 if SIL applies)",
+          sil_total_cost: "number (Total fortnightly SIL cost, default 795.00 if SIL applies)",
+          agreement_participant_name: "string (Participant full name for signature)",
+          participant_date: "string (Date signed YYYY-MM-DD)",
+          representative_name: "string (Representative/Nominee/Carer full name, if any)",
+          representative_date: "string (Date signed YYYY-MM-DD)"
+        },
+        fundedSupports: [
+          {
+            support_name: "string (NDIS support item name or category, e.g. Assistance with Daily Personal Activities, Assistance with Social and Community Participation, Support Coordination, SIL Core Support)",
+            description: "string (Comprehensive description of support delivered, schedule, and participant goals addressed)",
+            price: "number (Hourly or unit price in AUD, e.g. 67.56)",
+            unit: "number (Number of units/hours allocated, e.g. 52 or 104)",
+            payment_information: "string (e.g. NDIA Managed, Plan Managed, Self Managed, or Invoiced to Plan Manager)",
+            delivery_details: "string (Days, times, and delivery mode, e.g. Monday to Friday 9:00 AM - 1:00 PM in-home and community)",
+            invoicing_details: "string (Billing frequency and details, e.g. Fortnightly in arrears to plan manager)",
+            grand_total: "number (Calculated total price * unit, e.g. 7026.24)",
+            goal_key: "string (Related goal or outcome, optional)"
+          }
+        ],
+        unfundedSupports: [
+          {
+            unfunded_support_name: "string (Name of unfunded or informal support, e.g. Family and Informal Community Network)",
+            unfunded_description: "string (Description of non-funded or community supports assisting participant)",
+            unfunded_price_information: "string (e.g. Nil / Provided informally by family)",
+            unfunded_delivery_details: "string (e.g. Weekends and as required)",
+            unfunded_price: "number (0)",
+            unfunded_unit: "number (0)",
+            unfunded_grand_total: "number (0)",
+            goal_key: "string (Related goal or outcome, optional)"
+          }
+        ]
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else if (typeof val === 'string' && !isNaN(parseFloat(val))) {
+                  (sanitized as any)[key] = parseFloat(val);
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            // Sync client_name and participant_name
+            if (sanitized.participant_name && !sanitized.client_name) {
+              sanitized.client_name = sanitized.participant_name;
+            } else if (sanitized.client_name && !sanitized.participant_name) {
+              sanitized.participant_name = sanitized.client_name;
+            }
+
+            if (!sanitized.agreement_participant_name && (sanitized.participant_name || sanitized.client_name)) {
+              sanitized.agreement_participant_name = sanitized.participant_name || sanitized.client_name;
+            }
+
+            // Recalculate SIL total cost if SIL section flag is active or SIL costs are provided
+            if (sanitized.sil_rent_charges || sanitized.sil_utilities || sanitized.sil_food_groceries) {
+              const rent = parseFloat(String(sanitized.sil_rent_charges)) || 0;
+              const utils = parseFloat(String(sanitized.sil_utilities)) || 0;
+              const food = parseFloat(String(sanitized.sil_food_groceries)) || 0;
+              sanitized.sil_total_cost = parseFloat((rent + utils + food).toFixed(2));
+            }
+
+            return sanitized;
+          });
+        }
+
+        // Merge funded supports
+        const extractedFunded = d.fundedSupports || d.funded_supports;
+        if (Array.isArray(extractedFunded) && extractedFunded.length > 0) {
+          const mappedFunded: FundedSupportsFormData[] = extractedFunded.map((item: any) => {
+            const price = item.price !== null && item.price !== undefined ? parseFloat(String(item.price)) : null;
+            const unit = item.unit !== null && item.unit !== undefined ? parseFloat(String(item.unit)) : null;
+            let grand_total = item.grand_total !== null && item.grand_total !== undefined ? parseFloat(String(item.grand_total)) : null;
+            if ((grand_total === null || isNaN(grand_total)) && price !== null && !isNaN(price) && unit !== null && !isNaN(unit)) {
+              grand_total = Math.round(price * unit * 100) / 100;
+            }
+
+            return {
+              support_name: item.support_name || "",
+              description: item.description || "",
+              price: price !== null && !isNaN(price) ? price : null,
+              unit: unit !== null && !isNaN(unit) ? unit : null,
+              payment_information: item.payment_information || "",
+              delivery_details: item.delivery_details || "",
+              invoicing_details: item.invoicing_details || "",
+              grand_total: grand_total !== null && !isNaN(grand_total) ? grand_total : null,
+              goal_key: item.goal_key || "",
+            };
+          });
+
+          setFundedSupportData(mappedFunded);
+        }
+
+        // Merge unfunded supports
+        const extractedUnfunded = d.unfundedSupports || d.unfunded_supports;
+        if (Array.isArray(extractedUnfunded) && extractedUnfunded.length > 0) {
+          const mappedUnfunded: UnfundedSupportsFormData[] = extractedUnfunded.map((item: any) => {
+            const price = item.unfunded_price !== null && item.unfunded_price !== undefined ? parseFloat(String(item.unfunded_price)) : null;
+            const unit = item.unfunded_unit !== null && item.unfunded_unit !== undefined ? parseFloat(String(item.unfunded_unit)) : null;
+            let grand_total = item.unfunded_grand_total !== null && item.unfunded_grand_total !== undefined ? parseFloat(String(item.unfunded_grand_total)) : null;
+            if ((grand_total === null || isNaN(grand_total)) && price !== null && !isNaN(price) && unit !== null && !isNaN(unit)) {
+              grand_total = Math.round(price * unit * 100) / 100;
+            }
+
+            return {
+              unfunded_support_name: item.unfunded_support_name || "",
+              unfunded_description: item.unfunded_description || "",
+              unfunded_price_information: item.unfunded_price_information || "",
+              unfunded_delivery_details: item.unfunded_delivery_details || "",
+              unfunded_price: price !== null && !isNaN(price) ? price : null,
+              unfunded_unit: unit !== null && !isNaN(unit) ? unit : null,
+              unfunded_grand_total: grand_total !== null && !isNaN(grand_total) ? grand_total : null,
+              goal_key: item.goal_key || "",
+            };
+          });
+
+          setUnfundedSupportData(mappedUnfunded);
+        }
+
+        window.alert("Schedule of Supports auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
 
@@ -546,6 +787,24 @@ export default function SupportCarePlanPage() {
               </div>
               <button
                 type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={toggleExpandAll}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
               >
@@ -853,6 +1112,13 @@ export default function SupportCarePlanPage() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }

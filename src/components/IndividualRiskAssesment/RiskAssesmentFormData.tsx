@@ -4,6 +4,8 @@ const RiskAssessmentFormData = {
   assessment_date: '',
   planned_review_date: '',
   submit_final: 0,
+  signature_type: 'digital',
+  paper_signed: 0,
   form_status: '',
 
   vulnerability: '',

@@ -4,6 +4,8 @@ export function mapApiResponseToFormData(responseData: RiskAssessmentResponse) {
     return {
         form_status: responseData.form_status || '',
         submit_final: responseData.submit_final ?? 0,
+        signature_type: (responseData as any).signature_type || ((responseData as any).paper_signed ? 'paper' : 'digital'),
+        paper_signed: (responseData as any).paper_signed ?? 0,
         client_name: responseData.client_name,
         site_address: responseData.site_address,
         assessment_date: responseData.assessment_date,

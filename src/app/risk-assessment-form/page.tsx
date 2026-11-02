@@ -827,17 +827,9 @@ export default function SupportPlanPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
-              >
-                {loading ? "Submitting..." : "Submit"}
-              </button>
-            </div>
-            <div className="flex items-center mt-6">
+
+
+            <div className="flex items-center mt-4">
               <input
                 type="checkbox"
                 id="submit_final"
@@ -856,6 +848,17 @@ export default function SupportPlanPage() {
               <label className="font-medium text-gray-700">
                 Final Submit (Tick to confirm all information is correct)
               </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? "Submitting..." : "Submit"}
+              </button>
             </div>
           </form>
         </div>

@@ -15,6 +15,9 @@ import { ParticipantResponse } from "@/src/components/ParticipantSignature/types
 // import { Participant } from "@/src/components/ParticipantSignature/FormTracker";
 import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import api from "@/src/utils/api";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "ParticipantSignature"
@@ -68,6 +71,9 @@ export default function SupportCarePlanPage() {
     useState<Record<SectionKey, boolean>>(initialOpenSections);
   const [isExpandedAll, setIsExpandedAll] = useState(true);
 
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
   const toggleExpandAll = () => {
     const nextState = !isExpandedAll;
     setIsExpandedAll(nextState);
@@ -77,6 +83,133 @@ export default function SupportCarePlanPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          date_signed: "string (Date signed YYYY-MM-DD)",
+          verbal_consent_staff_name: "string (Staff member name documenting verbal consent)",
+          verbal_consent_staff_position: "string (Staff position, e.g. Support Coordinator, Operations Manager)",
+          verbal_consent_date: "string (Date of verbal consent discussion YYYY-MM-DD)",
+          verbal_consent_notes: "string (Notes regarding verbal consent discussion, confirmation of participant understanding of dual/multiple supports, and assurance of free choice among external providers)"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            return sanitized;
+          });
+        }
+
+        window.alert("Multiple Supports form auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
 
@@ -485,6 +618,24 @@ export default function SupportCarePlanPage() {
               </div>
               <button
                 type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={toggleExpandAll}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition border border-gray-300 shadow-sm text-sm"
               >
@@ -577,6 +728,13 @@ export default function SupportCarePlanPage() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }

@@ -15,6 +15,9 @@ import { HomeSafetyResponse } from "@/src/components/HomeSafety/types";
 import { HomeSafetyFormTracker } from "@/src/components/HomeSafety/FormTracker";
 import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import api from "@/src/utils/api";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "HomeSafetyDetails", "HomeSafetyOutside", "InsideResidences", "HallwaysChecks", "KitchenAssessments", "OutsideAssessments", "HomeMiscellaneous", "HomeResidenceTypes",
@@ -79,6 +82,320 @@ export default function SupportCarePlanPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          participant_name: "string",
+          address: "string",
+          phone: "string",
+          email: "string",
+          is_new_participant: "number (1 if new participant, 0 otherwise)",
+          is_review_existing: "number (1 if review of existing participant, 0 otherwise)",
+          does_participant_agree: "number (1 if participant/rep agrees with assessment, 0 otherwise)",
+          entry_door: "string (MUST BE STRICTLY LOWERCASE: 'front', 'side', 'rear', or 'other')",
+          entry_door_other: "string",
+
+          parking_adequate: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          parking_adequate_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          pathway_surface: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          pathway_surface_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          gates_entry_easy: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          gates_entry_easy_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          lighting_adequate: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          lighting_adequate_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outdoor_fire_hazards: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outdoor_fire_hazards_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          exit_doors_unobstructed: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          exit_doors_unobstructed_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          heaters_suitable: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          heaters_suitable_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          aids_equipment_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          aids_equipment_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          evidence_of_pests: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          evidence_of_pests_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          participant_open_door: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          participant_open_door_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          fire_hazards: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          fire_hazards_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          vacuum_cleaner_ok: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          vacuum_cleaner_ok_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          mop_bucket_ok: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          mop_bucket_ok_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          step_ladder_ok: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          step_ladder_ok_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          cleaning_substances_ok: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          cleaning_substances_ok_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          hallways_lounge_dining_bedroom: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          hallways_lounge_dining_bedroom_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          pests_evidence: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          pests_evidence_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          lighting_workspace: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          lighting_workspace_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          furniture_stable: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          furniture_stable_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          bed_adjustable: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          bed_adjustable_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          electrical_switches: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          electrical_switches_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          private_sleep_space: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          private_sleep_space_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          hallways_fire_hazards: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          hallways_fire_hazards_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          floor_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          floor_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          electrical_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          electrical_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          ventilation_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          ventilation_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          bench_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          bench_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          stove_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          stove_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          fridge_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          fridge_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          bath_access: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          bath_access_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          toilet_access: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          toilet_access_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          privacy_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          privacy_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          laundry_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          laundry_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          ironing_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          ironing_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          manual_handling_risks: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          manual_handling_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          kitchen_fire_hazards: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          kitchen_fire_hazards_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          outside_paths_veranda_steps: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_paths_veranda_steps_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_pets_restrained: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_pets_restrained_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_lighting_adequate: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_lighting_adequate_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_door_easy_open: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_door_easy_open_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_lawn_mower_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_lawn_mower_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_electrical_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_electrical_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          outside_fire_hazards: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          outside_fire_hazards_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          misc_children_living_at_home: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_children_living_at_home_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_weapons_stored_appropriately: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_weapons_stored_appropriately_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_smoking_outside_only: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_smoking_outside_only_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_mobility_issues: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_mobility_issues_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_equipment_good_condition: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_equipment_good_condition_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_ppe_requirements: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_ppe_requirements_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_personal_threats: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_personal_threats_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_safe_neighbourhood: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_safe_neighbourhood_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+          misc_aggression_in_home: "string ('Yes', 'No', 'N/A', or 'Unsure'. If unmarked or no data in document, default 'No')",
+          misc_aggression_in_home_strategy: "string (Extract verbatim ANY text or notes from the management strategy column for this question, regardless of whether Yes, No, or N/A; empty string if none)",
+
+          residence_house_type: "string ('Single / Double Storey', 'Private Rental', or 'Care Facility')",
+          residence_other_type: "string ('Unit', 'Caravan Park', or 'Office Housing')",
+          assessment_completed_with: "string (e.g. Participant, Carer, Family Member, Support Coordinator)",
+          name: "string (Staff assessor name)",
+          position: "string (Staff assessor position)",
+          review_date: "string (Review date YYYY-MM-DD)",
+          care_facility: "string"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        const ALL_ASSESSMENT_QUESTION_KEYS = [
+          'parking_adequate', 'pathway_surface', 'gates_entry_easy', 'lighting_adequate', 'outdoor_fire_hazards',
+          'exit_doors_unobstructed', 'heaters_suitable', 'aids_equipment_condition', 'evidence_of_pests', 'participant_open_door',
+          'fire_hazards', 'vacuum_cleaner_ok', 'mop_bucket_ok', 'step_ladder_ok', 'cleaning_substances_ok',
+          'hallways_lounge_dining_bedroom', 'pests_evidence', 'lighting_workspace', 'furniture_stable', 'bed_adjustable',
+          'electrical_switches', 'private_sleep_space', 'hallways_fire_hazards',
+          'floor_condition', 'electrical_condition', 'ventilation_condition', 'bench_condition', 'stove_condition',
+          'fridge_condition', 'bath_access', 'toilet_access', 'privacy_condition', 'laundry_condition',
+          'ironing_condition', 'manual_handling_risks', 'kitchen_fire_hazards',
+          'outside_paths_veranda_steps', 'outside_pets_restrained', 'outside_lighting_adequate', 'outside_door_easy_open',
+          'outside_lawn_mower_condition', 'outside_electrical_condition', 'outside_fire_hazards',
+          'misc_children_living_at_home', 'misc_weapons_stored_appropriately', 'misc_smoking_outside_only', 'misc_mobility_issues',
+          'misc_equipment_good_condition', 'misc_ppe_requirements', 'misc_personal_threats', 'misc_safe_neighbourhood',
+          'misc_aggression_in_home'
+        ];
+
+        const isAssessmentQuestionKey = (key: string) => {
+          return ALL_ASSESSMENT_QUESTION_KEYS.includes(key);
+        };
+
+        const normalizeAssessmentValue = (val: string) => {
+          if (!val) return "";
+          const lower = val.trim().toLowerCase();
+          if (lower === "yes" || lower === "y" || lower.startsWith("yes") || lower === "true") return "Yes";
+          if (lower === "no" || lower === "n" || lower.startsWith("no") || lower === "false") return "No";
+          if (lower === "n/a" || lower === "na" || lower === "not applicable" || lower.includes("n/a")) return "N/A";
+          if (lower === "unsure" || lower === "not sure" || lower.includes("unsure")) return "Unsure";
+          return val;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (key === 'entry_door') {
+                  const lower = val.trim().toLowerCase();
+                  if (lower.includes('front')) {
+                    (sanitized as any)[key] = 'front';
+                  } else if (lower.includes('side')) {
+                    (sanitized as any)[key] = 'side';
+                  } else if (lower.includes('rear') || lower.includes('back')) {
+                    (sanitized as any)[key] = 'rear';
+                  } else if (lower.includes('other')) {
+                    (sanitized as any)[key] = 'other';
+                  } else if (['front', 'side', 'rear', 'other'].includes(lower)) {
+                    (sanitized as any)[key] = lower;
+                  } else if (lower === '') {
+                    (sanitized as any)[key] = '';
+                  } else {
+                    (sanitized as any)[key] = 'other';
+                    if (!(sanitized as any)['entry_door_other']) {
+                      (sanitized as any)['entry_door_other'] = val;
+                    }
+                  }
+                } else if (isAssessmentQuestionKey(key)) {
+                  // Normalize assessment question ('Yes', 'No', 'N/A', or 'Unsure'; default 'No' if empty)
+                  const norm = normalizeAssessmentValue(val);
+                  (sanitized as any)[key] = norm || "No";
+                } else if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            // Guarantee every single assessment question has a valid value (default to 'No' if unmarked in PDF)
+            ALL_ASSESSMENT_QUESTION_KEYS.forEach(qKey => {
+              const currentVal = (sanitized as any)[qKey];
+              if (!currentVal || !['Yes', 'No', 'N/A', 'Unsure'].includes(currentVal)) {
+                (sanitized as any)[qKey] = 'No';
+              }
+            });
+
+            return sanitized;
+          });
+        }
+
+        window.alert("Home Safety Checklist Assessment form auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
 
@@ -271,7 +588,27 @@ export default function SupportCarePlanPage() {
 
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
-            data.append(key, String(value));
+            if (key === 'entry_door') {
+              const valStr = String(value).trim().toLowerCase();
+              if (valStr.includes('front')) {
+                data.append(key, 'front');
+              } else if (valStr.includes('side')) {
+                data.append(key, 'side');
+              } else if (valStr.includes('rear') || valStr.includes('back')) {
+                data.append(key, 'rear');
+              } else if (valStr.includes('other')) {
+                data.append(key, 'other');
+              } else if (['front', 'side', 'rear', 'other'].includes(valStr)) {
+                data.append(key, valStr);
+              } else if (valStr !== '') {
+                data.append(key, 'other');
+                if (!formData.entry_door_other) {
+                  data.append('entry_door_other', valStr);
+                }
+              }
+            } else {
+              data.append(key, String(value));
+            }
           }
         });
 
@@ -432,7 +769,25 @@ export default function SupportCarePlanPage() {
             onSubmit={handleSubmit}
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -501,17 +856,9 @@ export default function SupportCarePlanPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
-              >
-                {loading ? "Submitting..." : "Submit"}
-              </button>
-            </div>
-            <div className="flex items-center mt-6">
+
+
+            <div className="flex items-center mt-4">
               <input
                 type="checkbox"
                 id="submit_final"
@@ -531,6 +878,17 @@ export default function SupportCarePlanPage() {
                 Final Submit (Tick to confirm all information is correct)
               </label>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50"
+              >
+                {loading ? "Submitting..." : "Submit"}
+              </button>
+            </div>
           </form>
         </div>
       ) : (
@@ -539,6 +897,13 @@ export default function SupportCarePlanPage() {
           <span>Loading...</span>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }

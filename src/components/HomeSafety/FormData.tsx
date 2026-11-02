@@ -20,6 +20,8 @@ const HomeSafety  = {
     outdoor_fire_hazards: '',
     outdoor_fire_hazards_strategy: '',
     submit_final: 0,
+    signature_type: 'digital',
+    paper_signed: 0,
     form_status: '',
 
 

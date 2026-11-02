@@ -2,6 +2,8 @@ export interface SilResidencyHandbookData {
   uuid?: string;
   user_id?: string | number;
   client_type?: string;
+  signature_type?: string;
+  paper_signed?: number | string;
   support_provider?: string;
   tenancy_contact?: string;
   after_hours_support?: string;

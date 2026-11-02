@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import FieldLogsModal from "@/src/components/FieldLogsModal";
 import SignaturePad from "signature_pad";
 import DatePickerSaveMany from "@/src/components/DatePickerSaveMany";
+import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
 
 
 
@@ -306,6 +307,12 @@ export default function VerbalConsents({
                 {saveStatus ? "Saved!" : "Save Signature"}
               </button>
             )}
+            <SignatureCopyPasteButtons
+              padRef={signaturePad}
+              currentValue={formData.verbal_signature}
+              onPaste={(dataUrl) => handleChange({ target: { name: "verbal_signature", value: dataUrl } })}
+              label="Verbal Signature"
+            />
           </div>
         </div>
       </div>

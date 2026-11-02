@@ -14,6 +14,9 @@ import AgreementFormaData from "@/src/components/HousingSilSupport/AgreementForm
 
 import Image from "next/image";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
+import api from "@/src/utils/api";
+import { IconLoader, IconFileText } from "@tabler/icons-react";
+import PdfExtractionModal from "@/src/components/PdfExtractionModal";
 
 const SECTION_NAMES = [
   "HousingSilSupport",
@@ -70,6 +73,161 @@ export default function HousingSilSupportPage() {
         return acc;
       }, {} as Record<SectionKey, boolean>)
     );
+  };
+
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    setFormSubmissionError("");
+    try {
+      const targetUserId = sessionUserId || searchParams.get("userid") || "";
+      const targetClientType = sessionClientType || searchParams.get("client_type") || "";
+
+      if (!targetUserId || !targetClientType) {
+        alert("Client session identifiers missing. Please ensure userid and client_type are present in the URL.");
+        setAutofilling(false);
+        return;
+      }
+
+      const schema = {
+        formData: {
+          housing_separate: "string ('Yes' or 'No' - housing arrangement is separate from SIL support provider)",
+          change_sil_without_losing_home: "string ('Yes' or 'No' - choice of SIL provider is independent of housing arrangement)",
+          tenancy_separate: "string ('Yes' or 'No' - tenancy agreement is separate from the supports received)",
+          explained_to_me: "string ('Yes' or 'No' - arrangements clearly explained and rights understood)",
+
+          participant_name: "string (Full name of participant)",
+          date: "string (Date YYYY-MM-DD)",
+          support_person: "string (Name of support person or advocate if present)",
+
+          signer_type: "string ('participant' or 'representative')",
+          participant_date: "string (Date participant signed YYYY-MM-DD)",
+
+          representative_name: "string (Full name of authorized representative)",
+          representative_relation: "string (Relationship to participant, e.g. Parent, Guardian, Advocate)",
+          representative_date: "string (Date representative signed YYYY-MM-DD)",
+
+          guardian_nominee_name: "string (Full name of guardian/nominee)",
+          guardian_nominee_date: "string (Date guardian signed YYYY-MM-DD)",
+
+          key_team_member_name: "string (Full name of staff key team member / assessor)",
+          key_team_member_date: "string (Date staff signed YYYY-MM-DD)"
+        }
+      };
+
+      const response = await api.post("/ai/autofill-form", {
+        user_id: targetUserId,
+        client_type: targetClientType,
+        schema: schema
+      });
+
+      if (response.data.success) {
+        const d = response.data.data;
+        const isDummy = (str: string) => {
+          const lower = str.trim().toLowerCase();
+          return (
+            lower === "" ||
+            lower === "n/a" ||
+            lower === "none" ||
+            lower === "unknown" ||
+            lower === "undefined" ||
+            lower === "not available" ||
+            lower === "no information" ||
+            lower.includes("not mentioned") ||
+            lower.includes("not applicable") ||
+            lower.includes("not found") ||
+            lower.includes("not specified") ||
+            lower.includes("none specified") ||
+            lower.includes("not explicitly")
+          );
+        };
+
+        const parseDateToIso = (rawStr: string) => {
+          if (!rawStr) return "";
+          const str = rawStr.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+          const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (dmyMatch) {
+            const p1 = parseInt(dmyMatch[1], 10);
+            const p2 = parseInt(dmyMatch[2], 10);
+            const year = dmyMatch[3];
+            if (p1 > 12) {
+              return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+            }
+            if (p2 > 12) {
+              return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
+            }
+            return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
+          }
+
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return dt.toISOString().split("T")[0];
+          }
+          return str;
+        };
+
+        const normalizeYesNo = (val: string) => {
+          const lower = val.trim().toLowerCase();
+          if (lower === "yes" || lower === "1" || lower === "true") return "Yes";
+          if (lower === "no" || lower === "0" || lower === "false") return "No";
+          return val;
+        };
+
+        if (d.formData) {
+          setFormData(prev => {
+            const sanitized = { ...prev };
+            Object.keys(d.formData).forEach(key => {
+              const val = d.formData[key];
+              const prevVal = (prev as any)[key];
+
+              if (typeof prevVal === 'number') {
+                if (val === 1 || val === "1" || val === true || val === "true" || (typeof val === 'string' && val.trim().toLowerCase() === "yes")) {
+                  (sanitized as any)[key] = 1;
+                } else if (typeof val === 'number') {
+                  (sanitized as any)[key] = val;
+                } else {
+                  (sanitized as any)[key] = 0;
+                }
+              } else if (typeof val === 'string') {
+                if (isDummy(val)) {
+                  (sanitized as any)[key] = "";
+                } else if (key.includes('date')) {
+                  (sanitized as any)[key] = parseDateToIso(val);
+                } else if (['housing_separate', 'change_sil_without_losing_home', 'tenancy_separate', 'explained_to_me'].includes(key)) {
+                  (sanitized as any)[key] = normalizeYesNo(val);
+                } else {
+                  (sanitized as any)[key] = val;
+                }
+              } else if (val !== undefined && val !== null) {
+                (sanitized as any)[key] = val;
+              }
+            });
+
+            return sanitized;
+          });
+        }
+
+        window.alert("Housing and SIL Supports form auto-filled successfully using AI!");
+        setIsExpandedAll(true);
+        setOpenSections(
+          SECTION_NAMES.reduce((acc, sectionKey) => {
+            acc[sectionKey] = true;
+            return acc;
+          }, {} as Record<SectionKey, boolean>)
+        );
+      } else {
+        alert(response.data.message || "Failed to auto-fill form.");
+      }
+    } catch (e: any) {
+      console.error("Autofill Error:", e);
+      alert(e.response?.data?.message || e.message || "An error occurred during AI Autofill.");
+    } finally {
+      setAutofilling(false);
+    }
   };
 
   const scrollToSignature = () => {
@@ -357,6 +515,24 @@ export default function HousingSilSupportPage() {
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
             <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                disabled={autofilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition shadow-sm text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin" />
+                    Auto-filling...
+                  </>
+                ) : (
+                  <>
+                    <IconFileText size={18} />
+                    PDF Extraction & AI Autofill
+                  </>
+                )}
+              </button>
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1.5 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition text-sm"
                 onClick={scrollToSignature}
@@ -436,6 +612,13 @@ export default function HousingSilSupportPage() {
           <p className="text-gray-500">Checking session...</p>
         </div>
       )}
+      <PdfExtractionModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        userId={sessionUserId || searchParams.get("userid") || ""}
+        clientType={sessionClientType || searchParams.get("client_type") || ""}
+        onExtractionComplete={handleAutofill}
+      />
     </>
   );
 }

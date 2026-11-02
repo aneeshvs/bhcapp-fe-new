@@ -44,7 +44,7 @@ function parseAndFormatToIso(rawDate: string | null | undefined): string {
     return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
   }
 
-  return str;
+  return "";
 }
 
 export default function DatePickerSaveMany({

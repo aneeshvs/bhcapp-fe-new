@@ -52,6 +52,47 @@ interface OnboardSubmitError {
 }
 
 type OnboardSubmitResponse = OnboardSubmitSuccess | OnboardSubmitError;
+
+const isClientProfileDateField = (key: string): boolean => {
+  const lower = key.toLowerCase();
+  return (
+    lower.includes('date') ||
+    lower.includes('dob') ||
+    lower === 'lastdentalcheck' ||
+    lower === 'lasthearingcheck' ||
+    lower === 'lastvisioncheck'
+  );
+};
+
+const parseDateToIso = (rawStr: string | null | undefined): string => {
+  if (!rawStr) return '';
+  const str = String(rawStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmyMatch) {
+    const p1 = parseInt(dmyMatch[1], 10);
+    const p2 = parseInt(dmyMatch[2], 10);
+    const year = dmyMatch[3];
+    if (p1 > 12) return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    if (p2 > 12) return `${year}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+    return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+  }
+  const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (ymdMatch) {
+    return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, '0')}-${String(ymdMatch[3]).padStart(2, '0')}`;
+  }
+  return '';
+};
+
+const sanitizeDateForSubmit = (val: string | null | undefined): string => {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const parsed = parseDateToIso(str);
+  return /^\d{4}-\d{2}-\d{2}$/.test(parsed) ? parsed : '';
+};
+
 export default function ClientProfileForm() {
   const router = useRouter();
   const [formData, setFormData] = useState(clientProfileFormData);
@@ -113,7 +154,11 @@ export default function ClientProfileForm() {
       const schema = {
         formData: Object.keys(formData).reduce((acc, key) => {
           if (key !== 'submit_final' && key !== 'form_status') {
-            if (key.includes('date') || key.includes('dob')) {
+            if (key === 'lastDentalCheck' || key === 'lastHearingCheck' || key === 'lastVisionCheck') {
+              acc[key] = 'string (ONLY valid ISO date YYYY-MM-DD if exact date is known, e.g. 2023-05-12. If unknown, none, or descriptive notes, MUST be empty string "")';
+            } else if (key === 'medicalImmunisationStatus') {
+              acc[key] = 'string (Medical checkup & immunisation status, including any notes on dental, hearing, vision, immunisation history or dental reluctance/decay)';
+            } else if (isClientProfileDateField(key)) {
               acc[key] = 'string (YYYY-MM-DD format, e.g. 1999-12-17)';
             } else if (key === 'gender') {
               acc[key] = 'string (MUST BE EXACTLY ONE OF: male, female, non-binary)';
@@ -189,27 +234,6 @@ export default function ClientProfileForm() {
               );
             };
 
-            const parseDateToIso = (rawStr: string) => {
-              if (!rawStr) return "";
-              const str = rawStr.trim();
-              if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-
-              const dmyMatch = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-              if (dmyMatch) {
-                const p1 = parseInt(dmyMatch[1], 10);
-                const p2 = parseInt(dmyMatch[2], 10);
-                const year = dmyMatch[3];
-                if (p1 > 12) return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
-                if (p2 > 12) return `${year}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
-                return `${year}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
-              }
-              const ymdMatch = str.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-              if (ymdMatch) {
-                return `${ymdMatch[1]}-${String(ymdMatch[2]).padStart(2, "0")}-${String(ymdMatch[3]).padStart(2, "0")}`;
-              }
-              return str;
-            };
-
             Object.keys(d.formData).forEach(key => {
               const val = d.formData[key];
               const prevVal = (prev as any)[key];
@@ -222,8 +246,21 @@ export default function ClientProfileForm() {
               } else if (typeof val === 'string') {
                 if (isDummy(val)) {
                   (sanitized as any)[key] = "";
-                } else if (key.includes('date') || key.includes('dob')) {
-                  (sanitized as any)[key] = parseDateToIso(val);
+                } else if (isClientProfileDateField(key)) {
+                  const parsed = parseDateToIso(val);
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) {
+                    (sanitized as any)[key] = parsed;
+                  } else {
+                    (sanitized as any)[key] = "";
+                    // If descriptive text was provided for dental/hearing/vision checks, preserve in medicalImmunisationStatus
+                    if (val && !isDummy(val) && (key === 'lastDentalCheck' || key === 'lastHearingCheck' || key === 'lastVisionCheck')) {
+                      const label = key === 'lastDentalCheck' ? 'Dental Check' : (key === 'lastHearingCheck' ? 'Hearing Check' : 'Vision Check');
+                      const existingStatus = (sanitized as any).medicalImmunisationStatus || '';
+                      if (!existingStatus.toLowerCase().includes(val.toLowerCase().slice(0, 15))) {
+                        (sanitized as any).medicalImmunisationStatus = existingStatus ? `${existingStatus}; ${label}: ${val}` : `${label}: ${val}`;
+                      }
+                    }
+                  }
                 } else {
                   (sanitized as any)[key] = val;
                 }
@@ -631,7 +668,7 @@ export default function ClientProfileForm() {
       data.append('full_name', formData.full_name || '');
       data.append('preferred_name', formData.preferred_name || '');
       data.append('gender', formData.gender || '');
-      data.append('date_of_birth', formData.date_of_birth || '');
+      data.append('date_of_birth', sanitizeDateForSubmit(formData.date_of_birth));
       data.append('address', formData.address || '');
       data.append('postcode', formData.post_code || '');
       data.append('phone_number', formData.phone || '');
@@ -644,8 +681,8 @@ export default function ClientProfileForm() {
       data.append('type_of_funding', formData.fundingType || '');
       data.append('funding_contact_person', formData.fundingContactPerson || '');
       data.append('ndis_plan_attached', String(formData.ndisPlanAttached ?? 0));
-      data.append('ndis_plan_start_date', formData.ndisPlanStartDate || '');
-      data.append('ndis_plan_end_date', formData.ndisPlanEndDate || '');
+      data.append('ndis_plan_start_date', sanitizeDateForSubmit(formData.ndisPlanStartDate));
+      data.append('ndis_plan_end_date', sanitizeDateForSubmit(formData.ndisPlanEndDate));
       data.append('plan_manager_name', formData.planManagerName || '');
       data.append('plan_manager_email', formData.planManagerEmail || '');
       data.append('plan_manager_phone', formData.planManagerMobile || '');
@@ -749,9 +786,9 @@ export default function ClientProfileForm() {
 
       // Prevent health summaries
       data.append('medical_checkup_status', formData.medicalImmunisationStatus || '');
-      data.append('last_dental_check', formData.lastDentalCheck || '');
-      data.append('last_hearing_check', formData.lastHearingCheck || '');
-      data.append('last_vision_check', formData.lastVisionCheck || '');
+      data.append('last_dental_check', sanitizeDateForSubmit(formData.lastDentalCheck));
+      data.append('last_hearing_check', sanitizeDateForSubmit(formData.lastHearingCheck));
+      data.append('last_vision_check', sanitizeDateForSubmit(formData.lastVisionCheck));
       data.append('requires_vaccination_assistance', String(formData.vaccineAssistance ?? 0));
       data.append('communication_assistance_required', String(formData.communicationAssist ?? 0));
       data.append('mealtime_plan', formData.mealtimePlan || '');
@@ -1169,22 +1206,9 @@ export default function ClientProfileForm() {
                 </ul>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-              <button
-                type="button"
-                onClick={async (e) => {
-                  if (window.confirm('Are you sure you want to submit the form?')) {
-                    setLoading('submit');
-                    await handleSubmit(e as React.FormEvent);
-                  }
-                }}
-                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition"
-              >
-                {loading === 'submit' ? 'Submitting...' : 'Submit'}
-              </button>
-            </div>
+
             {/* Checkbox for staff involvement */}
-            <div className="flex items-center mt-6">
+            <div className="flex items-center mt-4">
               <input
                 type="checkbox"
                 id="submit_final"
@@ -1203,6 +1227,21 @@ export default function ClientProfileForm() {
               <label className="font-medium text-gray-700">
                 Final Submit (Tick to confirm all information is correct)
               </label>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <button
+                type="button"
+                onClick={async (e) => {
+                  if (window.confirm('Are you sure you want to submit the form?')) {
+                    setLoading('submit');
+                    await handleSubmit(e as React.FormEvent);
+                  }
+                }}
+                className="btn-primary btn-primary:hover text-white font-medium py-2 px-6 rounded-lg transition"
+              >
+                {loading === 'submit' ? 'Submitting...' : 'Submit'}
+              </button>
             </div>
           </form>
           {/* {uuid && (

@@ -6,6 +6,8 @@ import FieldLogsModal from "@/src/components/FieldLogsModal";
 import AccordianPlanSection from "@/src/components/AccordianSection";
 import { IconFileText, IconRobot, IconLoader } from "@tabler/icons-react";
 import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
+import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
+import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
 
 const SingleSignaturePad: React.FC<{
   label: string;
@@ -155,6 +157,13 @@ const SingleSignaturePad: React.FC<{
           >
             Save Signature
           </button>
+          <SignatureCopyPasteButtons
+            padRef={padRef}
+            currentValue={value}
+            onPaste={(dataUrl) => onChange(dataUrl)}
+            label={label}
+            disabled={disabled}
+          />
         </div>
       )}
     </div>
@@ -1428,6 +1437,15 @@ export default function SilSupportPlanForm({
         onToggle={() => handleSectionToggle("reviewSignatures")}
       >
         <div className="space-y-6" id="review-signatures-section">
+          <SignatureTypeToggle
+            value={(reviewSignature.signature_type as "digital" | "paper") || (reviewSignature.paper_signed == 1 || reviewSignature.paper_signed === "1" ? "paper" : "digital")}
+            onChange={(val) => {
+              handleReviewSignatureChange("signature_type", val);
+              handleReviewSignatureChange("paper_signed", val === "paper" ? "1" : "0");
+            }}
+            disabled={isReadOnly}
+          />
+
           {/* Signer Type Radio Choice */}
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 items-start sm:items-center bg-gray-50 p-4 border rounded shadow-sm">
             <span className="font-semibold text-gray-800">Signing As:</span>

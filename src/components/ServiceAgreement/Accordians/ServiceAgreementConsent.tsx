@@ -3,9 +3,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import FieldLogsModal from '@/src/components/FieldLogsModal';
 import SignaturePad from 'signature_pad';
 import DatePickerSaveMany from '@/src/components/DatePickerSaveMany';
+import SignatureTypeToggle from '@/src/components/SignatureTypeToggle';
+import SignatureCopyPasteButtons from '@/src/components/SignatureCopyPasteButtons';
 
 interface ServiceAgreementConsentProps {
   formData: {
+    signature_type?: string;
+    paper_signed?: number | string;
     accepted_name?: string;
     accepted_position?: string;
     accepted_signature?: string;
@@ -178,6 +182,15 @@ export default function ServiceAgreementConsent({
       </div>
 
       <div className="p-4 bg-white">
+        <SignatureTypeToggle
+          value={formData.signature_type || (formData.paper_signed ? "paper" : "digital")}
+          onChange={(val) => {
+            handleChange({ target: { name: 'signature_type', value: val } });
+            handleChange({ target: { name: 'paper_signed', value: val === 'paper' ? 1 : 0 } });
+          }}
+          disabled={false}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Accepted By Section */}
           <div className="md:col-span-2 border-b border-gray-200 pb-4 mb-4">
@@ -293,7 +306,7 @@ export default function ServiceAgreementConsent({
                       type="button"
                       onClick={() =>
                         handleSave(
-                          acceptedSignaturePad,
+                           acceptedSignaturePad,
                           "accepted_signature",
                           setAcceptedSaveStatus
                         )
@@ -304,6 +317,13 @@ export default function ServiceAgreementConsent({
                       {acceptedSaveStatus ? "Saved!" : "Save Signature"}
                     </button>
                   )}
+                  <SignatureCopyPasteButtons
+                    padRef={acceptedSignaturePad}
+                    currentValue={formData.accepted_signature}
+                    onPaste={(dataUrl) => handleChange({ target: { name: 'accepted_signature', value: dataUrl } })}
+                    label="Accepted Signature"
+                    disabled={isSignatureOnly}
+                  />
                 </div>
               </div>
 
@@ -485,6 +505,13 @@ export default function ServiceAgreementConsent({
                       {participantSaveStatus ? "Saved!" : "Save Signature"}
                     </button>
                   )}
+                  <SignatureCopyPasteButtons
+                    padRef={participantSignaturePad}
+                    currentValue={formData.participant_signature}
+                    onPaste={(dataUrl) => handleChange({ target: { name: 'participant_signature', value: dataUrl } })}
+                    label="Participant Signature"
+                    disabled={isSignatureOnly}
+                  />
                 </div>
               </div>
 
@@ -618,6 +645,13 @@ export default function ServiceAgreementConsent({
                       {witnessSaveStatus ? "Saved!" : "Save Signature"}
                     </button>
                   )}
+                  <SignatureCopyPasteButtons
+                    padRef={witnessSignaturePad}
+                    currentValue={formData.witness_signature}
+                    onPaste={(dataUrl) => handleChange({ target: { name: 'witness_signature', value: dataUrl } })}
+                    label="Witness Signature"
+                    disabled={isSignatureOnly}
+                  />
                 </div>
               </div>
 
@@ -793,6 +827,13 @@ export default function ServiceAgreementConsent({
                       {verbalStaffSaveStatus ? "Saved!" : "Save Signature"}
                     </button>
                   )}
+                  <SignatureCopyPasteButtons
+                    padRef={verbalStaffSignaturePad}
+                    currentValue={formData.verbal_staff_signature}
+                    onPaste={(dataUrl) => handleChange({ target: { name: 'verbal_staff_signature', value: dataUrl } })}
+                    label="Staff Signature"
+                    disabled={isSignatureOnly}
+                  />
                 </div>
               </div>
 
