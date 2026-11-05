@@ -41,6 +41,7 @@ export default function SignatureCopyPasteButtons({
     });
 
     const checkCopied = () => {
+      if (!isMounted) return;
       const { dataUrl, sourceLabel } = getCopiedSignatureFromClipboard();
       setHasCopiedSig(!!dataUrl);
       setCopiedSource(sourceLabel || "");
@@ -48,11 +49,31 @@ export default function SignatureCopyPasteButtons({
 
     checkCopied();
 
+    // 1. Same-window custom event
     const handleCopiedEvent = () => checkCopied();
     window.addEventListener("bhc_signature_copied", handleCopiedEvent);
+
+    // 2. Cross-tab storage event (fires in other tabs when localStorage changes)
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (!e.key || e.key === "bhc_copied_signature" || e.key === "bhc_copied_signature_source") {
+        checkCopied();
+      }
+    };
+    window.addEventListener("storage", handleStorageEvent);
+
+    // 3. Tab focus event (fires when switching back to this tab)
+    const handleFocus = () => checkCopied();
+    window.addEventListener("focus", handleFocus);
+
+    // 4. Polling interval fallback (ensures cross-tab sync within 1s)
+    const interval = setInterval(checkCopied, 1000);
+
     return () => {
       isMounted = false;
       window.removeEventListener("bhc_signature_copied", handleCopiedEvent);
+      window.removeEventListener("storage", handleStorageEvent);
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
     };
   }, []);
 
@@ -61,10 +82,31 @@ export default function SignatureCopyPasteButtons({
 
   const handleCopy = () => {
     let sig = "";
+
+    // 1. Try padRef if drawn
     if (padRef?.current && !padRef.current.isEmpty()) {
-      sig = padRef.current.toDataURL();
-    } else if (currentValue && currentValue.startsWith("data:image")) {
+      try {
+        sig = padRef.current.toDataURL();
+      } catch (err) {
+        console.warn("pad.toDataURL error", err);
+      }
+    }
+
+    // 2. Try currentValue (saved dataUrl or url)
+    if (!sig && currentValue && typeof currentValue === "string" && currentValue.trim() !== "") {
       sig = currentValue;
+    }
+
+    // 3. Fallback: pad might have an image loaded where isEmpty() was true, but canvas has content
+    if (!sig && padRef?.current) {
+      try {
+        const potential = padRef.current.toDataURL();
+        if (potential && potential.length > 500) {
+          sig = potential;
+        }
+      } catch {
+        // ignore
+      }
     }
 
     if (!sig) {
@@ -90,10 +132,17 @@ export default function SignatureCopyPasteButtons({
       const pad = padRef.current;
       pad.clear();
       try {
+        const canvas = (pad as any).canvas as HTMLCanvasElement | undefined;
+        const width = canvas?.offsetWidth || canvas?.width || 300;
+        const height = canvas?.offsetHeight || canvas?.height || 128;
+        if (canvas && (canvas.width === 0 || canvas.height === 0)) {
+          canvas.width = width;
+          canvas.height = height;
+        }
         pad.fromDataURL(dataUrl, {
           ratio: 1,
-          width: (pad as any).canvas?.width || 300,
-          height: (pad as any).canvas?.height || 128,
+          width: width,
+          height: height,
         });
       } catch (err) {
         console.warn("pad.fromDataURL ratio load fallback", err);

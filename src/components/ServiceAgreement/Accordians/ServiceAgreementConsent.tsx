@@ -322,7 +322,7 @@ export default function ServiceAgreementConsent({
                     currentValue={formData.accepted_signature}
                     onPaste={(dataUrl) => handleChange({ target: { name: 'accepted_signature', value: dataUrl } })}
                     label="Accepted Signature"
-                    disabled={isSignatureOnly}
+                    disabled={false}
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ export default function ServiceAgreementConsent({
                     currentValue={formData.participant_signature}
                     onPaste={(dataUrl) => handleChange({ target: { name: 'participant_signature', value: dataUrl } })}
                     label="Participant Signature"
-                    disabled={isSignatureOnly}
+                    disabled={false}
                   />
                 </div>
               </div>
@@ -650,7 +650,7 @@ export default function ServiceAgreementConsent({
                     currentValue={formData.witness_signature}
                     onPaste={(dataUrl) => handleChange({ target: { name: 'witness_signature', value: dataUrl } })}
                     label="Witness Signature"
-                    disabled={isSignatureOnly}
+                    disabled={false}
                   />
                 </div>
               </div>
@@ -832,7 +832,7 @@ export default function ServiceAgreementConsent({
                     currentValue={formData.verbal_staff_signature}
                     onPaste={(dataUrl) => handleChange({ target: { name: 'verbal_staff_signature', value: dataUrl } })}
                     label="Staff Signature"
-                    disabled={isSignatureOnly}
+                    disabled={false}
                   />
                 </div>
               </div>

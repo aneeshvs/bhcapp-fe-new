@@ -25,7 +25,12 @@ export function isUserAdmin(): boolean {
     return false;
   }
 
-  // 3. Check stored user_type_id in localStorage / sessionStorage
+  // 3. Explicit admin=1 in URL query -> User is Admin
+  if (adminParam === "1" || adminParam === "true") {
+    return true;
+  }
+
+  // 4. Check stored user_type_id in localStorage / sessionStorage
   const storedUserTypeId =
     localStorage.getItem("user_type_id") ||
     sessionStorage.getItem("user_type_id");
@@ -33,7 +38,7 @@ export function isUserAdmin(): boolean {
     return String(storedUserTypeId) === "1";
   }
 
-  // 4. Check user object in localStorage / sessionStorage
+  // 5. Check user object in localStorage / sessionStorage
   const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (userStr) {
     try {
@@ -48,11 +53,6 @@ export function isUserAdmin(): boolean {
     } catch {
       // Ignored
     }
-  }
-
-  // 5. If admin=1 was passed without conflicting non-admin user_type_id
-  if (adminParam === "1" || adminParam === "true") {
-    return true;
   }
 
   return false;
@@ -73,6 +73,11 @@ export async function checkIsUserAdminAsync(): Promise<boolean> {
   // If URL explicitly specified user_type_id, trust that parameter
   if (urlUserTypeId !== null) {
     return String(urlUserTypeId) === "1";
+  }
+
+  const adminParam = searchParams.get("admin") || searchParams.get("is_admin");
+  if (adminParam === "1" || adminParam === "true") {
+    return true;
   }
 
   const token = localStorage.getItem("token");
@@ -98,17 +103,31 @@ export async function checkIsUserAdminAsync(): Promise<boolean> {
   return syncResult;
 }
 
-// Global signature clipboard keys
+// Global signature clipboard keys - stored in localStorage for cross-tab sharing
 const SIGNATURE_CLIPBOARD_KEY = "bhc_copied_signature";
 const SIGNATURE_SOURCE_KEY = "bhc_copied_signature_source";
+const SIGNATURE_TIMESTAMP_KEY = "bhc_copied_signature_timestamp";
 
 export function copySignatureToClipboard(dataUrl: string, sourceLabel: string = "Signature"): void {
   if (!dataUrl) return;
+  const timestamp = String(Date.now());
+
+  // Write to localStorage so other tabs and forms can read it immediately
+  try {
+    localStorage.setItem(SIGNATURE_CLIPBOARD_KEY, dataUrl);
+    localStorage.setItem(SIGNATURE_SOURCE_KEY, sourceLabel);
+    localStorage.setItem(SIGNATURE_TIMESTAMP_KEY, timestamp);
+  } catch (e) {
+    console.error("Failed to write signature to localStorage", e);
+  }
+
+  // Also write to sessionStorage as fallback
   try {
     sessionStorage.setItem(SIGNATURE_CLIPBOARD_KEY, dataUrl);
     sessionStorage.setItem(SIGNATURE_SOURCE_KEY, sourceLabel);
-  } catch (e) {
-    console.error("Failed to write signature to sessionStorage", e);
+    sessionStorage.setItem(SIGNATURE_TIMESTAMP_KEY, timestamp);
+  } catch {
+    // Ignored
   }
 
   if (typeof window !== "undefined") {
@@ -116,7 +135,7 @@ export function copySignatureToClipboard(dataUrl: string, sourceLabel: string = 
     (window as any).__BHC_COPIED_SIGNATURE_SOURCE__ = sourceLabel;
     window.dispatchEvent(
       new CustomEvent("bhc_signature_copied", {
-        detail: { dataUrl, sourceLabel },
+        detail: { dataUrl, sourceLabel, timestamp },
       })
     );
   }
@@ -127,16 +146,28 @@ export function getCopiedSignatureFromClipboard(): { dataUrl: string | null; sou
   let sourceLabel = "Signature";
 
   if (typeof window !== "undefined") {
-    dataUrl = (window as any).__BHC_COPIED_SIGNATURE__ || null;
-    sourceLabel = (window as any).__BHC_COPIED_SIGNATURE_SOURCE__ || "Signature";
-  }
-
-  if (!dataUrl && typeof window !== "undefined") {
+    // 1. Primary: read from localStorage (cross-tab shared across localhost:3000)
     try {
-      dataUrl = sessionStorage.getItem(SIGNATURE_CLIPBOARD_KEY);
-      sourceLabel = sessionStorage.getItem(SIGNATURE_SOURCE_KEY) || "Signature";
+      dataUrl = localStorage.getItem(SIGNATURE_CLIPBOARD_KEY);
+      sourceLabel = localStorage.getItem(SIGNATURE_SOURCE_KEY) || "Signature";
     } catch {
       // Ignored
+    }
+
+    // 2. Fallback: read from sessionStorage
+    if (!dataUrl) {
+      try {
+        dataUrl = sessionStorage.getItem(SIGNATURE_CLIPBOARD_KEY);
+        sourceLabel = sessionStorage.getItem(SIGNATURE_SOURCE_KEY) || "Signature";
+      } catch {
+        // Ignored
+      }
+    }
+
+    // 3. Fallback: window global
+    if (!dataUrl) {
+      dataUrl = (window as any).__BHC_COPIED_SIGNATURE__ || null;
+      sourceLabel = (window as any).__BHC_COPIED_SIGNATURE_SOURCE__ || "Signature";
     }
   }
 
