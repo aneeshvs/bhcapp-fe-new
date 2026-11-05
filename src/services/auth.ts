@@ -34,8 +34,9 @@ export async function login(email: string, password: string): Promise<LoginRespo
         localStorage.setItem("token", response.data.data.token);
         const userData = response.data.data.user || response.data.data;
         localStorage.setItem("user", JSON.stringify(userData));
-        if (userData?.user_type_id !== undefined) {
-            localStorage.setItem("user_type_id", String(userData.user_type_id));
+        const utId = userData?.user_type_id ?? userData?.user_type?.id;
+        if (utId !== undefined && utId !== null) {
+            localStorage.setItem("user_type_id", String(utId));
         }
     }
     return response.data;
@@ -45,8 +46,9 @@ export async function me() {
     const response = await api.get("me");
     if (response.data) {
         localStorage.setItem("user", JSON.stringify(response.data));
-        if (response.data.user_type_id !== undefined) {
-            localStorage.setItem("user_type_id", String(response.data.user_type_id));
+        const utId = response.data.user_type_id ?? response.data.user_type?.id;
+        if (utId !== undefined && utId !== null) {
+            localStorage.setItem("user_type_id", String(utId));
         }
     }
     return response.data;

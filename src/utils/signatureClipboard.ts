@@ -15,30 +15,29 @@ export function isUserAdmin(): boolean {
     searchParams.get("usertype_id") ||
     searchParams.get("user_type");
 
-  if (urlUserTypeId !== null) {
+  if (urlUserTypeId !== null && urlUserTypeId !== "") {
     return String(urlUserTypeId) === "1";
   }
 
-  // 2. Explicit admin=0 in URL means not admin
+  // 2. Explicit admin=0 in URL means definitely not admin
   const adminParam = searchParams.get("admin") || searchParams.get("is_admin");
   if (adminParam === "0" || adminParam === "false") {
     return false;
   }
 
-  // 3. Explicit admin=1 in URL query -> User is Admin
-  if (adminParam === "1" || adminParam === "true") {
-    return true;
-  }
-
-  // 4. Check stored user_type_id in localStorage / sessionStorage
+  // 3. Check stored user_type_id in localStorage / sessionStorage
+  // If user_type_id is explicitly stored and != 1 (e.g. staff = 3), definitely not admin
   const storedUserTypeId =
     localStorage.getItem("user_type_id") ||
     sessionStorage.getItem("user_type_id");
   if (storedUserTypeId !== null && storedUserTypeId !== undefined && storedUserTypeId !== "") {
-    return String(storedUserTypeId) === "1";
+    if (String(storedUserTypeId) !== "1") {
+      return false;
+    }
+    return true;
   }
 
-  // 5. Check user object in localStorage / sessionStorage
+  // 4. Check user object in localStorage / sessionStorage
   const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (userStr) {
     try {
@@ -46,13 +45,18 @@ export function isUserAdmin(): boolean {
       if (typeof u === "object" && u !== null) {
         if (u.type === "client") return false;
         const utId = u.user_type_id ?? u.user_type?.id ?? u.usertype_id;
-        if (utId !== undefined && utId !== null) {
+        if (utId !== undefined && utId !== null && utId !== "") {
           return Number(utId) === 1;
         }
       }
     } catch {
       // Ignored
     }
+  }
+
+  // 5. Explicit admin=1 in URL query only if not contradicted by user_type_id
+  if (adminParam === "1" || adminParam === "true") {
+    return true;
   }
 
   return false;
@@ -70,34 +74,33 @@ export async function checkIsUserAdminAsync(): Promise<boolean> {
     searchParams.get("usertype_id") ||
     searchParams.get("user_type");
 
-  // If URL explicitly specified user_type_id, trust that parameter
-  if (urlUserTypeId !== null) {
+  // If URL explicitly specified user_type_id, trust that parameter strictly
+  if (urlUserTypeId !== null && urlUserTypeId !== "") {
     return String(urlUserTypeId) === "1";
   }
 
   const adminParam = searchParams.get("admin") || searchParams.get("is_admin");
-  if (adminParam === "1" || adminParam === "true") {
-    return true;
+  if (adminParam === "0" || adminParam === "false") {
+    return false;
   }
 
+  // If token is present in localStorage, verify with backend /me endpoint
   const token = localStorage.getItem("token");
-  if (!token || token === "null" || token === "undefined") {
-    return syncResult;
-  }
-
-  try {
-    const res = await api.get("me");
-    if (res?.data) {
-      const utId = res.data.user_type_id ?? res.data.user_type?.id;
-      if (utId !== undefined && utId !== null) {
-        const isAdmin = Number(utId) === 1;
-        localStorage.setItem("user_type_id", String(utId));
-        localStorage.setItem("user", JSON.stringify(res.data));
-        return isAdmin;
+  if (token && token !== "null" && token !== "undefined") {
+    try {
+      const res = await api.get("me");
+      if (res?.data) {
+        const utId = res.data.user_type_id ?? res.data.user_type?.id;
+        if (utId !== undefined && utId !== null && utId !== "") {
+          const isAdmin = Number(utId) === 1;
+          localStorage.setItem("user_type_id", String(utId));
+          localStorage.setItem("user", JSON.stringify(res.data));
+          return isAdmin;
+        }
       }
+    } catch {
+      // Fall back to synchronous check
     }
-  } catch {
-    // Fall back to synchronous check
   }
 
   return syncResult;
