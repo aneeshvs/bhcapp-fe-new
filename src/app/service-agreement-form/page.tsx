@@ -600,7 +600,8 @@ export default function ServiceAgreementPage() {
               alt="Company Logo"
               width={180}
               height={80}
-              className="h-auto"
+              className="h-auto w-auto"
+              priority
             />
           </div>
 
@@ -762,7 +763,7 @@ export default function ServiceAgreementPage() {
                       <p className="text-gray-600 mb-4">
                         The Agreement will start and end on dates specified on page
                         2 of this Agreement unless the Agreement is terminated
-                        earlier under Clause 12 - Termination. There will be a
+                        earlier under Clause 13 - Termination. There will be a
                         service review date completed every 12 months.
                       </p>
 
@@ -846,7 +847,35 @@ export default function ServiceAgreementPage() {
                         of the National Disability Insurance scheme Act 2013 (Cth).
                       </p>
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        7. Participant/Participant’s Nominee Rights and
+                        7. Annual NDIS Pricing Updates
+                      </h2>
+                      <p className="text-gray-700 mb-4">
+                        Best of Homecare (HC) may review its fees when the NDIA
+                        publishes updated NDIS Pricing Arrangements and Price
+                        Limits. Where we propose to adjust its fees in line with an
+                        applicable increase to the maximum price limit for a support,
+                        we will notify the Participant or their authorised
+                        representative in writing of the revised rate, the effective
+                        date and the applicable support item before the revised rate
+                        takes effect.
+                      </p>
+                      <p className="text-gray-700 mb-4">
+                        Any adjustment will be limited to the applicable published
+                        price limit and will remain subject to the Participant&apos;s
+                        agreement, the terms of this Service Agreement and
+                        applicable NDIS requirements. The Participant may discuss
+                        the proposed adjustment with us, and may choose to
+                        negotiate the rate or end the Service Agreement in accordance
+                        with its termination provisions.
+                      </p>
+                      <p className="text-gray-700 mb-4">
+                        No revised rate will be charged retrospectively for supports
+                        already delivered.
+                      </p>
+
+                      {/* Section 8 */}
+                      <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
+                        8. Participant/Participant’s Nominee Rights and
                         Responsibilities
                       </h2>
                       <p className="text-gray-700 mb-2">
@@ -920,9 +949,9 @@ export default function ServiceAgreementPage() {
                         </li>
                       </ul>
 
-                      {/* Section 8 */}
+                      {/* Section 9 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        8. Provider Responsibilities
+                        9. Provider Responsibilities
                       </h2>
                       <ul className="list-disc list-inside text-gray-700 mb-4">
                         <li>
@@ -992,9 +1021,9 @@ export default function ServiceAgreementPage() {
                         </li>
                       </ul>
 
-                      {/* Section 9 */}
+                      {/* Section 10 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        9. Cancellation Policy
+                        10. Cancellation Policy
                       </h2>
                       <p className="text-gray-700 mb-4">
                         If a Participant, or their Nominated Participant fails to
@@ -1005,9 +1034,9 @@ export default function ServiceAgreementPage() {
                         foregone for that session.
                       </p>
 
-                      {/* Section 10 */}
+                      {/* Section 11 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        10. Additional NDIS Expenses
+                        11. Additional NDIS Expenses
                       </h2>
                       <p className="text-gray-700 mb-2 font-semibold">
                         a) Travel / Transport Costs
@@ -1066,9 +1095,9 @@ export default function ServiceAgreementPage() {
                         proceeding with any claims.
                       </p>
 
-                      {/* Section 11 */}
+                      {/* Section 12 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        11. Emergency and Disaster Management
+                        12. Emergency and Disaster Management
                       </h2>
                       <p className="text-gray-700 mb-4">
                         Best of Homecare will assess your reliance on the service
@@ -1079,9 +1108,9 @@ export default function ServiceAgreementPage() {
                         provision.
                       </p>
 
-                      {/* Section 12 */}
+                      {/* Section 13 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        12. Termination
+                        13. Termination
                       </h2>
                       <p className="text-gray-700 mb-4">
                         Should either Party wishes to end this Agreement they must
@@ -1100,9 +1129,9 @@ export default function ServiceAgreementPage() {
                         that has been made by the participant.
                       </p>
 
-                      {/* Section 13 */}
+                      {/* Section 14 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        13. Feedback, Complaints and Disputes
+                        14. Feedback, Complaints and Disputes
                       </h2>
                       <p className="text-gray-700 mb-4">
                         The Provider recognises that Participants/Participants
@@ -1125,9 +1154,9 @@ export default function ServiceAgreementPage() {
                         through an advocate.
                       </p>
 
-                      {/* Section 14 */}
+                      {/* Section 15 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        14. Advocacy
+                        15. Advocacy
                       </h2>
                       <p className="text-gray-700 mb-4">
                         The Participant has a right to be represented by an advocate
@@ -1141,9 +1170,9 @@ export default function ServiceAgreementPage() {
                         www.disabilityadvocacyfinder.dss.gov.au/disability/ndap/
                       </p>
 
-                      {/* Section 15 */}
+                      {/* Section 16 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        15. Day Program Services Only
+                        16. Day Program Services Only
                       </h2>
                       <p className="text-gray-700 mb-2 font-semibold">
                         a) Materials Fees
@@ -1198,9 +1227,9 @@ export default function ServiceAgreementPage() {
                         to the NDIS Price Guide{" "}
                       </p>
 
-                      {/* Section 16 */}
+                      {/* Section 17 */}
                       <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                        16. SIL/SDA Service Provision
+                        17. SIL/SDA Service Provision
                       </h2>
                       <p className="text-gray-700 mb-2">
                         Where supported independent living supports to participants

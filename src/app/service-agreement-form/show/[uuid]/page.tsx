@@ -302,7 +302,8 @@ export default function ShowServiceAgreementPage() {
                         alt="Company Logo"
                         width={180}
                         height={80}
-                        className="h-auto"
+                        className="h-auto w-auto"
+                        priority
                     />
                 </div>
 
@@ -416,7 +417,7 @@ export default function ShowServiceAgreementPage() {
                                         <p className="text-gray-600 mb-4">
                                             The Agreement will start and end on dates specified on page
                                             2 of this Agreement unless the Agreement is terminated
-                                            earlier under Clause 12 - Termination. There will be a
+                                            earlier under Clause 13 - Termination. There will be a
                                             service review date completed every 12 months.
                                         </p>
 
@@ -500,7 +501,35 @@ export default function ShowServiceAgreementPage() {
                                             of the National Disability Insurance scheme Act 2013 (Cth).
                                         </p>
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            7. Participant/Participant’s Nominee Rights and
+                                            7. Annual NDIS Pricing Updates
+                                        </h2>
+                                        <p className="text-gray-700 mb-4">
+                                            Best of Homecare (HC) may review its fees when the NDIA
+                                            publishes updated NDIS Pricing Arrangements and Price
+                                            Limits. Where we propose to adjust its fees in line with an
+                                            applicable increase to the maximum price limit for a support,
+                                            we will notify the Participant or their authorised
+                                            representative in writing of the revised rate, the effective
+                                            date and the applicable support item before the revised rate
+                                            takes effect.
+                                        </p>
+                                        <p className="text-gray-700 mb-4">
+                                            Any adjustment will be limited to the applicable published
+                                            price limit and will remain subject to the Participant&apos;s
+                                            agreement, the terms of this Service Agreement and
+                                            applicable NDIS requirements. The Participant may discuss
+                                            the proposed adjustment with us, and may choose to
+                                            negotiate the rate or end the Service Agreement in accordance
+                                            with its termination provisions.
+                                        </p>
+                                        <p className="text-gray-700 mb-4">
+                                            No revised rate will be charged retrospectively for supports
+                                            already delivered.
+                                        </p>
+
+                                        {/* Section 8 */}
+                                        <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
+                                            8. Participant/Participant’s Nominee Rights and
                                             Responsibilities
                                         </h2>
                                         <p className="text-gray-700 mb-2">
@@ -574,9 +603,9 @@ export default function ShowServiceAgreementPage() {
                                             </li>
                                         </ul>
 
-                                        {/* Section 8 */}
+                                        {/* Section 9 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            8. Provider Responsibilities
+                                            9. Provider Responsibilities
                                         </h2>
                                         <ul className="list-disc list-inside text-gray-700 mb-4">
                                             <li>
@@ -646,9 +675,9 @@ export default function ShowServiceAgreementPage() {
                                             </li>
                                         </ul>
 
-                                        {/* Section 9 */}
+                                        {/* Section 10 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            9. Cancellation Policy
+                                            10. Cancellation Policy
                                         </h2>
                                         <p className="text-gray-700 mb-4">
                                             If a Participant, or their Nominated Participant fails to
@@ -659,9 +688,9 @@ export default function ShowServiceAgreementPage() {
                                             foregone for that session.
                                         </p>
 
-                                        {/* Section 10 */}
+                                        {/* Section 11 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            10. Additional NDIS Expenses
+                                            11. Additional NDIS Expenses
                                         </h2>
                                         <p className="text-gray-700 mb-2 font-semibold">
                                             a) Travel / Transport Costs
@@ -720,9 +749,9 @@ export default function ShowServiceAgreementPage() {
                                             proceeding with any claims.
                                         </p>
 
-                                        {/* Section 11 */}
+                                        {/* Section 12 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            11. Emergency and Disaster Management
+                                            12. Emergency and Disaster Management
                                         </h2>
                                         <p className="text-gray-700 mb-4">
                                             Best of Homecare will assess your reliance on the service
@@ -733,9 +762,9 @@ export default function ShowServiceAgreementPage() {
                                             provision.
                                         </p>
 
-                                        {/* Section 12 */}
+                                        {/* Section 13 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            12. Termination
+                                            13. Termination
                                         </h2>
                                         <p className="text-gray-700 mb-4">
                                             Should either Party wishes to end this Agreement they must
@@ -754,9 +783,9 @@ export default function ShowServiceAgreementPage() {
                                             that has been made by the participant.
                                         </p>
 
-                                        {/* Section 13 */}
+                                        {/* Section 14 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            13. Feedback, Complaints and Disputes
+                                            14. Feedback, Complaints and Disputes
                                         </h2>
                                         <p className="text-gray-700 mb-4">
                                             The Provider recognises that Participants/Participants
@@ -779,9 +808,9 @@ export default function ShowServiceAgreementPage() {
                                             through an advocate.
                                         </p>
 
-                                        {/* Section 14 */}
+                                        {/* Section 15 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            14. Advocacy
+                                            15. Advocacy
                                         </h2>
                                         <p className="text-gray-700 mb-4">
                                             The Participant has a right to be represented by an advocate
@@ -795,9 +824,9 @@ export default function ShowServiceAgreementPage() {
                                             www.disabilityadvocacyfinder.dss.gov.au/disability/ndap/
                                         </p>
 
-                                        {/* Section 15 */}
+                                        {/* Section 16 */}
                                         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-                                            15. Day Program Services Only
+                                            16. Day Program Services Only
                                         </h2>
                                         <p className="text-gray-700 mb-2 font-semibold">
                                             a) Materials Fees
@@ -807,7 +836,100 @@ export default function ShowServiceAgreementPage() {
                                             these programs. If additional resources are requested, then
                                             you will need to cover the costs of these supplies outside
                                             of your NDIS funding. Best of Homecare offers excellent,
+                                            well-resourced programs at each of our sites to help our
+                                            clients build skills. Best of Homecare will charge a
+                                            material fee per day, per person, to cover resources used in
+                                            these programs. Specific costs that this fee covers include,
+                                            but are not limited to, printing, stationery and art
+                                            supplies. This fee will be invoiced on a regular basis and
+                                            calculated based on each client’s attendance. Refer to the
+                                            quote for the current per day fee.
                                         </p>
+                                        <p className="text-gray-700 mb-2 font-semibold">
+                                            b) Additional Activities
+                                        </p>
+                                        <p className="text-gray-700 mb-2">
+                                            Activities that incur an entry cost (i.e. swimming entry
+                                            fee) or specific resources to undertake, outside of the
+                                            standard materials and resources maybe covered by Best of
+                                            Homecare however this will need to be discussed in advance
+                                            and notice provided to negotiate personal contributions you
+                                            can make outside of your NDIS funding.{" "}
+                                        </p>
+                                        <p className="text-gray-700 mb-2 font-semibold">
+                                            c) In Program Transport
+                                        </p>
+                                        <p className="text-gray-700 mb-2">
+                                            Best of Homecare will charge Participants for transport
+                                            costs incurred within programs per day when the program
+                                            involves Best of Homecare organised transport, i.e. buses
+                                            and taxis. This fee will be invoiced on a regular basis and
+                                            calculated based on each Participant’s attendance. Refer to
+                                            the quote for the current per day fee. When a Participant
+                                            uses public transport, they will be required to bring their
+                                            myki card (Participant responsible for having credit) and
+                                            will not be charged the in-program transport fee.
+                                        </p>
+                                        <p className="text-gray-700 mb-2 font-semibold">
+                                            d) Centre Capital Costs
+                                        </p>
+                                        <p className="text-gray-700 mb-4">
+                                            Centre Capital Costs will be claimed from your plan to cover
+                                            our costs of running and maintaining the centre during the
+                                            time you we are providing support to you in our Day Program,
+                                            within this centre. Costs will be claimed per hour according
+                                            to the NDIS Price Guide{" "}
+                                        </p>
+
+                                        {/* Section 17 */}
+                                        <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
+                                            17. SIL/SDA Service Provision
+                                        </h2>
+                                        <p className="text-gray-700 mb-2">
+                                            Where supported independent living supports to participants
+                                            in specialist disability accommodation dwellings, documented
+                                            arrangements are in place with each participant and each
+                                            specialist disability accommodation provider. At a minimum,
+                                            the arrangements will outline the party or parties
+                                            responsible and their roles (where applicable) for the
+                                            following matters:
+                                        </p>
+                                        <ul className="list-disc list-inside text-gray-700 mb-4">
+                                            <li>
+                                                How a Participant’s concerns about the dwelling will be
+                                                communicated and addressed;
+                                            </li>
+                                            <li>
+                                                How potential conflicts involving participant(s) will be
+                                                managed;
+                                            </li>
+                                            <li>
+                                                How changes to participant circumstances and/or support
+                                                needs will be agreed and communicate;
+                                            </li>
+                                            <li>
+                                                In shared living, how vacancies will be filled, including
+                                                each participant’s right to have their needs, preferences
+                                                and situation taken into account;
+                                            </li>
+                                            <li>
+                                                How behaviours of concern which may put tenancies at risk
+                                                will be managed;
+                                            </li>
+                                        </ul>
+                                        <p className="text-gray-700 mb-2">
+                                            Please refer to your SIL residency agreement in relation to
+                                            the following areas:
+                                        </p>
+                                        <ul className="list-disc list-inside text-gray-700 mb-4">
+                                            <li>Ending your SIL Supports</li>
+                                            <li>Property Maintenance</li>
+                                            <li>Filling Vacancies</li>
+                                            <li>
+                                                Participant and Households Expense Contributions
+                                            </li>
+                                            <li>House Rules</li>
+                                        </ul>
                                     </div>
                                 </div>
                             )}
