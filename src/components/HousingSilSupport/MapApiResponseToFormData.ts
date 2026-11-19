@@ -31,6 +31,11 @@ export const mapApiResponseToFormData = (
     key_team_member_name: data.key_team_member_name || "",
     key_team_member_date: data.key_team_member_date || "",
     key_team_member_signature: data.key_team_member_signature || "",
+    verbal_staff_name: data.verbal_staff_name || "",
+    verbal_staff_position: data.verbal_staff_position || "",
+    verbal_staff_signature: data.verbal_staff_signature || "",
+    verbal_date: data.verbal_date || "",
+    other_notes: data.other_notes || "",
     submit_final: data.submit_final ?? (data.form_status === 'completed' ? 1 : 0),
   };
 };

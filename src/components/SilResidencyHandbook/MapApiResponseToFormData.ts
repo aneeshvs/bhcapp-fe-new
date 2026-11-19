@@ -29,5 +29,10 @@ export function mapApiResponseToFormData(response: SilResidencyHandbookResponse)
     key_team_member_name: data.key_team_member_name || "",
     key_team_member_date: data.key_team_member_date ? data.key_team_member_date.split("T")[0] : "",
     key_team_member_signature: data.key_team_member_signature || "",
+    verbal_staff_name: (data as any).verbal_staff_name || "",
+    verbal_staff_position: (data as any).verbal_staff_position || "",
+    verbal_staff_signature: (data as any).verbal_staff_signature || "",
+    verbal_date: (data as any).verbal_date ? (data as any).verbal_date.split("T")[0] : "",
+    other_notes: (data as any).other_notes || "",
   };
 }

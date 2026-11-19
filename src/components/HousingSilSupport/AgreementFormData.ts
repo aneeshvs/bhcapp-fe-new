@@ -21,6 +21,11 @@ const AgreementFormaData: HousingSilSupportData = {
   key_team_member_name: "",
   key_team_member_date: "",
   key_team_member_signature: "",
+  verbal_staff_name: "",
+  verbal_staff_position: "",
+  verbal_staff_signature: "",
+  verbal_date: "",
+  other_notes: "",
   submit_final: 0,
 };
 

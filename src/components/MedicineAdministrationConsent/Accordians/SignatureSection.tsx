@@ -1,9 +1,11 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { SectionProps } from "../types";
 import FormFieldWrapper from "@/src/components/SilStaServiceAgreement/FormFieldWrapper";
 import SignaturePad from "signature_pad";
 import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
 import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
+import VerbalConsentSection from "@/src/components/VerbalConsentSection";
+import FieldLogsModal from "@/src/components/FieldLogsModal";
 
 const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid }) => {
   const providerCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,6 +15,13 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
   const providerPadRef = useRef<SignaturePad | null>(null);
   const clientPadRef = useRef<SignaturePad | null>(null);
   const witnessPadRef = useRef<SignaturePad | null>(null);
+  const [isVerbalLogsModalOpen, setIsVerbalLogsModalOpen] = useState(false);
+  const [selectedVerbalField, setSelectedVerbalField] = useState<string | null>(null);
+  const handleVerbalViewLogs = (fieldName: string) => {
+    setSelectedVerbalField(fieldName);
+    setIsVerbalLogsModalOpen(true);
+  };
+
 
   useEffect(() => {
     const initOrResizeCanvas = (
@@ -388,6 +397,20 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
             </div>
           </div>
         </div>
+        {/* Verbal Participant Consent Section */}
+        <VerbalConsentSection
+          data={formData}
+          handleChange={handleChange}
+          onViewLogs={handleVerbalViewLogs}
+        />
+        <FieldLogsModal
+          isOpen={isVerbalLogsModalOpen}
+          onClose={() => setIsVerbalLogsModalOpen(false)}
+          url="medicine-administration-consent/logs"
+          table="medicine_administration_consents"
+          field={selectedVerbalField}
+          uuid={uuid ?? ""}
+        />
       </div>
     </div>
   );

@@ -57,6 +57,12 @@ export interface SilStaServiceAgreementData {
     witness_signature: string;
     witness_signature_date: string;
 
+    verbal_staff_name?: string;
+    verbal_staff_position?: string;
+    verbal_staff_signature?: string;
+    verbal_date?: string;
+    other_notes?: string;
+
     schedule_of_supports: SilStaScheduleOfSupport[];
     parties?: {
         provider_name?: string;

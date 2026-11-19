@@ -27,6 +27,12 @@ export interface MedicineAdministrationConsentData {
     witness_name: string;
     witness_signature: string;
     witness_signature_date: string;
+
+    verbal_staff_name?: string;
+    verbal_staff_position?: string;
+    verbal_staff_signature?: string;
+    verbal_date?: string;
+    other_notes?: string;
 }
 
 export interface SectionProps {

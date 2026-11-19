@@ -8,6 +8,7 @@ import { IconFileText, IconRobot, IconLoader } from "@tabler/icons-react";
 import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
 import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
 import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
+import VerbalConsentSection from "@/src/components/VerbalConsentSection";
 
 const SingleSignaturePad: React.FC<{
   label: string;
@@ -1674,6 +1675,15 @@ export default function SilSupportPlanForm({
               onChange={(val) => handleReviewSignatureChange("key_team_member_signature", val)}
             />
           </div>
+
+          {/* Verbal Participant Consent Section */}
+          <VerbalConsentSection
+            data={reviewSignature}
+            onChange={handleReviewSignatureChange}
+            disabled={isReadOnly}
+            readOnly={isReadOnly}
+            onViewLogs={handleViewLogs}
+          />
         </div>
       </AccordianPlanSection>
 

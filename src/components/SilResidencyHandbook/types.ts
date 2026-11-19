@@ -28,6 +28,12 @@ export interface SilResidencyHandbookData {
   key_team_member_date?: string;
   key_team_member_signature?: string;
 
+  verbal_staff_name?: string;
+  verbal_staff_position?: string;
+  verbal_staff_signature?: string;
+  verbal_date?: string;
+  other_notes?: string;
+
   submit_final?: number;
   completion_percentage?: number;
 }

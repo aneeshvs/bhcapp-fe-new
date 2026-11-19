@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import SingleSignaturePad from "./SingleSignaturePad";
 import SignatureTypeToggle from "./SignatureTypeToggle";
+import VerbalConsentSection from "./VerbalConsentSection";
 
 interface ReviewSignaturesData {
   signature_type?: string;
@@ -21,6 +22,11 @@ interface ReviewSignaturesData {
   key_team_member_name?: string;
   key_team_member_date?: string;
   key_team_member_signature?: string;
+  verbal_staff_name?: string;
+  verbal_staff_position?: string;
+  verbal_staff_signature?: string;
+  verbal_date?: string;
+  other_notes?: string;
   date?: string;
   client?: string;
   guardian_nominee?: string;
@@ -421,6 +427,15 @@ const ReviewSignaturesSection: React.FC<ReviewSignaturesSectionProps> = ({
           onChange={(val) => onChange("key_team_member_signature", val)}
         />
       </div>
+
+      {/* Verbal Participant Consent */}
+      <VerbalConsentSection
+        data={data}
+        onChange={onChange}
+        disabled={readOnly}
+        readOnly={readOnly}
+        onViewLogs={onViewLogs}
+      />
     </div>
   );
 };
