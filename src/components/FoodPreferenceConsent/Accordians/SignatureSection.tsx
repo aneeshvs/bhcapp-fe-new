@@ -4,6 +4,7 @@ import FormFieldWrapper from "@/src/components/SilStaServiceAgreement/FormFieldW
 import SignaturePad from "signature_pad";
 import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
 import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
+import VerbalConsentSection from "@/src/components/VerbalConsentSection";
 
 const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid }) => {
   const providerCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -387,6 +388,16 @@ const SignatureSection: React.FC<SectionProps> = ({ formData, handleChange, uuid
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Verbal Participant Consent */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <VerbalConsentSection
+            data={formData}
+            handleChange={handleChange}
+            title="Verbal Participant Consent"
+            description="Verbal consent should only be used where it is not practicable to obtain written consent. I have discussed the proposed Food Preference Consent with the Participant or authorised representative, and I am satisfied that they understand and agree."
+          />
         </div>
       </div>
     </div>
