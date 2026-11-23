@@ -85,7 +85,7 @@ export default function OnboardingPackingSignoffsForm({
     dateField: string,
     label: string
   ) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+    <div className="grid grid-cols-1 gap-4 items-start">
       {/* Checkbox Field */}
       <div
         className="relative"
@@ -120,9 +120,10 @@ export default function OnboardingPackingSignoffsForm({
         </div>
       </div>
 
-      {/* Date Field */}
+      {/* Date Field - Hidden (Not removed, only hidden) */}
       <div
-        className="relative"
+        className="hidden"
+        style={{ display: "none" }}
         onMouseEnter={() => setHoveredField(dateField)}
         onMouseLeave={() => setHoveredField(null)}
       >
