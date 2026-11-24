@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 import api from "@/src/utils/api";
 import { IconCloudUpload, IconFileText, IconX, IconLoader, IconCheck, IconAlertTriangle } from "@tabler/icons-react";
 
@@ -27,7 +28,8 @@ export default function PdfExtractionModal({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  const isAdmin = useIsAdmin();
+  if (!isOpen || !isAdmin) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

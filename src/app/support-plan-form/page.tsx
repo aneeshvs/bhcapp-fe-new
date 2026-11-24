@@ -19,6 +19,7 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import api from "@/src/utils/api";
 import { IconRobot, IconLoader, IconFileText } from "@tabler/icons-react";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 // Add type for validation errors
 type ValidationErrors = Record<string, string[]>;
@@ -111,6 +112,7 @@ export default function SupportPlanPage() {
   const [formSubmissionError, setFormSubmissionError] = useState<string>("");
   const [autofilling, setAutofilling] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
 
   const handleAutofill = async () => {
     setAutofilling(true);
@@ -816,7 +818,7 @@ export default function SupportPlanPage() {
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
             <div className="flex justify-end items-center gap-3 mb-4">
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -833,7 +835,7 @@ export default function SupportPlanPage() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
                 onClick={scrollToSignature}
@@ -973,13 +975,13 @@ export default function SupportPlanPage() {
           <span>Loading...</span>
         </div>
       )}
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 import api from "@/src/utils/api";
 import { IconSparkles, IconLoader2, IconX, IconCheck } from "@tabler/icons-react";
 
@@ -22,6 +23,8 @@ export default function AiFieldPromptButton({
   buttonText = "AI Prompt",
   className = "",
 }: AiFieldPromptButtonProps) {
+  const isAdmin = useIsAdmin();
+
   const [isOpen, setIsOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,6 +103,10 @@ export default function AiFieldPromptButton({
     "Rephrase professionally for NDIS compliance",
     "Include specific staff support steps and safety controls",
   ];
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <>

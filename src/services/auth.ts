@@ -14,7 +14,8 @@ interface LoginResponse {
             id: number;
             name: string;
             email: string;
-            user_type: {
+            user_type_id?: number;
+            user_type?: {
                 id: number;
                 name: string;
                 slug: string;
@@ -25,7 +26,6 @@ interface LoginResponse {
 
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-    //const cookieStore = await cookies()
     const response = await api.post("login", {
         email, password
     });
@@ -38,6 +38,9 @@ export async function login(email: string, password: string): Promise<LoginRespo
         if (utId !== undefined && utId !== null) {
             localStorage.setItem("user_type_id", String(utId));
         }
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("auth_state_changed"));
+        }
     }
     return response.data;
 }
@@ -49,6 +52,9 @@ export async function me() {
         const utId = response.data.user_type_id ?? response.data.user_type?.id;
         if (utId !== undefined && utId !== null) {
             localStorage.setItem("user_type_id", String(utId));
+        }
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("auth_state_changed"));
         }
     }
     return response.data;

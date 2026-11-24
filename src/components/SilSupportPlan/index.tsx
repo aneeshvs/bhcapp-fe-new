@@ -9,6 +9,7 @@ import AiFieldPromptButton from "@/src/components/AiFieldPromptButton";
 import SignatureTypeToggle from "@/src/components/SignatureTypeToggle";
 import SignatureCopyPasteButtons from "@/src/components/SignatureCopyPasteButtons";
 import VerbalConsentSection from "@/src/components/VerbalConsentSection";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const SingleSignaturePad: React.FC<{
   label: string;
@@ -265,6 +266,8 @@ export default function SilSupportPlanForm({
 }: SilSupportPlanFormProps) {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
+
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
   const handleViewLogs = (fieldName: string) => {
@@ -532,7 +535,7 @@ export default function SilSupportPlanForm({
   return (
     <div className="space-y-6">
       <div className="flex justify-end items-center gap-3 mb-4 flex-wrap">
-        {onPdfExtractionClick && (
+        {isAdmin && onPdfExtractionClick && (
           <button
             type="button"
             onClick={onPdfExtractionClick}

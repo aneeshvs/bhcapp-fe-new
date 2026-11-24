@@ -18,6 +18,7 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import api from "@/src/utils/api";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const SECTION_NAMES = [
   "ParticipantRepresentative",
@@ -77,6 +78,7 @@ export default function ServiceAgreementPage() {
     useState<Record<SectionKey, boolean>>(initialOpenSections);
   const [isExpandedAll, setIsExpandedAll] = useState(true);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const toggleExpandAll = () => {
@@ -637,7 +639,7 @@ export default function ServiceAgreementPage() {
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
             <div className="flex flex-wrap justify-end items-center gap-3 mb-4">
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -654,7 +656,7 @@ export default function ServiceAgreementPage() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition"
                 onClick={scrollToSignature}
@@ -1343,13 +1345,13 @@ export default function ServiceAgreementPage() {
               </label>
             </div>
           </form>
-          <PdfExtractionModal
+          {isAdmin && <PdfExtractionModal
             isOpen={isPdfModalOpen}
             onClose={() => setIsPdfModalOpen(false)}
             userId={sessionUserId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
             clientType={sessionClientType || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
             onExtractionComplete={handleAutofill}
-          />
+          />}
         </div>
       ) : (
         // Loader when flag is false

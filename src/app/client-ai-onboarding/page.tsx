@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import api from "@/src/utils/api";
 import ReactMarkdown from 'react-markdown';
 import { IconCloudUpload, IconRobot, IconFileText, IconCheck, IconAlertTriangle, IconLoader, IconFileDownload } from "@tabler/icons-react";
+import { isUserAdmin } from "@/src/utils/adminCheck";
 
 export default function AIOnboardingPage() {
     const searchParams = useSearchParams();
@@ -21,6 +22,12 @@ export default function AIOnboardingPage() {
     const [rawText, setRawText] = useState<string | null>(null);
     const [showRaw, setShowRaw] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
+    React.useEffect(() => {
+        setIsAdmin(isUserAdmin(searchParams));
+        setCheckingAuth(false);
+    }, [searchParams]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -88,6 +95,16 @@ export default function AIOnboardingPage() {
         alert("AI data has been saved to the client's profile. All forms will now use this data for pre-filling.");
         window.location.href = `http://localhost/bhcappdemo/participant-profile-view.php?userid=${userId}&client_type=${clientType}`;
     };
+
+    if (!checkingAuth && !isAdmin) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200 m-8">
+                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mb-4 font-bold">✕</div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+                <p className="text-gray-600 max-w-md">This AI Onboarding feature is only accessible to administrators.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-white text-gray-900 p-8 font-sans selection:bg-blue-100">

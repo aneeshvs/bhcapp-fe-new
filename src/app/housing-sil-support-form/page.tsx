@@ -17,6 +17,7 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import api from "@/src/utils/api";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const SECTION_NAMES = [
   "HousingSilSupport",
@@ -76,6 +77,7 @@ export default function HousingSilSupportPage() {
   };
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const handleAutofill = async () => {
@@ -515,7 +517,7 @@ export default function HousingSilSupportPage() {
             className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 md:p-10 max-w-6xl mx-auto"
           >
             <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -532,7 +534,7 @@ export default function HousingSilSupportPage() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1.5 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition text-sm"
                 onClick={scrollToSignature}
@@ -612,13 +614,13 @@ export default function HousingSilSupportPage() {
           <p className="text-gray-500">Checking session...</p>
         </div>
       )}
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </>
   );
 }

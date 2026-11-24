@@ -18,6 +18,7 @@ import { getFormSession, index } from "@/src/services/crud";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import api from "@/src/utils/api";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const defaultFormData: FoodPreferenceConsentData = {
   uuid: "",
@@ -119,6 +120,7 @@ export default function FoodPreferenceConsentForm({
   };
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const handleAutofill = async () => {
@@ -457,7 +459,7 @@ export default function FoodPreferenceConsentForm({
           onSubmit={handleSave}
         >
           <div className="flex flex-wrap justify-end items-center gap-3 mb-4">
-            <button
+            {isAdmin && (<button
               type="button"
               onClick={() => setIsPdfModalOpen(true)}
               disabled={autofilling}
@@ -474,7 +476,7 @@ export default function FoodPreferenceConsentForm({
                   PDF Extraction & AI Autofill
                 </>
               )}
-            </button>
+            </button>)}
             <div
               className="bg-yellow-100 border border-yellow-300 text-yellow-800 font-medium py-1 px-3 rounded shadow-sm text-sm cursor-pointer"
               onClick={() => {
@@ -570,13 +572,13 @@ export default function FoodPreferenceConsentForm({
           </div>
         </form>
       </div>
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={userid || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
         clientType={client_type || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </div>
   );
 }

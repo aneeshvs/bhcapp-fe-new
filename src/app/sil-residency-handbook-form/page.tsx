@@ -17,6 +17,7 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import api from "@/src/utils/api";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const SECTION_NAMES = [
   "SilResidencyHandbook",
@@ -76,6 +77,7 @@ export default function SilResidencyHandbookPage() {
   };
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const handleAutofill = async () => {
@@ -537,7 +539,7 @@ export default function SilResidencyHandbookPage() {
           >
             {/* Top Action controls inside box */}
             <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -554,7 +556,7 @@ export default function SilResidencyHandbookPage() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <div 
                 className="flex items-center text-red-600 font-bold bg-yellow-100 px-3 py-1.5 rounded-lg border border-yellow-400 animate-pulse cursor-pointer hover:bg-yellow-200 transition text-sm"
                 onClick={scrollToSignature}
@@ -639,13 +641,13 @@ export default function SilResidencyHandbookPage() {
           <span>Loading...</span>
         </div>
       )}
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </>
   );
 }

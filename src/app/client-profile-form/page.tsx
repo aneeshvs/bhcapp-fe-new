@@ -27,6 +27,7 @@ import { useSearchParams } from 'next/navigation';
 import { ClientApiResponse } from '@/src/components/ClientProfileForm/ApiResponse';
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 import api from "@/src/utils/api";
 import { IconFileText, IconLoader } from "@tabler/icons-react";
 interface OnboardSubmitSuccess {
@@ -384,6 +385,7 @@ export default function ClientProfileForm() {
 
 
   const searchParams = useSearchParams();
+  const isAdmin = useIsAdmin();
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
   const [sessionUserId, setSessionUserId] = useState<string>("");
   const [sessionClientType, setSessionClientType] = useState<string>("");
@@ -602,10 +604,10 @@ export default function ClientProfileForm() {
   useEffect(() => {
     (async () => {
       try {
-        // 👇 get form name from URL query (e.g. ?form=support-plan)
+        // ðŸ‘‡ get form name from URL query (e.g. ?form=support-plan)
         const form = "client-profile";
 
-        // 👇 pass form to API
+        // ðŸ‘‡ pass form to API
         const formUuid = searchParams.get('form-uuid') || searchParams.get('uuid');
         const sessionUserId = searchParams.get("userid") || "";
         const sessionClientType = searchParams.get("client_type") || "";
@@ -638,7 +640,7 @@ export default function ClientProfileForm() {
           setShowLoginModal(true);
         }
 
-        // 👇 also keep track of the form type
+        // ðŸ‘‡ also keep track of the form type
       } catch (e) {
         console.error("Failed to check session", e);
       }
@@ -953,7 +955,7 @@ export default function ClientProfileForm() {
             </div>
 
             <div className="flex justify-end gap-2 mb-4">
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -970,7 +972,7 @@ export default function ClientProfileForm() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -1050,7 +1052,7 @@ export default function ClientProfileForm() {
 
             {/* <div className="my-4 px-4">
           <label className="block font-semibold text-lg mb-2">
-            Are there children under the age of 18 residing in the client’s home?
+            Are there children under the age of 18 residing in the clientâ€™s home?
           </label>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2">
@@ -1262,13 +1264,13 @@ export default function ClientProfileForm() {
           <span>Loading...</span>
         </div>
       )}
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </>
   );
 }

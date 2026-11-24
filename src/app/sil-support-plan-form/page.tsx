@@ -7,6 +7,7 @@ import { me } from "@/src/services/auth";
 import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import SilSupportPlanForm from "@/src/components/SilSupportPlan";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 import api from "@/src/utils/api";
 import Image from "next/image";
 
@@ -22,6 +23,7 @@ export default function SilSupportPlanPage() {
   const [loading, setLoading] = useState(false);
   const [autofilling, setAutofilling] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [flag, setFlag] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [formData, setFormData] = useState<any>({ sil_provider: "Best of Homecare" });
@@ -698,7 +700,7 @@ export default function SilSupportPlanPage() {
               setReviewSignature={setReviewSignature}
               handleChange={handleChange}
               uuid={sessionUuid || undefined}
-              onPdfExtractionClick={() => setIsPdfModalOpen(true)}
+              onPdfExtractionClick={isAdmin ? () => setIsPdfModalOpen(true) : undefined}
               onAutofillClick={handleAutofill}
               autofilling={autofilling}
             />
@@ -721,13 +723,13 @@ export default function SilSupportPlanPage() {
               </button>
             </div>
           </form>
-          <PdfExtractionModal
+          {isAdmin && <PdfExtractionModal
             isOpen={isPdfModalOpen}
             onClose={() => setIsPdfModalOpen(false)}
             userId={sessionUserId || searchParams.get("userid") || ""}
             clientType={sessionClientType || searchParams.get("client_type") || ""}
             onExtractionComplete={handleAutofill}
-          />
+          />}
         </div>
       ) : (
         <div className="flex justify-center items-center min-h-[200px]"><span>Loading...</span></div>

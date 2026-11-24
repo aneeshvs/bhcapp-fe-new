@@ -18,6 +18,7 @@ import LoginModal from "@/src/components/ConfidentialInformation/LoginModal";
 import api from "@/src/utils/api";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 const SECTION_NAMES = [
   "ParticipantSignature"
@@ -72,6 +73,7 @@ export default function SupportCarePlanPage() {
   const [isExpandedAll, setIsExpandedAll] = useState(true);
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const toggleExpandAll = () => {
@@ -616,7 +618,7 @@ export default function SupportCarePlanPage() {
                 <span className="text-xl mr-2">👉</span>
                 <span>Click here to participant signature</span>
               </div>
-              <button
+              {isAdmin && (<button
                 type="button"
                 onClick={() => setIsPdfModalOpen(true)}
                 disabled={autofilling}
@@ -633,7 +635,7 @@ export default function SupportCarePlanPage() {
                     PDF Extraction & AI Autofill
                   </>
                 )}
-              </button>
+              </button>)}
               <button
                 type="button"
                 onClick={toggleExpandAll}
@@ -728,13 +730,13 @@ export default function SupportCarePlanPage() {
           <span>Loading...</span>
         </div>
       )}
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={sessionUserId || searchParams.get("userid") || ""}
         clientType={sessionClientType || searchParams.get("client_type") || ""}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </>
   );
 }

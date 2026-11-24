@@ -6,6 +6,7 @@ import Image from "next/image";
 import { IconLoader, IconFileText } from "@tabler/icons-react";
 import api from "@/src/utils/api";
 import PdfExtractionModal from "@/src/components/PdfExtractionModal";
+import { useIsAdmin } from "@/src/utils/adminCheck";
 
 import { fetchSilStaServiceAgreement, saveSilStaServiceAgreement, generateSilStaServiceAgreementPdf, fetchSilStaServiceAgreementUuid } from "@/src/components/SilStaServiceAgreement/api";
 import { sectionsConfig } from "@/src/components/SilStaServiceAgreement/sectionsConfig";
@@ -218,6 +219,7 @@ export default function SilStaServiceAgreementForm({
   };
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const isAdmin = useIsAdmin();
   const [autofilling, setAutofilling] = useState(false);
 
   const handleAutofill = async () => {
@@ -580,7 +582,7 @@ export default function SilStaServiceAgreementForm({
           onSubmit={handleSave}
         >
           <div className="flex flex-wrap justify-end items-center gap-4 mb-4">
-             <button
+             {isAdmin && (<button
                type="button"
                onClick={() => setIsPdfModalOpen(true)}
                disabled={autofilling}
@@ -597,7 +599,7 @@ export default function SilStaServiceAgreementForm({
                    PDF Extraction & AI Autofill
                  </>
                )}
-             </button>
+             </button>)}
              <div 
                className="bg-yellow-100 border border-yellow-300 text-yellow-800 font-medium py-1 px-3 rounded shadow-sm text-sm cursor-pointer"
                onClick={() => {
@@ -697,13 +699,13 @@ export default function SilStaServiceAgreementForm({
 
         </form>
       </div>
-      <PdfExtractionModal
+      {isAdmin && <PdfExtractionModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         userId={userid || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("userid") || "" : "")}
         clientType={client_type || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get("client_type") || "" : "")}
         onExtractionComplete={handleAutofill}
-      />
+      />}
     </div>
   );
 }
